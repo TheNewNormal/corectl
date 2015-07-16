@@ -49,5 +49,5 @@ LPC_DEV="-l com1,stdio"
 EXTRA_ARGS=${EXTRA_ARGS}
 
 ${LOGGER} ${XHYVE} ${MEM} ${SMP} ${PCI_DEV} ${LPC_DEV} ${NET} ${IMG_HDD} ${UUID} -f kexec,imgs/${VMLINUZ},imgs/${INITRD},"${CMDLINE}"
-${XHYVE}           ${MEM} ${SMP} ${PCI_DEV} ${LPC_DEV} ${NET} ${IMG_HDD} ${UUID} -f kexec,imgs/${VMLINUZ},imgs/${INITRD},"${CMDLINE}"
+sudo ${XHYVE}           ${MEM} ${SMP} ${PCI_DEV} ${LPC_DEV} ${NET} ${IMG_HDD} ${UUID} -f kexec,imgs/${VMLINUZ},imgs/${INITRD},"${CMDLINE}"
 ${LOGGER} "(exited with $?)"
