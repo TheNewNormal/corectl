@@ -38,10 +38,10 @@ func psAction(c *cli.Context) {
 	for _, d := range ls {
 		fmt.Printf("- %s (up %s)\n", d.Name(), time.Now().Sub(d.ModTime()))
 		if buf, _ := ioutil.ReadFile(filepath.Join(SessionContext.configDir,
-			fmt.Sprintf("running/%s/%s", d.Name(), "ip"))); got(buf) {
+			fmt.Sprintf("running/%s/%s", d.Name(), "ip"))); buf != nil {
 			fmt.Println("  - IP:", string(buf))
 		}
-		if got(c.Bool("a")) {
+		if c.Bool("a") {
 			cfg := filepath.Join(SessionContext.configDir,
 				fmt.Sprintf("running/%s/config", d.Name()))
 			cc, _ := ioutil.ReadFile(cfg)

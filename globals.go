@@ -107,7 +107,7 @@ func (session *sessionInfo) init() {
 	var caller *user.User
 
 	if uid := os.Geteuid(); uid == 0 {
-		if usr := os.Getenv("SUDO_USER"); empty(usr) {
+		if usr := os.Getenv("SUDO_USER"); usr == "" {
 			log.Fatalln("This shouldn't be called straight as 'root' user.",
 				"It should be run either as a regular user or via 'sudo'.")
 		} else {
@@ -120,23 +120,23 @@ func (session *sessionInfo) init() {
 	}
 	session.uid, session.gid = caller.Uid, caller.Gid
 	session.configDir = fmt.Sprintf("%s/.coreos/", caller.HomeDir)
-	if pwd, err := os.Getwd(); got(err) {
+	if pwd, err := os.Getwd(); err != nil {
 		log.Fatalln(err)
 	} else {
 		session.pwd = pwd
 	}
 	for _, i := range DefaultChannels {
 		d := fmt.Sprintf("%s/images/%s", session.configDir, i)
-		if err := os.MkdirAll(d, 0755); got(err) {
+		if err := os.MkdirAll(d, 0755); err != nil {
 			log.Fatalln("unable to create", d)
 		}
 	}
 	rundir := fmt.Sprintf("%s/running", session.configDir)
-	if err := os.MkdirAll(rundir, 0755); got(err) {
+	if err := os.MkdirAll(rundir, 0755); err != nil {
 		log.Fatalln("unable to create", rundir)
 	}
 	if session.hasPowers {
-		if err := fixPerms(session.configDir); got(err) {
+		if err := fixPerms(session.configDir); err != nil {
 			log.Fatalln(err)
 		}
 	}

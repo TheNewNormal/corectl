@@ -62,10 +62,10 @@ func (vm *VMInfo) findLatestUpstream() (version string, err error) {
 	signature := "COREOS_VERSION="
 	response, err := http.Get(upstream)
 	// we're probably offline
-	if got(response) {
+	if response != nil {
 		defer response.Body.Close()
 	}
-	if got(err) {
+	if err != nil {
 		return version, err
 	}
 	s := bufio.NewScanner(response.Body)
@@ -90,7 +90,7 @@ func (vm *VMInfo) lookupImage() {
 	if vm.Version == "latest" {
 		vm.Version, err = vm.findLatestUpstream()
 		// as we're probably offline
-		if got(err) {
+		if err != nil {
 			if len(l) == 0 {
 				log.Fatalln("offline and not a single locally image",
 					"available for", vm.Channel, "channel.")
@@ -128,19 +128,19 @@ func downloadAndVerify(t string) {
 	fn := filepath.Base(f)
 
 	tmpDir, err := ioutil.TempDir("", "")
-	if got(err) {
+	if err != nil {
 		log.Fatalln(err)
 	}
 	defer func() {
-		if err := os.RemoveAll(tmpDir); got(err) {
+		if err := os.RemoveAll(tmpDir); err != nil {
 			log.Fatalln(err)
 		}
-		if err := os.RemoveAll(dir); got(err) {
+		if err := os.RemoveAll(dir); err != nil {
 			log.Fatalln(err)
 		}
 	}()
 
-	if _, err = exec.LookPath("gpg"); got(err) {
+	if _, err = exec.LookPath("gpg"); err != nil {
 		log.Println("'gpg' not found in PATH.",
 			"Unable to verify downloaded image's autenticity.")
 	} else {
@@ -157,23 +157,23 @@ func downloadAndVerify(t string) {
 			"--verify", sig, f).CombinedOutput()
 		legit := fmt.Sprintf("%s %s", "Good signature from \"CoreOS Buildbot",
 			"(Offical Builds) <buildbot@coreos.com>\" [ultimate]")
-		if got(err) || !strings.Contains(string(out), legit) {
+		if err != nil || !strings.Contains(string(out), legit) {
 			log.Fatalln("gpg key verification failed for", t)
 		}
 	}
 	if strings.HasSuffix(t, "cpio.gz") {
 		oemdir := filepath.Join(dir, "./usr/share/oem/")
 		oembindir := filepath.Join(oemdir, "./bin/")
-		if err = os.MkdirAll(oembindir, 0755); got(err) {
+		if err = os.MkdirAll(oembindir, 0755); err != nil {
 			log.Fatalln(err)
 		}
 		if err := ioutil.WriteFile(filepath.Join(oemdir,
-			"cloud-config.yml"), []byte(CoreOEMsetup), 0644); got(err) {
+			"cloud-config.yml"), []byte(CoreOEMsetup), 0644); err != nil {
 			log.Fatalln(err)
 		}
 		if err := ioutil.WriteFile(filepath.Join(oembindir,
 			"coreos-setup-environment"),
-			[]byte(CoreOEMsetupEnv), 0755); got(err) {
+			[]byte(CoreOEMsetupEnv), 0755); err != nil {
 			log.Fatalln(err)
 		}
 
@@ -181,26 +181,26 @@ func downloadAndVerify(t string) {
 		oem.SetDir(dir)
 		if out, err := oem.Command("gzip",
 			"-dc", fn).Command("cpio",
-			"-idv").CombinedOutput(); got(err) {
+			"-idv").CombinedOutput(); err != nil {
 			log.Fatalln(out, err)
 		}
 		if out, err := oem.Command("find",
 			"usr", "etc", "usr.squashfs").Command("cpio",
-			"-oz", "-H", "newc", "-O", f).CombinedOutput(); got(err) {
+			"-oz", "-H", "newc", "-O", f).CombinedOutput(); err != nil {
 			log.Fatalln(out, err)
 		}
 	}
 
 	dest := fmt.Sprintf("%s/images/%s/%s", SessionContext.configDir,
 		SessionContext.data.Channel, SessionContext.data.Version)
-	if err = os.MkdirAll(dest, 0755); got(err) {
+	if err = os.MkdirAll(dest, 0755); err != nil {
 		log.Fatalln(err)
 	}
-	if err = os.Rename(f, fmt.Sprintf("%s/%s", dest, fn)); got(err) {
+	if err = os.Rename(f, fmt.Sprintf("%s/%s", dest, fn)); err != nil {
 		log.Fatalln(err)
 	}
 	if SessionContext.hasPowers {
-		if err := fixPerms(dest); got(err) {
+		if err := fixPerms(dest); err != nil {
 			log.Fatalln(err)
 		}
 	}

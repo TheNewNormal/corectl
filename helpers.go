@@ -27,42 +27,6 @@ import (
 	"strings"
 )
 
-// returns true if payload not nil/empty
-func got(in interface{}) bool {
-	switch i := in.(type) {
-	case string:
-		if i != "" {
-			return true
-		}
-	case []string:
-		if len(i) > 0 {
-			return true
-		}
-	case []VMInfo:
-		if len(i) > 0 {
-			return true
-		}
-	// bool is a corner case, and this is useless anyway when interface is bool
-	// just in case we just return original value...
-	case bool:
-		return i
-	case *http.Response:
-		if i != nil {
-			return true
-		}
-	default:
-		if i != nil {
-			return true
-		}
-	}
-	return false
-}
-
-// returns true if payload nil/empty
-func empty(failure interface{}) bool {
-	return !got(failure)
-}
-
 // (recursively) fix permissions on path
 func fixPerms(path string) error {
 	u, _ := strconv.Atoi(SessionContext.uid)
@@ -77,11 +41,11 @@ func fixPerms(path string) error {
 // downloads url to disk and returns its location
 func wget(url string) (f string) {
 	tmpDir, err := ioutil.TempDir("", "coreos")
-	if got(err) {
+	if err != nil {
 		log.Fatalln(err)
 	}
 	cleanup := func() {
-		if err := os.RemoveAll(tmpDir); got(err) {
+		if err := os.RemoveAll(tmpDir); err != nil {
 			log.Println(err)
 		}
 	}
@@ -90,16 +54,16 @@ func wget(url string) (f string) {
 	f = tmpDir + tok[len(tok)-1]
 	fmt.Println("    - downloading", url)
 	output, err := os.Create(f)
-	if got(err) {
+	if err != nil {
 		cleanup()
 		log.Fatalf("%s (%s)", f, err)
 	}
 	defer output.Close()
 	r, err := http.Get(url)
-	if got(r) {
+	if r != nil {
 		defer r.Body.Close()
 	}
-	if got(err) {
+	if err != nil {
 		cleanup()
 		log.Fatalln("remote system seems to be offline...")
 	}
@@ -108,7 +72,7 @@ func wget(url string) (f string) {
 		log.Fatalf("requested URL (%s) doesn't seems to exist...", url)
 	}
 	n, err := io.Copy(output, r.Body)
-	if got(err) {
+	if err != nil {
 		cleanup()
 		log.Fatalf("%s (%s)", err, err)
 	}

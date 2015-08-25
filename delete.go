@@ -48,7 +48,7 @@ func deleteAction(c *cli.Context) {
 			for _, i := range l[0 : l.Len()-1] {
 				if err := os.RemoveAll(fmt.Sprintf("%s/images/%s/%s",
 					SessionContext.configDir,
-					vm.Channel, i)); got(err) {
+					vm.Channel, i)); err != nil {
 					log.Fatalln(err)
 				}
 			}
@@ -58,7 +58,7 @@ func deleteAction(c *cli.Context) {
 			}
 			if err := os.RemoveAll(fmt.Sprintf("%s/images/%s/%s",
 				SessionContext.configDir,
-				vm.Channel, version)); got(err) {
+				vm.Channel, version)); err != nil {
 				log.Fatalln(err)
 			}
 		}

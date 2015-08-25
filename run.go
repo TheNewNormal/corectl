@@ -59,7 +59,7 @@ func runAction(c *cli.Context) {
 	cmdline := fmt.Sprintf("%s %s %s %s %s", "earlyprintk=serial",
 		"console=ttyS0", "coreos.autologin",
 		"localuser="+username.Username, "uuid="+vm.UUID)
-	if got(vm.SSHkey) {
+	if vm.SSHkey != "" {
 		cmdline = fmt.Sprintf("%s sshkey=\"%s\"", cmdline, vm.SSHkey)
 	}
 	vmlinuz := fmt.Sprintf("%s/images/%s/%s/coreos_production_pxe.vmlinuz",
@@ -76,22 +76,22 @@ func runAction(c *cli.Context) {
 		"-c", vm.Cpus,
 		"-A",
 	}
-	if got(vm.Extra) {
+	if vm.Extra != "" {
 		args = append(args, vm.Extra)
 	}
 	rundir := fmt.Sprintf("%s/running/%s/", SessionContext.configDir, vm.UUID)
-	if _, err := os.Stat(filepath.Join(rundir, "/config")); empty(err) {
+	if _, err := os.Stat(filepath.Join(rundir, "/config")); err == nil {
 		log.Fatalln("Aborting. Another VM seems to be running with same UUID.")
 	}
-	if err := os.MkdirAll(rundir, 0755); got(err) {
+	if err := os.MkdirAll(rundir, 0755); err != nil {
 		log.Fatalln("unable to create", rundir)
 	}
-	if got(vm.CloudConfig) {
+	if vm.CloudConfig != "" {
 		if vm.CClocation == Local {
 			cc, _ := ioutil.ReadFile(vm.CloudConfig)
 			if err := ioutil.WriteFile(
 				fmt.Sprintf("%s/cloud-config.local", rundir),
-				cc, 0644); got(err) {
+				cc, 0644); err != nil {
 				log.Fatalln(err)
 			}
 		} else {
@@ -120,17 +120,17 @@ func runAction(c *cli.Context) {
 	cfg, _ := json.MarshalIndent(vm, "", "    ")
 	fmt.Println(string(cfg))
 	if err := ioutil.WriteFile(fmt.Sprintf("%s/config", rundir),
-		[]byte(cfg), 0644); got(err) {
+		[]byte(cfg), 0644); err != nil {
 		log.Fatalln(err)
 	}
 	if SessionContext.hasPowers {
-		if err := fixPerms(rundir); got(err) {
+		if err := fixPerms(rundir); err != nil {
 			log.Fatalln(err)
 		}
 	}
 
 	defer func() {
-		if err := os.RemoveAll(rundir); got(err) {
+		if err := os.RemoveAll(rundir); err != nil {
 			log.Fatalln(err)
 		}
 	}()
@@ -140,7 +140,7 @@ func runAction(c *cli.Context) {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); got(err) {
+	if err := cmd.Run(); err != nil {
 		log.Println("xhyve exited with", err)
 	}
 	usersDir.unshare()
@@ -158,7 +158,7 @@ func (f *etcExports) init() {
 	f.exports = "/etc/exports"
 	var err error
 	f.buf, err = ioutil.ReadFile(f.exports)
-	if got(err) {
+	if err != nil {
 		log.Fatalln(err)
 	}
 	f.signature = fmt.Sprintf("/Users %s -alldirs -mapall=%s:%s",
@@ -176,7 +176,7 @@ func (f *etcExports) init() {
 }
 func (f *etcExports) reload() {
 	cmd := exec.Command("nfsd", "restart")
-	if err := cmd.Run(); got(err) {
+	if err := cmd.Run(); err != nil {
 		log.Fatalln("unable to restart NFS...", err)
 	}
 }
@@ -203,7 +203,7 @@ func (f *etcExports) unshare() {
 
 func (vm *VMInfo) xhyveCheck(xhyve string) {
 	vm.Xhyve = xhyve
-	if _, err := exec.LookPath(xhyve); got(err) {
+	if _, err := exec.LookPath(xhyve); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -211,7 +211,7 @@ func (vm *VMInfo) uuidCheck(xxid string) {
 	if xxid == "random" {
 		vm.UUID = uuid.NewV4().String()
 	} else {
-		if _, err := uuid.FromString(xxid); got(err) {
+		if _, err := uuid.FromString(xxid); err != nil {
 			log.Printf("%s not a valid UUID as it doesn't follow RFC 4122. %s",
 				xxid, "    using a randomly generated one")
 			vm.UUID = uuid.NewV4().String()
@@ -222,7 +222,7 @@ func (vm *VMInfo) uuidCheck(xxid string) {
 }
 
 func (vm *VMInfo) validateCPU(cores string) {
-	if _, err := strconv.Atoi(cores); got(err) {
+	if _, err := strconv.Atoi(cores); err != nil {
 		log.Printf(" %s not a reasonable CPU #. %s", cores,
 			"    using '1', the default")
 		cores = "1"
@@ -231,7 +231,7 @@ func (vm *VMInfo) validateCPU(cores string) {
 }
 
 func (vm *VMInfo) validateRAM(ram string) {
-	if v, err := strconv.Atoi(ram); got(err) || v < 1024 {
+	if v, err := strconv.Atoi(ram); err != nil || v < 1024 {
 		fmt.Printf(" '%s' not a reasonable memory value. %s", ram,
 			"Using '1024', the default")
 		ram = "1024"
@@ -239,16 +239,16 @@ func (vm *VMInfo) validateRAM(ram string) {
 	vm.Memory = ram
 }
 func (vm *VMInfo) validateCloudConfig(config string) {
-	if got(config) {
+	if config != "" {
 		response, err := http.Get(config)
-		if got(response) {
+		if response != nil {
 			response.Body.Close()
 		}
 		vm.CloudConfig = config
-		if empty(err) && response.StatusCode == 200 {
+		if err == nil && response.StatusCode == 200 {
 			vm.CClocation = Remote
 		} else {
-			if _, err := os.Stat(config); got(err) {
+			if _, err := os.Stat(config); err != nil {
 				log.Fatalln(err)
 			}
 			vm.CloudConfig = filepath.Join(SessionContext.pwd, config)
@@ -257,7 +257,7 @@ func (vm *VMInfo) validateCloudConfig(config string) {
 	}
 }
 func (vm *VMInfo) setSSHKey(key string) {
-	if got(key) {
+	if key != "" {
 		vm.SSHkey = key
 	}
 }
@@ -268,7 +268,7 @@ func (vm *VMInfo) tweakXhyve(extra string) {
 }
 
 func (vm *VMInfo) validateNetworkInterfaces(nics []string) {
-	if got(nics) {
+	if len(nics) > 0 {
 		for _, j := range nics {
 			if strings.HasPrefix(j, "eth") {
 				r, _ := regexp.Compile("eth([0-9]{1})$")
@@ -314,14 +314,14 @@ func (vm *VMInfo) validateNetworkInterfaces(nics []string) {
 	}
 }
 func (vm *VMInfo) validateVolumes(volumes []string) {
-	if got(volumes) {
+	if len(volumes) > 0 {
 		for _, j := range volumes {
 			arr := strings.Split(j, ",")
 			if len(arr) != 2 {
 				log.Fatalln("Aborting: --volume", j,
 					"not in a reasonable format (cdrom[0-9]|vd[a-z]),PATH. ")
 			}
-			if _, err := os.Stat(arr[1]); got(err) {
+			if _, err := os.Stat(arr[1]); err != nil {
 				log.Fatalln("Aborting:", arr[1], "not a valid file path")
 			}
 			if strings.HasPrefix(arr[0], "vd") {
