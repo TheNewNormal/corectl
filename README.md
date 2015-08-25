@@ -66,7 +66,7 @@ Update Strategy: No Reboots
 Last login: Tue Aug 25 13:23:20 +0000 2015 on /dev/tty1.
 core@localhost ~ $
 ```
-you 'll find out that /Users is available (via NFS) already inside your VM.
+you 'll find out that `/Users` is available (via NFS) already inside your VM.
 that will come handy when you come to play with docker volumes later...
 
 ### Usage
@@ -141,6 +141,7 @@ or ...
 UUID	ACI	STATE	NETWORKS
 ```
 - have fun!
+
 ## Contributing
 coreos-xhyve is an [open source](http://opensource.org/osd) project under the
 [Apache License, Version 2.0](http://opensource.org/licenses/Apache-2.0), ence
