@@ -1,33 +1,181 @@
-#!/bin/bash
+// Copyright 2015 - António Meireles  <antonio.meireles@reformi.st>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 
-set -e -o pipefail
+package main
 
-getVersionID () {
-    declare channel="$1"
-    v_url="http://${channel}.release.core-os.net/amd64-usr/current/version.txt"
-    curl -Lsk "${v_url}" | grep COREOS_VERSION_ID= | sed -e 's,.*=,,'
+import (
+	"fmt"
+	"log"
+	"os"
+	"os/user"
+
+	"github.com/codegangsta/cli"
+)
+
+type sessionInfo struct {
+	configDir string
+	pwd       string
+	uid       string
+	gid       string
+	hasPowers bool
+	debug     bool
+	json      bool
+	data      VMInfo
 }
 
-CHANNEL=${CHANNEL:-alpha}
-VERSION=${VERSION:-$(getVersionID ${CHANNEL})}
-# Ensure that required executables exist before proceeding
-which curl >/dev/null || (echo "CURL is required." && exit 1)
+// SessionContext - running session
+var SessionContext sessionInfo
 
-type gpg 2>&1 > /dev/null || echo "GPG was not found. Downloaded images integrity won't be verified."
+// VMInfo - individual VM settings
+type VMInfo struct {
+	Channel     string
+	Version     string
+	Cpus        string
+	Memory      string
+	UUID        string
+	Xhyve       string
+	CloudConfig string
+	CClocation  int
+	SSHkey      string
+	Extra       string
+	Network     networkAssets
+	Storage     storageAssets
+}
 
-# Everything we do should be user-access only!
-umask 077
+// networkDevice types
+const (
+	_ = iota
+	Raw
+	Tap
+)
 
-# Pre-flight checks pass, lets get this party started!
-WORKDIR=$(mktemp -d coreos-install.XXXXXXXXXX)
-trap "rm -rf '${WORKDIR}'" EXIT
-chmod 700 ${WORKDIR}
+// storageDevice types
+const (
+	_ = iota
+	HDD
+	CDROM
+)
 
-# Image signing key: buildbot@coreos.com
-GPG_LONG_ID="50E0885593D2DCB4"
-GPG_KEY="-----BEGIN PGP PUBLIC KEY BLOCK-----
+//
+type NetworkInterface struct {
+	Slot int
+	Type int
+}
+
+//
+type StorageDevice struct {
+	Slot int
+	Type int
+	Path string
+}
+
+type storageAssets struct {
+	CDDrives   map[string]StorageDevice
+	HardDrives map[string]StorageDevice
+}
+
+type networkAssets struct {
+	Tap map[string]NetworkInterface
+	Raw map[string]NetworkInterface
+}
+
+// CloudConfig types
+const (
+	_ = iota
+	Local
+	Remote
+)
+
+func (session *sessionInfo) init() {
+	log.SetFlags(0)
+	log.SetOutput(os.Stderr)
+	log.SetPrefix("[coreos] ")
+
+	var caller *user.User
+
+	if uid := os.Geteuid(); uid == 0 {
+		if usr := os.Getenv("SUDO_USER"); empty(usr) {
+			log.Fatalln("This shouldn't be called straight as 'root' user.",
+				"It should be run either as a regular user or via 'sudo'.")
+		} else {
+			caller, _ = user.Lookup(usr)
+			session.hasPowers = true
+		}
+	} else {
+		session.hasPowers = false
+		caller, _ = user.Current()
+	}
+	session.uid, session.gid = caller.Uid, caller.Gid
+	session.configDir = fmt.Sprintf("%s/.coreos/", caller.HomeDir)
+	if pwd, err := os.Getwd(); got(err) {
+		log.Fatalln(err)
+	} else {
+		session.pwd = pwd
+	}
+	for _, i := range DefaultChannels {
+		d := fmt.Sprintf("%s/images/%s", session.configDir, i)
+		if err := os.MkdirAll(d, 0755); got(err) {
+			log.Fatalln("unable to create", d)
+		}
+	}
+	rundir := fmt.Sprintf("%s/running", session.configDir)
+	if err := os.MkdirAll(rundir, 0755); got(err) {
+		log.Fatalln("unable to create", rundir)
+	}
+	if session.hasPowers {
+		if err := fixPerms(session.configDir); got(err) {
+			log.Fatalln(err)
+		}
+	}
+}
+func (session *sessionInfo) canRun() {
+	if !session.hasPowers {
+		log.Fatalln("not enough permissions to run VMs. use 'sudo'.")
+	}
+}
+func (vm *VMInfo) setChannel(channel string) {
+	var b string
+	for _, b = range DefaultChannels {
+		if b == channel {
+			vm.Channel = b
+			return
+		}
+	}
+	log.Printf("'%s' is not a recognized CoreOS image channel. %s",
+		channel, "Using default ('alpha').")
+	vm.Channel = "alpha"
+	return
+}
+func (vm *VMInfo) setVersion(version string) {
+	vm.Version = version
+}
+
+// CoreOS public release streams
+var DefaultChannels = []string{"alpha", "beta", "stable"}
+
+// NOTyetImplementedCommand ...
+func NOTyetImplementedCommand(c *cli.Context) {
+	fmt.Println("placeholder. NOT YET IMPLEMENTED...")
+}
+
+// GPGLongId
+const GPGLongID = "50E0885593D2DCB4"
+
+// GPGKey
+const GPGKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v2
-
 mQINBFIqVhQBEADjC7oxg5N9Xqmqqrac70EHITgjEXZfGm7Q50fuQlqDoeNWY+sN
 szpw//dWz8lxvPAqUlTSeR+dl7nwdpG2yJSBY6pXnXFF9sdHoFAUI0uy1Pp6VU9b
 /9uMzZo+BBaIfojwHCa91JcX3FwLly5sPmNAjgiTeYoFmeb7vmV9ZMjoda1B8k4e
@@ -134,37 +282,82 @@ ju5IO7bjgCqTFeR3YYUN87l8ofdARx3shApXS6TkVcwaTv5eqzdFO9fZeRqHj4L9
 Pg==
 =LY4G
 -----END PGP PUBLIC KEY BLOCK-----
-"
+`
 
-# Setup GnuPG for verifying the image signature
-export GNUPGHOME="${WORKDIR}/gnupg"
-mkdir "${GNUPGHOME}"
+//
+const CoreOEMsetupEnv = `#!/bin/bash
+UUID=$(cat /proc/cmdline | sed -e 's,.*uuid=,,' -e 's, .*,,')
+CALLERID=$(cat /proc/cmdline | sed -e 's,.*localuser=,,' -e 's, .*,,')
+STATUSDIR=/Users/${CALLERID}/.coreos/running/${UUID}
+# wait for eth0 to get up...
+while [ 1 ]; do
+  COREOS_PUBLIC_IPV4=$(/bin/ifconfig eth0 | awk '/inet /{print $2}')
+  if [ -n "${COREOS_PUBLIC_IPV4}" ]; then
+     break
+  fi
+  sleep 1; done
+COREOS_PRIVATE_IPV4=${COREOS_PUBLIC_IPV4}
+( echo UUID=${UUID};
+  echo CALLERID=${CALLERID};
+  echo STATUSDIR=${STATUSDIR};
+  echo COREOS_PUBLIC_IPV4=${COREOS_PUBLIC_IPV4};
+  echo COREOS_PRIVATE_IPV4=${COREOS_PRIVATE_IPV4};
+) > /etc/environment
+`
 
-type gpg 2>&1 > /dev/null && gpg --batch --quiet --import <<<"$GPG_KEY"
+//
+const CoreOEMsetup = `#cloud-config
 
-function get {
-	FILE=$1
-	if [ -f imgs/${CHANNEL}.${VERSION}.${FILE} ]; then
-		echo "found cached $FILE (${CHANNEL}/${VERSION})"
-		return
-	fi
+write-files:
+  - path: /etc/conf.d/nfs
+    permissions: '0644'
+    content: |
+      OPTS_RPC_MOUNTD=""
+coreos:
+  units:
+    - name: rpc-statd.service
+      command: start
+      enable: true
+    - name: Users.mount
+      command: start
+      content: |
+        [Mount]
+        ConditionPathExists=/etc/environment
+        What=192.168.64.1:/Users
+        Where=/Users
+        Options=rw,async,nolock,noatime,rsize=32768,wsize=32768
+        Type=nfs
+    - name: local-cloud-config.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+          Description=Load cloud-config from file
+          Requires=coreos-setup-environment.service
+          After=coreos-setup-environment.service
+          Before=user-config.target
+          Requires=Users.mount
+          After=Users.mount
 
-	cd ${WORKDIR}
-	curl "${ROOT}${FILE}" > ${FILE}
-	curl "${ROOT}${FILE}.sig" > ${FILE}.sig
-	cd -
+        [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          EnvironmentFile=/etc/environment
+          ExecStart=/bin/bash -c "[[ -f $STATUSDIR/cloud-config.local ]] && \
+						/usr/bin/coreos-cloudinit \
+							-from-file $STATUSDIR/cloud-config.local || true"
+    - name: xhyve.service
+      command: start
+      content: |
+        [Unit]
+        Description=updates xhyve context
+        Requires=Users.mount
+        After=Users.mount
+        ConditionPathExists=/etc/environment
 
-	type gpg 2>&1 > /dev/null && gpg --batch --trusted-key "${GPG_LONG_ID}" \
-		--verify "${WORKDIR}/${FILE}.sig" "${WORKDIR}/${FILE}"
-	mv ${WORKDIR}/${FILE} imgs/${CHANNEL}.${VERSION}.${FILE}
-	mv ${WORKDIR}/${FILE}.sig imgs/${CHANNEL}.${VERSION}.${FILE}.sig
-}
-
-mkdir -p imgs
-ROOT=http://${CHANNEL}.release.core-os.net/amd64-usr/${VERSION}/
-VMLINUZ=coreos_production_pxe.vmlinuz
-INITRD=coreos_production_pxe_image.cpio.gz
-get $VMLINUZ
-get $INITRD
-
-
+        [Service]
+        Type=oneshot
+        RemainAfterExit=true
+        EnvironmentFile=/etc/environment
+        ExecStart=/bin/bash -c "echo ${COREOS_PUBLIC_IPV4} > ${STATUSDIR}/ip"
+`

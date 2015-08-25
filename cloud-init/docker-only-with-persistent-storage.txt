@@ -1,0 +1,79 @@
+#cloud-config
+
+coreos:
+  units:
+    - name: docker-tcp.socket
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=Docker Socket for the API
+
+        [Socket]
+        ListenStream=2375
+        BindIPv6Only=both
+        Service=docker.service
+
+        [Install]
+        WantedBy=sockets.target
+
+    - name: format-ephemeral.service
+      command: start
+      content: |
+        [Unit]
+        Description=Formats the persistent drive (if not formated yet)
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/bin/sh -c '/usr/sbin/blkid -pi /dev/vda | grep TYPE= || /usr/sbin/mkfs.ext4 /dev/vda'
+    - name: persistent-vda.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Mount ephemeral to /var/lib/docker
+        Requires=format-ephemeral.service docker.service rkt-metadata.socket
+        After=format-ephemeral.service
+        Before=docker.service rkt-metadata.socket
+        [Mount]
+        What=/dev/vda
+        Where=/persistent/vda
+        Type=ext4
+    - name: persistent-vda-checks.service
+      command: start
+      content: |
+        [Unit]
+        Description=prepare for /var/lib/{docker,rkt}
+        Requires=persistent-vda.mount
+        After=persistent-vda.mount
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/bin/sh -c '[[ -d /persistent/vda/docker ]] || mkdir -p /persistent/vda/docker'
+        ExecStart=/bin/sh -c '[[ -d /persistent/vda/rkt ]] || mkdir -p /persistent/vda/rkt'
+    - name: var-lib-docker.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Binds /persistent/vda/docker to /var/lib/docker
+        After=persistent-vda-checks.service
+        Requires=persistent-vda-checks.service docker.service
+        Before=docker.service
+        [Mount]
+        Before=docker.service
+        What=/persistent/vda/docker
+        Where=/var/lib/docker
+        Type=none
+        Options=bind
+    - name: var-lib-rkt.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Binds /persistent/vda/rkt to /var/lib/rkt
+        Requires=persistent-vda-checks.service rkt-metadata.socket
+        After=persistent-vda-checks.service
+        Before=rkt-metadata.socket
+        [Mount]
+        What=/persistent/vda/rkt
+        Where=/var/lib/rkt
+        Type=none
+        Options=bind
