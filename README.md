@@ -37,7 +37,7 @@ Usage: xhyve [-behuwxACHPWY] [-c vcpus] [-g <gdb port>] [-l <lpc>] ...
 ```
 ❯❯❯ git clone git@github.com:coreos/coreos-xhyve.git
 ❯❯❯ cd coreos-xhyve
-❯❯❯ go build
+❯❯❯ godep go build
 ```
 ### kickstart a CoreOS VM
 the following command will fetch the `latest` CoreOS Alpha image

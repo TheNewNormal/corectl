@@ -1,0 +1,33 @@
+{
+	"ImportPath": "github.com/AntonioMeireles/coreos-xhyve",
+	"GoVersion": "go1.5",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/blang/semver",
+			"Comment": "v3.0.1",
+			"Rev": "31b736133b98f26d5e078ec9eb591666edfd091f"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "1.2.0-137-gbca61c4",
+			"Rev": "bca61c476e3c752594983e4c9bcd5f62fb09f157"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/inject",
+			"Comment": "v1.0-rc1-10-g33e0aa1",
+			"Rev": "33e0aa1cb7c019ccc3fbe049a8262a6403d30504"
+		},
+		{
+			"ImportPath": "github.com/codeskyblue/go-sh",
+			"Comment": "v0.1-37-g3d593d4",
+			"Rev": "3d593d477915b4d2f2e74b2e041495345647a46b"
+		},
+		{
+			"ImportPath": "github.com/satori/go.uuid",
+			"Rev": "afe1e2ddf0f05b7c29d388a3f8e76cb15c2231ca"
+		}
+	]
+}
