@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"strconv"
 
 	"github.com/codegangsta/cli"
 )
@@ -160,6 +161,14 @@ func (vm *VMInfo) setChannel(channel string) {
 }
 func (vm *VMInfo) setVersion(version string) {
 	vm.Version = version
+}
+
+func (vm *VMInfo) setDefaultNIC() {
+	vm.Network.Raw = make(map[string]NetworkInterface, 0)
+	vm.Network.Raw[strconv.Itoa(0)] = NetworkInterface{
+		Type: Raw,
+		Slot: 0,
+	}
 }
 
 // CoreOS public release streams

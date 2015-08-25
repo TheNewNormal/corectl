@@ -75,7 +75,6 @@ func runAction(c *cli.Context) {
 		"-m", fmt.Sprintf("%sM", vm.Memory),
 		"-c", vm.Cpus,
 		"-A",
-		"-s", "2:0,virtio-net",
 	}
 	if got(vm.Extra) {
 		args = append(args, vm.Extra)
@@ -100,6 +99,14 @@ func runAction(c *cli.Context) {
 				cmdline, vm.CloudConfig)
 		}
 	}
+	vm.setDefaultNIC()
+	for _, v := range vm.Network.Raw {
+		args = append(args, "-s", fmt.Sprintf("2:%d,virtio-net", v.Slot))
+	}
+	// for _, v := range vm.Network.Tap {
+	// 	args = append(args, "-s", fmt.Sprintf("2:%d,virtio-tap,%s", v.Slot))
+	// }
+
 	for _, v := range vm.Storage.CDDrives {
 		args = append(args, "-s", fmt.Sprintf("3:%d,ahci-cd,%s", v.Slot, v.Path))
 	}
@@ -261,6 +268,50 @@ func (vm *VMInfo) tweakXhyve(extra string) {
 }
 
 func (vm *VMInfo) validateNetworkInterfaces(nics []string) {
+	if got(nics) {
+		for _, j := range nics {
+			if strings.HasPrefix(j, "eth") {
+				r, _ := regexp.Compile("eth([0-9]{1})$")
+				if !r.MatchString(j) {
+					log.Fatalln("Aborting: --net", j,
+						"not in a reasonable format (eth|tap)[0-9]{1}$,PATH. ")
+				}
+				slot, _ := strconv.Atoi(string(j[len(j)-1]))
+				if vm.Network.Raw == nil {
+					vm.Network.Raw = make(map[string]NetworkInterface, 0)
+				}
+				cd := vm.Network.Raw
+				k := strconv.Itoa(slot)
+				if _, ok := cd[k]; ok {
+					log.Fatalln("Aborting: attempting to define",
+						j, "twice")
+				}
+				kp := strconv.Itoa(slot - 1)
+				_, ok := cd[kp]
+				if !(slot == 0 || ok) {
+					log.Fatalln("Aborting: cannot spec slot",
+						fmt.Sprintf("'tap%d'", slot),
+						"without slot",
+						fmt.Sprintf("'tap%d'", slot-1),
+						"populated in advance")
+				}
+				cd[k] = NetworkInterface{
+					Type: Raw,
+					Slot: slot,
+				}
+			} else if strings.HasPrefix(j, "tap") {
+				r, _ := regexp.Compile("tap([0-9]{1})$")
+				if !r.MatchString(j) {
+					log.Fatalln("Aborting: --net", j,
+						"not in a reasonable format (eth|tap)[0-9]{1}$,PATH. ")
+				}
+				log.Println("Tap interfaces not yet supported. ignoring")
+			} else {
+				log.Fatalln("Aborting: --net", j,
+					"not in a reasonable format (eth|tap)[0-9]{1}$,PATH. ")
+			}
+		}
+	}
 }
 func (vm *VMInfo) validateVolumes(volumes []string) {
 	if got(volumes) {
@@ -269,87 +320,82 @@ func (vm *VMInfo) validateVolumes(volumes []string) {
 			if len(arr) != 2 {
 				log.Fatalln("Aborting: --volume", j,
 					"not in a reasonable format (cdrom[0-9]|vd[a-z]),PATH. ")
-			} else {
-				if _, err := os.Stat(arr[1]); got(err) {
-					log.Fatalln("Aborting:", arr[1], "not a valid file path")
-				}
-				if strings.HasPrefix(arr[0], "vd") {
-					r, _ := regexp.Compile("vd([a-z]{1})$")
-					if r.MatchString(arr[0]) {
-						slot := int(arr[0][2] - 'a')
-						if vm.Storage.HardDrives == nil {
-							vm.Storage.HardDrives = make(map[string]StorageDevice, 0)
-						}
-						hdd := vm.Storage.HardDrives
-						k := strconv.Itoa(slot)
-						if _, ok := hdd[k]; ok {
-							log.Fatalln("Aborting: attempting to define",
-								arr[0], "twice")
-						} else {
-							kp := strconv.Itoa(slot - 1)
-							_, ok = hdd[kp]
-							if slot == 0 || ok {
-								hdd[k] = StorageDevice{
-									Type: HDD,
-									Slot: slot,
-									Path: filepath.Join(SessionContext.pwd,
-										arr[1]),
-								}
-							} else {
-								log.Fatalln("Aborting: cannot spec slot",
-									fmt.Sprintf("'vd%s'", string('a'+slot)),
-									"without slot",
-									fmt.Sprintf("'vd%s'", string('a'+slot-1)),
-									"populated in advance")
-							}
-						}
-					} else {
-						log.Fatalln("Aborting: --volume", j,
-							"not in a recognizable format",
-							"- ((cdrom([0-9]{1})|vd([a-z]{1}))$,PATH")
-					}
-				} else if strings.HasPrefix(arr[0], "cdrom") {
-					r, _ := regexp.Compile("cdrom([0-9]{1})$")
-					if r.MatchString(arr[0]) {
-						slot, _ := strconv.Atoi(string(arr[0][len(arr[0])-1]))
-						if vm.Storage.CDDrives == nil {
-							vm.Storage.CDDrives = make(map[string]StorageDevice, 0)
-						}
-						cd := vm.Storage.CDDrives
-						k := strconv.Itoa(slot)
-						if _, ok := cd[k]; ok {
-							log.Fatalln("Aborting: attempting to define",
-								arr[0], "twice")
-						} else {
-							kp := strconv.Itoa(slot - 1)
-							_, ok = cd[kp]
-							if slot == 0 || ok {
-								cd[k] = StorageDevice{
-									Type: CDROM,
-									Slot: slot,
-									Path: filepath.Join(SessionContext.pwd,
-										arr[1]),
-								}
-							} else {
-								log.Fatalln("Aborting: cannot spec slot",
-									fmt.Sprintf("'cdrom%d'", slot),
-									"without slot",
-									fmt.Sprintf("'cdrom%d'", slot-1),
-									"populated in advance")
-							}
-						}
-					} else {
-						log.Fatalln("Aborting: --volume", j,
-							"not in a recognizable format",
-							"- ((cdrom([0-9]{1})|vd([a-z]{1}))$,PATH")
-					}
-				} else {
+			}
+			if _, err := os.Stat(arr[1]); got(err) {
+				log.Fatalln("Aborting:", arr[1], "not a valid file path")
+			}
+			if strings.HasPrefix(arr[0], "vd") {
+				r, _ := regexp.Compile("vd([a-z]{1})$")
+				if !r.MatchString(arr[0]) {
 					log.Fatalln("Aborting: --volume", j,
 						"not in a recognizable format",
 						"- ((cdrom([0-9]{1})|vd([a-z]{1}))$,PATH")
 				}
+				slot := int(arr[0][2] - 'a')
+				if vm.Storage.HardDrives == nil {
+					vm.Storage.HardDrives = make(map[string]StorageDevice, 0)
+				}
+				hdd := vm.Storage.HardDrives
+				k := strconv.Itoa(slot)
+				if _, ok := hdd[k]; ok {
+					log.Fatalln("Aborting: attempting to define",
+						arr[0], "twice")
+				}
+				kp := strconv.Itoa(slot - 1)
+				_, ok := hdd[kp]
+				if !(slot == 0 || ok) {
+					log.Fatalln("Aborting: cannot spec slot",
+						fmt.Sprintf("'vd%s'", string('a'+slot)),
+						"without slot",
+						fmt.Sprintf("'vd%s'", string('a'+slot-1)),
+						"populated in advance")
+				}
+				hdd[k] = StorageDevice{
+					Type: HDD,
+					Slot: slot,
+					Path: filepath.Join(SessionContext.pwd,
+						arr[1]),
+				}
+
+			} else if strings.HasPrefix(arr[0], "cdrom") {
+				r, _ := regexp.Compile("cdrom([0-9]{1})$")
+				if !r.MatchString(arr[0]) {
+					log.Fatalln("Aborting: --volume", j,
+						"not in a recognizable format",
+						"- ((cdrom([0-9]{1})|vd([a-z]{1}))$,PATH")
+				}
+				slot, _ := strconv.Atoi(string(arr[0][len(arr[0])-1]))
+				if vm.Storage.CDDrives == nil {
+					vm.Storage.CDDrives = make(map[string]StorageDevice, 0)
+				}
+				cd := vm.Storage.CDDrives
+				k := strconv.Itoa(slot)
+				if _, ok := cd[k]; ok {
+					log.Fatalln("Aborting: attempting to define",
+						arr[0], "twice")
+				}
+				kp := strconv.Itoa(slot - 1)
+				_, ok := cd[kp]
+				if !(slot == 0 || ok) {
+					log.Fatalln("Aborting: cannot spec slot",
+						fmt.Sprintf("'cdrom%d'", slot),
+						"without slot",
+						fmt.Sprintf("'cdrom%d'", slot-1),
+						"populated in advance")
+				}
+				cd[k] = StorageDevice{
+					Type: CDROM,
+					Slot: slot,
+					Path: filepath.Join(SessionContext.pwd,
+						arr[1]),
+				}
+			} else {
+				log.Fatalln("Aborting: --volume", j,
+					"not in a recognizable format",
+					"- ((cdrom([0-9]{1})|vd([a-z]{1}))$,PATH")
 			}
 		}
+
 	}
 }
 
