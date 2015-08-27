@@ -15,6 +15,52 @@
 
 package main
 
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+var (
+	// RootCmd ...
+	RootCmd = &cobra.Command{
+		Use:   "coreos",
+		Short: "CoreOS, on top of OS X and xhyve, made simple.",
+		Long: fmt.Sprintf("%s\n%s",
+			"CoreOS, on top of OS X and xhyve, made simple.",
+			"❯❯❯ http://github.com/coreos/coreos-xhyve"),
+		Run: func(cmd *cobra.Command, args []string) {
+			versionCommand(cmd, args)
+			cmd.Usage()
+		},
+	}
+)
+
 func main() {
 	RootCmd.Execute()
+}
+
+func init() {
+	// viper & cobra
+	viper.SetEnvPrefix("COREOS")
+	viper.AutomaticEnv()
+
+	RootCmd.Flags().Bool("json", false,
+		"outputs in JSON for easy 3rd party integration")
+	viper.BindPFlag("json", RootCmd.Flags().Lookup("json"))
+
+	RootCmd.Flags().Bool("debug", false,
+		"adds extra verbosity for debugging purposes")
+	viper.BindPFlag("debug", RootCmd.Flags().Lookup("debug"))
+
+	// logger defaults
+	log.SetFlags(0)
+	log.SetOutput(os.Stderr)
+	log.SetPrefix("[coreos] ")
+
+	// remaining defaults / startupChecks
+	SessionContext.init()
 }
