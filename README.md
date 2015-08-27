@@ -71,29 +71,29 @@ that will come handy when you come to play with docker volumes later...
 
 ### Usage
 ```
-NAME:
-   coreos - CoreOS (on top of OS X and xhyve) made simple.
-            http://github.com/coreos/coreos-xhyve
+0.0.1
 
-USAGE:
-   coreos [global options] command [command options] [arguments...]
+Usage:
+  coreos [flags]
+  coreos [command]
 
-VERSION:
-   0.0.1
+Available Commands:
+  rm          deletes CoreOS image locally
+  halt        halts a running CoreOS instance
+  ls          lists locally available CoreOS images
+  ps          lists running CoreOS instances
+  pull        pull a CoreOS image from upstream
+  run         pull a CoreOS image from upstream
+  version     displays the version number
+  help        Help about any command
 
-COMMANDS:
-   pull, get, fetch	Pull a CoreOS image from upstream
-   ls, list		Lists locally available CoreOS images
-   rm, rmi		Deletes CoreOS image locally
-   run			Runs a new CoreOS container
-   ps			Lists running CoreOS instances
-   kill			Kills a running CoreOS instance
-   help, h		Shows a list of commands or help for one command
+Flags:
+      --debug[=false]: adds extra verbosity for debugging purposes
+  -h, --help[=false]: help for coreos
+      --json[=false]: outputs in JSON for easy 3rd party integration
 
-GLOBAL OPTIONS:
-   --debug	enables debug output
-   --json	enables json output
-   --help, -h	show help
+
+Use "coreos [command] --help" for more information about a command.
 ```
 
 ### simple usage recipe - a docker and rkt playground.
@@ -106,7 +106,7 @@ dd if=/dev/zero of=persistent.img bs=1G count=16
   ```
   sudo  SSHKEY="ssh-rsa AAAAB3...== x@y.z" \
     UUID=deadbeef-dead-dead-dead-deaddeafbeef \
-    ./coreos-xhyve run --volume vda,/path/to/persistent.img --cloud_config \
+    ./coreos-xhyve run --volume vda@/path/to/persistent.img --cloud_config \
     cloud-init/docker-only-with-persistent-storage.txt --cpus 2 --memory 4096
   ```
  this will start a VM with the volume we created previously set as /dev/vda,

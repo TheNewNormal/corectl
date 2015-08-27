@@ -15,38 +15,6 @@
 
 package main
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/codegangsta/cli"
-)
-
 func main() {
-	SessionContext.init()
-	blob := cli.NewApp()
-	blob.HideVersion = true
-	blob.Name = "coreos"
-	blob.Version = "0.0.1"
-	blob.Usage = fmt.Sprintf("%s\n%s",
-		"CoreOS (on top of OS X and xhyve) made simple.",
-		"            http://github.com/coreos/coreos-xhyve")
-	blob.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enables debug output",
-		}, cli.BoolFlag{
-			Name:  "json",
-			Usage: "enables json output",
-		},
-	}
-	blob.Commands = []cli.Command{
-		pullCommand(),
-		lsCommand(),
-		rmCommand(),
-		runCommand(),
-		psCommand(),
-		killCommand(),
-	}
-	blob.Run(os.Args)
+	RootCmd.Execute()
 }

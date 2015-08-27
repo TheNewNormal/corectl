@@ -30,30 +30,40 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/satori/go.uuid"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-func runAction(c *cli.Context) {
+var (
+	runCmd = &cobra.Command{
+		Use:     "run",
+		Aliases: []string{"get", "fetch"},
+		Short:   "pull a CoreOS image from upstream",
+		Run:     runCommand,
+	}
+)
+
+func runCommand(cmd *cobra.Command, args []string) {
 	SessionContext.canRun()
 	vm := &SessionContext.data
 
-	vm.setChannel(c.String("channel"))
-	vm.setVersion(c.String("version"))
+	vm.setChannel(viper.GetString("channel"))
+	vm.setVersion(viper.GetString("version"))
 
 	vm.lookupImage()
 
-	vm.xhyveCheck(c.String("xhyve"))
-	vm.tweakXhyve(c.String("extra"))
+	vm.xhyveCheck(viper.GetString("xhyve"))
+	vm.tweakXhyve(viper.GetString("extra"))
 
-	vm.uuidCheck(c.String("uuid"))
-	vm.validateCPU(c.String("cpus"))
-	vm.validateRAM(c.String("memory"))
-	vm.setSSHKey(c.String("sshkey"))
+	vm.uuidCheck(viper.GetString("uuid"))
+	vm.validateCPU(viper.GetString("cpus"))
+	vm.validateRAM(viper.GetString("memory"))
+	vm.setSSHKey(viper.GetString("sshkey"))
 
-	vm.validateNetworkInterfaces(c.StringSlice("net"))
-	vm.validateVolumes(c.StringSlice("volume"))
-	vm.validateCloudConfig(c.String("cloud_config"))
+	vm.validateVolumes(pSlice("volume"))
+	vm.validateNetworkInterfaces(pSlice("net"))
+	vm.validateCloudConfig(viper.GetString("cloud_config"))
 
 	username, _ := user.LookupId(SessionContext.uid)
 	cmdline := fmt.Sprintf("%s %s %s %s %s", "earlyprintk=serial",
@@ -67,7 +77,7 @@ func runAction(c *cli.Context) {
 	initrd := fmt.Sprintf("%s/images/%s/%s/coreos_production_pxe_image.cpio.gz",
 		SessionContext.configDir, vm.Channel, vm.Version)
 
-	args := []string{
+	instr := []string{
 		"-s", "0:0,hostbridge",
 		"-l", "com1,stdio",
 		"-s", "31,lpc",
@@ -77,7 +87,7 @@ func runAction(c *cli.Context) {
 		"-A",
 	}
 	if vm.Extra != "" {
-		args = append(args, vm.Extra)
+		instr = append(instr, vm.Extra)
 	}
 	rundir := fmt.Sprintf("%s/running/%s/", SessionContext.configDir, vm.UUID)
 	if _, err := os.Stat(filepath.Join(rundir, "/config")); err == nil {
@@ -101,17 +111,19 @@ func runAction(c *cli.Context) {
 	}
 	vm.setDefaultNIC()
 	for _, v := range vm.Network.Raw {
-		args = append(args, "-s", fmt.Sprintf("2:%d,virtio-net", v.Slot))
+		instr = append(instr, "-s", fmt.Sprintf("2:%d,virtio-net", v.Slot))
 	}
 	// for _, v := range vm.Network.Tap {
-	// 	args = append(args, "-s", fmt.Sprintf("2:%d,virtio-tap,%s", v.Slot))
+	// 	instr = append(instr, "-s", fmt.Sprintf("2:%d,virtio-tap,%s", v.Slot))
 	// }
 
 	for _, v := range vm.Storage.CDDrives {
-		args = append(args, "-s", fmt.Sprintf("3:%d,ahci-cd,%s", v.Slot, v.Path))
+		instr = append(instr, "-s", fmt.Sprintf("3:%d,ahci-cd,%s",
+			v.Slot, v.Path))
 	}
 	for _, v := range vm.Storage.HardDrives {
-		args = append(args, "-s", fmt.Sprintf("4:%d,virtio-blk,%s", v.Slot, v.Path))
+		instr = append(instr, "-s", fmt.Sprintf("4:%d,virtio-blk,%s",
+			v.Slot, v.Path))
 	}
 
 	usersDir := etcExports{}
@@ -123,6 +135,7 @@ func runAction(c *cli.Context) {
 		[]byte(cfg), 0644); err != nil {
 		log.Fatalln(err)
 	}
+
 	if SessionContext.hasPowers {
 		if err := fixPerms(rundir); err != nil {
 			log.Fatalln(err)
@@ -134,16 +147,48 @@ func runAction(c *cli.Context) {
 			log.Fatalln(err)
 		}
 	}()
+
 	fmt.Println("\nbooting ...")
-	cmd := exec.Command(vm.Xhyve, append(args, "-f",
+	c := exec.Command(vm.Xhyve, append(instr, "-f",
 		fmt.Sprintf("kexec,%s,%s,%s", vmlinuz, initrd, cmdline))...)
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+
+	c.Stdout, c.Stdin, c.Stderr = os.Stdout, os.Stdin, os.Stderr
+
+	if err := c.Run(); err != nil {
 		log.Println("xhyve exited with", err)
 	}
+
 	usersDir.unshare()
+}
+
+func init() {
+	runCmd.Flags().String("channel", "alpha", "CoreOS channel")
+	runCmd.Flags().String("version", "latest", "CoreOS version")
+	runCmd.Flags().String("uuid", "random", "VM's UUID")
+	runCmd.Flags().String("memory", "1024", "VM's RAM")
+	runCmd.Flags().String("cpus", "1", "VM's vCPUS")
+	runCmd.Flags().String("cloud_config", "",
+		"cloud-config file location (either URL or local path)")
+	runCmd.Flags().String("sshkey", "", "VM's default ssh key")
+	runCmd.Flags().String("xhyve", "/usr/local/bin/xhyve",
+		"xhyve binary to use")
+	runCmd.Flags().String("extra", "",
+		"additional arguments to xhyve hypervisor")
+
+	runCmd.Flags().StringSlice("volume", nil,
+		"append disk volumes to VM")
+	runCmd.Flags().StringSlice("net", nil,
+		"append additional network interfaces to VM")
+
+	// Thanks God, for the for loop!
+	for _, v := range []string{"channel", "version", "uuid",
+		"memory", "cpus", "cloud_config", "sshkey", "xhyve",
+		"extra", "volume", "net"} {
+		viper.BindPFlag(v, runCmd.Flags().Lookup(v))
+	}
+
+	RootCmd.AddCommand(runCmd)
+
 }
 
 type etcExports struct {
@@ -268,13 +313,13 @@ func (vm *VMInfo) tweakXhyve(extra string) {
 }
 
 func (vm *VMInfo) validateNetworkInterfaces(nics []string) {
-	if len(nics) > 0 {
-		for _, j := range nics {
+	for _, j := range nics {
+		if len(j) > 0 {
 			if strings.HasPrefix(j, "eth") {
 				r, _ := regexp.Compile("eth([0-9]{1})$")
 				if !r.MatchString(j) {
 					log.Fatalln("Aborting: --net", j,
-						"not in a reasonable format (eth|tap)[0-9]{1}$,PATH. ")
+						"not in a reasonable format (eth|tap)[0-9]{1}. ")
 				}
 				slot, _ := strconv.Atoi(string(j[len(j)-1]))
 				if vm.Network.Raw == nil {
@@ -303,23 +348,25 @@ func (vm *VMInfo) validateNetworkInterfaces(nics []string) {
 				r, _ := regexp.Compile("tap([0-9]{1})$")
 				if !r.MatchString(j) {
 					log.Fatalln("Aborting: --net", j,
-						"not in a reasonable format (eth|tap)[0-9]{1}$,PATH. ")
+						"not in a reasonable format (eth|tap)[0-9]{1}$. ")
 				}
 				log.Println("Tap interfaces not yet supported. ignoring")
 			} else {
 				log.Fatalln("Aborting: --net", j,
-					"not in a reasonable format (eth|tap)[0-9]{1}$,PATH. ")
+					"not in a reasonable format (eth|tap)[0-9]{1}$. ")
 			}
 		}
 	}
 }
+
 func (vm *VMInfo) validateVolumes(volumes []string) {
-	if len(volumes) > 0 {
-		for _, j := range volumes {
-			arr := strings.Split(j, ",")
+	for _, j := range volumes {
+		if len(j) > 0 {
+			arr := strings.Split(j, "@")
 			if len(arr) != 2 {
 				log.Fatalln("Aborting: --volume", j,
-					"not in a reasonable format (cdrom[0-9]|vd[a-z]),PATH. ")
+					"not in a recognizable format",
+					"- ((cdrom([0-9]{1})|vd([a-z]{1}))$@/path/to/volume")
 			}
 			if _, err := os.Stat(arr[1]); err != nil {
 				log.Fatalln("Aborting:", arr[1], "not a valid file path")
@@ -329,7 +376,7 @@ func (vm *VMInfo) validateVolumes(volumes []string) {
 				if !r.MatchString(arr[0]) {
 					log.Fatalln("Aborting: --volume", j,
 						"not in a recognizable format",
-						"- ((cdrom([0-9]{1})|vd([a-z]{1}))$,PATH")
+						"- ((cdrom([0-9]{1})|vd([a-z]{1}))$@/path/to/volume")
 				}
 				slot := int(arr[0][2] - 'a')
 				if vm.Storage.HardDrives == nil {
@@ -362,7 +409,7 @@ func (vm *VMInfo) validateVolumes(volumes []string) {
 				if !r.MatchString(arr[0]) {
 					log.Fatalln("Aborting: --volume", j,
 						"not in a recognizable format",
-						"- ((cdrom([0-9]{1})|vd([a-z]{1}))$,PATH")
+						"- ((cdrom([0-9]{1})|vd([a-z]{1}))$@/path/to/volume")
 				}
 				slot, _ := strconv.Atoi(string(arr[0][len(arr[0])-1]))
 				if vm.Storage.CDDrives == nil {
@@ -392,62 +439,8 @@ func (vm *VMInfo) validateVolumes(volumes []string) {
 			} else {
 				log.Fatalln("Aborting: --volume", j,
 					"not in a recognizable format",
-					"- ((cdrom([0-9]{1})|vd([a-z]{1}))$,PATH")
+					"- ((cdrom([0-9]{1})|vd([a-z]{1}))$@/path/to/volume")
 			}
 		}
-
-	}
-}
-
-func runFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.StringFlag{
-			Name:   "uuid",
-			Value:  "random",
-			Usage:  "VM's UUID",
-			EnvVar: "COREOS_UUID,UUID",
-		},
-		cli.StringFlag{
-			Name:   "memory",
-			Value:  "1024",
-			Usage:  "VM's memory",
-			EnvVar: "COREOS_MEMORY,MEMORY,MEM",
-		},
-		cli.StringFlag{
-			Name:   "cpus",
-			Value:  "1",
-			Usage:  "VM's CPUs #",
-			EnvVar: "COREOS_CPUS,CPUS",
-		},
-		cli.StringFlag{
-			Name:   "cloud_config,cloud-config",
-			Usage:  "cloud-config file location (either URL or local path)",
-			EnvVar: "COREOS_CLOUD_CONFIG,CLOUD_CONFIG",
-		}, cli.StringFlag{
-			Name:   "xhyve",
-			Value:  "/usr/local/bin/xhyve",
-			Usage:  "xhyve binary to use",
-			EnvVar: "COREOS_XHYVE,XHYVE",
-			// }, cli.StringFlag{
-			//	Name:   "config,f",
-			//	Usage:  "load VM configuration from file",
-			//	EnvVar: "COREOS_CONFIG,CONFIG",
-		}, cli.StringFlag{
-			Name:   "sshkey",
-			Value:  "",
-			Usage:  "VM's default ssh key",
-			EnvVar: "COREOS_SSHKEY,SSHKEY",
-		}, cli.StringFlag{
-			Name:   "extra",
-			Value:  "",
-			Usage:  "additional arguments to xhyve hypervisor",
-			EnvVar: "COREOS_XHYVE_EXTRA,EXTRA_ARGS",
-		}, cli.StringSliceFlag{
-			Name:  "net",
-			Usage: "append additional network interfaces to VM",
-		}, cli.StringSliceFlag{
-			Name:  "volume",
-			Usage: "append disk volumes to VM",
-		},
 	}
 }

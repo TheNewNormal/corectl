@@ -25,6 +25,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 // (recursively) fix permissions on path
@@ -36,6 +38,17 @@ func fixPerms(path string) error {
 		return os.Chown(p, u, g)
 	}
 	return filepath.Walk(path, action)
+}
+
+func pSlice(plain string) []string {
+	var sliced []string
+	for _, x := range viper.GetStringSlice(plain) {
+		strip := strings.Replace(strings.Replace(x, "]", "", -1), "[", "", -1)
+		for _, y := range strings.Split(strip, ",") {
+			sliced = append(sliced, y)
+		}
+	}
+	return sliced
 }
 
 // downloads url to disk and returns its location

@@ -20,20 +20,30 @@ import (
 	"io/ioutil"
 
 	"github.com/blang/semver"
-	"github.com/codegangsta/cli"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-func listAction(c *cli.Context) {
+var (
+	lsCmd = &cobra.Command{
+		Use:     "ls",
+		Aliases: []string{"list"},
+		Short:   "lists locally available CoreOS images",
+		Run:     lsCommand,
+	}
+)
 
-	SessionContext.data.setChannel(c.String("channel"))
-	SessionContext.data.setVersion(c.String("version"))
-
+func lsCommand(cmd *cobra.Command, args []string) {
 	var channels []string
-	if c.String("all") == "true" {
+
+	SessionContext.data.setChannel(viper.GetString("channel"))
+
+	if viper.GetBool("ls.a") {
 		channels = DefaultChannels
 	} else {
 		channels = append(channels, SessionContext.data.Channel)
 	}
+
 	local := getLocalImages()
 	fmt.Println("locally available images")
 	for _, i := range channels {
@@ -44,13 +54,17 @@ func listAction(c *cli.Context) {
 	}
 }
 
-func listFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all,a",
-			Usage: "lists all channels",
-		},
-	}
+func init() {
+
+	lsCmd.Flags().String("channel", "alpha",
+		"CoreOS channel")
+	viper.BindPFlag("channel", lsCmd.Flags().Lookup("channel"))
+
+	lsCmd.Flags().BoolP("all", "a", false,
+		"browses all channels")
+	viper.BindPFlag("ls.a", lsCmd.Flags().Lookup("all"))
+
+	RootCmd.AddCommand(lsCmd)
 }
 
 func getLocalImages() map[string]semver.Versions {
