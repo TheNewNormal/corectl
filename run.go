@@ -61,7 +61,9 @@ func runCommand(cmd *cobra.Command, args []string) {
 	vm.validateRAM(viper.GetString("memory"))
 	vm.setSSHKey(viper.GetString("sshkey"))
 
-	vm.validateVolumes(pSlice("volume"))
+	vm.validateCDROM(viper.GetString("cdrom"))
+	vm.validateVolumes(strings.Fields(viper.GetString("root")), true)
+	vm.validateVolumes(pSlice("volume"), false)
 	vm.validateNetworkInterfaces(pSlice("net"))
 	vm.validateCloudConfig(viper.GetString("cloud_config"))
 
@@ -71,6 +73,11 @@ func runCommand(cmd *cobra.Command, args []string) {
 		"localuser="+username.Username, "uuid="+vm.UUID)
 	if vm.SSHkey != "" {
 		cmdline = fmt.Sprintf("%s sshkey=\"%s\"", cmdline, vm.SSHkey)
+	}
+	if vm.Root != "" {
+		t, _ := strconv.Atoi(vm.Root)
+		cmdline = fmt.Sprintf("%s root=/dev/vd%s", cmdline,
+			string(t+'a'))
 	}
 	vmlinuz := fmt.Sprintf("%s/images/%s/%s/coreos_production_pxe.vmlinuz",
 		SessionContext.configDir, vm.Channel, vm.Version)
@@ -113,6 +120,7 @@ func runCommand(cmd *cobra.Command, args []string) {
 	for _, v := range vm.Network.Raw {
 		instr = append(instr, "-s", fmt.Sprintf("2:%d,virtio-net", v.Slot))
 	}
+
 	// for _, v := range vm.Network.Tap {
 	// 	instr = append(instr, "-s", fmt.Sprintf("2:%d,virtio-tap,%s", v.Slot))
 	// }
@@ -176,6 +184,12 @@ func init() {
 		"xhyve binary to use")
 	runCmd.Flags().String("extra", "",
 		"additional arguments to xhyve hypervisor")
+	runCmd.Flags().String("root", "",
+		"append a (persistent) root volume to VM")
+	runCmd.Flags().String("cdrom", "",
+		"append an CDROM (.iso) to VM")
+	// runCmd.Flags().String("tap", "",
+	// 	"append a tap interface to VM")
 
 	runCmd.Flags().StringSlice("volume", nil,
 		"append disk volumes to VM")
@@ -185,7 +199,7 @@ func init() {
 	// Thanks God, for the for loop!
 	for _, v := range []string{"channel", "version", "uuid",
 		"memory", "cpus", "cloud_config", "sshkey", "xhyve",
-		"extra", "volume", "net"} {
+		"extra", "root", "cdrom", "volume", "net"} {
 		viper.BindPFlag(v, runCmd.Flags().Lookup(v))
 	}
 
@@ -314,6 +328,29 @@ func (vm *VMInfo) tweakXhyve(extra string) {
 	vm.Extra = extra
 }
 
+func (vm *VMInfo) validateCDROM(path string) {
+	if path != "" {
+		if !strings.HasSuffix(path, ".iso") {
+			log.Fatalln("Aborting:", path,
+				"--cdrom payload MUST end in '.iso'.")
+		}
+		if _, err := os.Stat(path); err != nil {
+			log.Fatalln("Aborting:", path, "provided as --cdrom payload",
+				"not a valid file path.")
+		}
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			log.Fatalln("Aborting: couldn't get absolute path of", path)
+		}
+		vm.Storage.CDDrives = make(map[string]StorageDevice, 0)
+		vm.Storage.CDDrives["0"] = StorageDevice{
+			Type: CDROM,
+			Slot: 0,
+			Path: abs,
+		}
+	}
+}
+
 func (vm *VMInfo) validateNetworkInterfaces(nics []string) {
 	for _, j := range nics {
 		if len(j) > 0 {
@@ -361,87 +398,38 @@ func (vm *VMInfo) validateNetworkInterfaces(nics []string) {
 	}
 }
 
-func (vm *VMInfo) validateVolumes(volumes []string) {
+func (vm *VMInfo) validateVolumes(volumes []string, root bool) {
 	for _, j := range volumes {
-		if len(j) > 0 {
-			arr := strings.Split(j, "@")
-			if len(arr) != 2 {
-				log.Fatalln("Aborting: --volume", j,
-					"not in a recognizable format",
-					"- ((cdrom([0-9]{1})|vd([a-z]{1}))$@/path/to/volume")
+		if j != "" {
+			if !strings.HasSuffix(j, ".img") {
+				log.Fatalln("Aborting:", j,
+					"--volume payload MUST end in '.img'.")
 			}
-			if _, err := os.Stat(arr[1]); err != nil {
-				log.Fatalln("Aborting:", arr[1], "not a valid file path")
+			if _, err := os.Stat(j); err != nil {
+				log.Fatalln("Aborting:", j, "provided as --volume payload",
+					"not a valid file path.")
 			}
-			if strings.HasPrefix(arr[0], "vd") {
-				r, _ := regexp.Compile("vd([a-z]{1})$")
-				if !r.MatchString(arr[0]) {
-					log.Fatalln("Aborting: --volume", j,
-						"not in a recognizable format",
-						"- ((cdrom([0-9]{1})|vd([a-z]{1}))$@/path/to/volume")
+			abs, err := filepath.Abs(j)
+			if err != nil {
+				log.Fatalln("Aborting: couldn't get absolute path of", j)
+			}
+			if vm.Storage.HardDrives == nil {
+				vm.Storage.HardDrives = make(map[string]StorageDevice, 0)
+			}
+			slot := len(vm.Storage.HardDrives)
+			for _, z := range vm.Storage.HardDrives {
+				if z.Path == abs {
+					log.Fatalln("Aborting: attempting to set", j,
+						"as base of multiple volumes.")
 				}
-				slot := int(arr[0][2] - 'a')
-				if vm.Storage.HardDrives == nil {
-					vm.Storage.HardDrives = make(map[string]StorageDevice, 0)
-				}
-				hdd := vm.Storage.HardDrives
-				k := strconv.Itoa(slot)
-				if _, ok := hdd[k]; ok {
-					log.Fatalln("Aborting: attempting to define",
-						arr[0], "twice")
-				}
-				kp := strconv.Itoa(slot - 1)
-				_, ok := hdd[kp]
-				if !(slot == 0 || ok) {
-					log.Fatalln("Aborting: cannot spec slot",
-						fmt.Sprintf("'vd%s'", string('a'+slot)),
-						"without slot",
-						fmt.Sprintf("'vd%s'", string('a'+slot-1)),
-						"populated in advance")
-				}
-				hdd[k] = StorageDevice{
-					Type: HDD,
-					Slot: slot,
-					Path: filepath.Join(SessionContext.pwd,
-						arr[1]),
-				}
-
-			} else if strings.HasPrefix(arr[0], "cdrom") {
-				r, _ := regexp.Compile("cdrom([0-9]{1})$")
-				if !r.MatchString(arr[0]) {
-					log.Fatalln("Aborting: --volume", j,
-						"not in a recognizable format",
-						"- ((cdrom([0-9]{1})|vd([a-z]{1}))$@/path/to/volume")
-				}
-				slot, _ := strconv.Atoi(string(arr[0][len(arr[0])-1]))
-				if vm.Storage.CDDrives == nil {
-					vm.Storage.CDDrives = make(map[string]StorageDevice, 0)
-				}
-				cd := vm.Storage.CDDrives
-				k := strconv.Itoa(slot)
-				if _, ok := cd[k]; ok {
-					log.Fatalln("Aborting: attempting to define",
-						arr[0], "twice")
-				}
-				kp := strconv.Itoa(slot - 1)
-				_, ok := cd[kp]
-				if !(slot == 0 || ok) {
-					log.Fatalln("Aborting: cannot spec slot",
-						fmt.Sprintf("'cdrom%d'", slot),
-						"without slot",
-						fmt.Sprintf("'cdrom%d'", slot-1),
-						"populated in advance")
-				}
-				cd[k] = StorageDevice{
-					Type: CDROM,
-					Slot: slot,
-					Path: filepath.Join(SessionContext.pwd,
-						arr[1]),
-				}
-			} else {
-				log.Fatalln("Aborting: --volume", j,
-					"not in a recognizable format",
-					"- ((cdrom([0-9]{1})|vd([a-z]{1}))$@/path/to/volume")
+			}
+			vm.Storage.HardDrives[strconv.Itoa(slot)] = StorageDevice{
+				Type: HDD,
+				Slot: slot,
+				Path: abs,
+			}
+			if root {
+				vm.Root = strconv.Itoa(slot)
 			}
 		}
 	}

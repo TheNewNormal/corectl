@@ -17,50 +17,51 @@ coreos:
         [Install]
         WantedBy=sockets.target
 
-    - name: format-ephemeral.service
+    - name: format-persistent-rkthdd.service
       command: start
       content: |
         [Unit]
-        Description=Formats the persistent drive (if not formated yet)
+        Description=Formats the persistent drive (if not formated yet).
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStart=/bin/sh -c '/usr/sbin/blkid -pi /dev/vda | grep TYPE= || /usr/sbin/mkfs.ext4 /dev/vda'
-    - name: persistent-vda.mount
+        ExecStart=/bin/sh -c '/usr/sbin/blkid -pi /dev/disk/by-label/rkthdd | \
+          grep TYPE= || /usr/sbin/mkfs.ext4 /dev/disk/by-label/rkthdd'
+    - name: persistent-rkthdd.mount
       command: start
       content: |
         [Unit]
-        Description=Mount ephemeral to /var/lib/docker
-        Requires=format-ephemeral.service docker.service rkt-metadata.socket
-        After=format-ephemeral.service
+        Description=Mount persistent-rkthdd to /var/lib/docker
+        Requires=format-persistent-rkthdd.service docker.service rkt-metadata.socket
+        After=format-persistent-rkthdd.service
         Before=docker.service rkt-metadata.socket
         [Mount]
-        What=/dev/vda
-        Where=/persistent/vda
+        What=/dev/disk/by-label/rkthdd
+        Where=/persistent/rkthdd
         Type=ext4
-    - name: persistent-vda-checks.service
+    - name: persistent-rkthdd-checks.service
       command: start
       content: |
         [Unit]
         Description=prepare for /var/lib/{docker,rkt}
-        Requires=persistent-vda.mount
-        After=persistent-vda.mount
+        Requires=persistent-rkthdd.mount
+        After=persistent-rkthdd.mount
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStart=/bin/sh -c '[[ -d /persistent/vda/docker ]] || mkdir -p /persistent/vda/docker'
-        ExecStart=/bin/sh -c '[[ -d /persistent/vda/rkt ]] || mkdir -p /persistent/vda/rkt'
+        ExecStart=/bin/sh -c '[[ -d /persistent/rkthdd/docker ]] || mkdir -p /persistent/rkthdd/docker'
+        ExecStart=/bin/sh -c '[[ -d /persistent/rkthdd/rkt ]] || mkdir -p /persistent/rkthdd/rkt'
     - name: var-lib-docker.mount
       command: start
       content: |
         [Unit]
-        Description=Binds /persistent/vda/docker to /var/lib/docker
-        After=persistent-vda-checks.service
-        Requires=persistent-vda-checks.service docker.service
+        Description=Binds /persistent/rkthdd/docker to /var/lib/docker
+        After=persistent-rkthdd-checks.service
+        Requires=persistent-rkthdd-checks.service docker.service
         Before=docker.service
         [Mount]
         Before=docker.service
-        What=/persistent/vda/docker
+        What=/persistent/rkthdd/docker
         Where=/var/lib/docker
         Type=none
         Options=bind
@@ -68,12 +69,12 @@ coreos:
       command: start
       content: |
         [Unit]
-        Description=Binds /persistent/vda/rkt to /var/lib/rkt
-        Requires=persistent-vda-checks.service rkt-metadata.socket
-        After=persistent-vda-checks.service
+        Description=Binds /persistent/rkthdd/rkt to /var/lib/rkt
+        Requires=persistent-rkthdd-checks.service rkt-metadata.socket
+        After=persistent-rkthdd-checks.service
         Before=rkt-metadata.socket
         [Mount]
-        What=/persistent/vda/rkt
+        What=/persistent/rkthdd/rkt
         Where=/var/lib/rkt
         Type=none
         Options=bind

@@ -53,6 +53,7 @@ type VMInfo struct {
 	CClocation  int
 	SSHkey      string
 	Extra       string
+	Root        string
 	Network     networkAssets
 	Storage     storageAssets
 }

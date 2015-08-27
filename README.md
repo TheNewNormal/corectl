@@ -97,34 +97,52 @@ Use "coreos [command] --help" for more information about a command.
 ```
 
 ### simple usage recipe - a docker and rkt playground.
-- create a volume to store your persistent data (/var/lib/{docker|rkt})
+- create a volume to store your persistent data. (will be
+  `/var/lib/{docker|rkt}`)
   ```
-dd if=/dev/zero of=persistent.img bs=1G count=16
+  ❯❯❯ dd if=/dev/zero of=persistent.img bs=1G count=16
   ```
   in this case we created it with 16GB.
+
+- *label* it
+  > requires [homebrew's](http://brew.sh) e2fsprogs package installed.
+  >
+  > `❯❯❯ brew install e2fsprogs`
+
+  ```
+  ❯❯❯ /usr/local/Cellar/e2fsprogs/1.42.12/sbin/e2label var_lib_docker.img rkthdd
+  ```
+  here, we labeled our volume `rkthdd` which is the *signature* that our
+  [*recipe*](cloud-init/docker-only-with-persistent-storage.txt) expects.
+
+  >by relying in *labels* for volume identification we get around the issues we'd
+  >have otherwise if we were depending on the actual volume name (/dev/vd...) as
+  >those would have to be hardcoded (an issue, if one is mix and matching
+  >multiple recipes all dealing with different volumes...)
+
 - start your docker and rkt playground.
   ```
-  sudo  SSHKEY="ssh-rsa AAAAB3...== x@y.z" \
+  ❯❯❯ sudo  SSHKEY="ssh-rsa AAAAB3...== x@y.z" \
     UUID=deadbeef-dead-dead-dead-deaddeafbeef \
     ./coreos-xhyve run --volume vda@/path/to/persistent.img --cloud_config \
-    cloud-init/docker-only-with-persistent-storage.txt --cpus 2 --memory 4096
+    cloud-init/docker-only-with-persistent-storage.txt --cpus 2 --memory 2048
   ```
- this will start a VM with the volume we created previously set as /dev/vda,
- 2 virtual cores and 4GB of RAM. The provided
- `cloud-init/docker-only-with-persistent-storage.txt` cloud-config will format
+ this will start a VM with the volume we created previously feeded,
+ 2 virtual cores and 2GB of RAM. The provided
+ [cloud-config](cloud-init/docker-only-with-persistent-storage.txt) will format
  the given volume (if it wasn't yet) and bind mount both /var/lib/rkt and
  /var/lib/docker on top of it. docker will also become available through socket
  activation. above we passed arguments to the VM both via
- environment variables and command flags. both work, use what suits your taste
- best.
+ environment variables and command flags. both ways work, just use whatever
+ suits your taste best.
 
  > Regarding docker, as of 15 August, CoreOS is still in the 1.7 stream so, in
  > order talk to CoreOS' one you'll need on your Mac a matching client,as
  > Homebrew is already at 1.8.x. So if you'll need to ...
  > ```
- > brew remove docker
- > brew tap homebrew/versions
- > brew install docker171
+ > ❯❯❯ brew remove docker
+ > ❯❯❯ brew tap homebrew/versions
+ > ❯❯❯ brew install docker171
  > ```
 - now, from another *shell* in your mac...
 ```
