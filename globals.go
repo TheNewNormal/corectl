@@ -21,6 +21,8 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+
+	"github.com/spf13/viper"
 )
 
 //
@@ -114,6 +116,7 @@ func (session *sessionInfo) init() {
 		session.hasPowers = false
 		caller, _ = user.Current()
 	}
+	session.debug = viper.GetBool("debug")
 	session.uid, session.gid = caller.Uid, caller.Gid
 	session.configDir = fmt.Sprintf("%s/.coreos/", caller.HomeDir)
 

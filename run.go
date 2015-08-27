@@ -130,7 +130,9 @@ func runCommand(cmd *cobra.Command, args []string) {
 	usersDir.share()
 
 	cfg, _ := json.MarshalIndent(vm, "", "    ")
-	fmt.Println(string(cfg))
+	if SessionContext.debug {
+		fmt.Println(string(cfg))
+	}
 	if err := ioutil.WriteFile(fmt.Sprintf("%s/config", rundir),
 		[]byte(cfg), 0644); err != nil {
 		log.Fatalln(err)

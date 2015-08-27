@@ -87,7 +87,9 @@ func (vm *VMInfo) lookupImage() {
 	local := getLocalImages()
 	l := local[vm.Channel]
 
-	fmt.Printf("checking CoreOS %s/%s\n", vm.Channel, vm.Version)
+	if SessionContext.debug {
+		fmt.Printf("checking CoreOS %s/%s\n", vm.Channel, vm.Version)
+	}
 	if vm.Version == "latest" {
 		vm.Version, err = vm.findLatestUpstream()
 		// as we're probably offline
@@ -106,7 +108,9 @@ func (vm *VMInfo) lookupImage() {
 		}
 	}
 	if isLocal {
-		fmt.Println("    -", vm.Version, "already downloaded.")
+		if SessionContext.debug {
+			fmt.Println("    -", vm.Version, "already downloaded.")
+		}
 		return
 	}
 

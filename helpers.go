@@ -65,7 +65,9 @@ func wget(url string) (f string) {
 	tmpDir += "/"
 	tok := strings.Split(url, "/")
 	f = tmpDir + tok[len(tok)-1]
-	fmt.Println("    - downloading", url)
+	if SessionContext.debug {
+		fmt.Println("    - downloading", url)
+	}
 	output, err := os.Create(f)
 	if err != nil {
 		cleanup()
@@ -89,6 +91,8 @@ func wget(url string) (f string) {
 		cleanup()
 		log.Fatalf("%s (%s)", err, err)
 	}
-	fmt.Println("      -", n, "bytes downloaded.")
+	if SessionContext.debug {
+		fmt.Println("      -", n, "bytes downloaded.")
+	}
 	return f
 }
