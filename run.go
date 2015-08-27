@@ -38,8 +38,8 @@ import (
 var (
 	runCmd = &cobra.Command{
 		Use:     "run",
-		Aliases: []string{"get", "fetch"},
-		Short:   "pull a CoreOS image from upstream",
+		Aliases: []string{"start"},
+		Short:   "runs a new CoreOS container",
 		Run:     runCommand,
 	}
 )
