@@ -20,47 +20,63 @@ import (
 	"log"
 	"os"
 
-	"github.com/codegangsta/cli"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-//
-func deleteFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.BoolFlag{
-			Name:  "old",
-			Usage: "removes outdated images.",
-		},
+var (
+	rmCmd = &cobra.Command{
+		Use:     "rm",
+		Aliases: []string{"rmi"},
+		Short:   "deletes CoreOS image locally",
+		Run:     rmCommand,
 	}
-}
+)
 
-//
-func deleteAction(c *cli.Context) {
+func rmCommand(cmd *cobra.Command, args []string) {
 	vm := &SessionContext.data
-	vm.setChannel(c.String("channel"))
-	vm.setVersion(c.String("version"))
+
+	vm.setChannel(viper.GetString("channel"))
+	vm.setVersion(viper.GetString("version"))
 
 	version := vm.Version
 	local := getLocalImages()
 	l := local[vm.Channel]
-	fmt.Println(version, l)
-	if local[vm.Channel].Len() > 0 {
-		if c.String("old") == "true" {
-			for _, i := range l[0 : l.Len()-1] {
-				if err := os.RemoveAll(fmt.Sprintf("%s/images/%s/%s",
-					SessionContext.configDir,
-					vm.Channel, i)); err != nil {
-					log.Fatalln(err)
-				}
-			}
-		} else {
-			if version == "latest" {
-				version = l[l.Len()-1].String()
-			}
+	if l.Len() == 0 {
+		return
+	}
+	if viper.GetBool("rm.o") {
+		for _, i := range l[0 : l.Len()-1] {
 			if err := os.RemoveAll(fmt.Sprintf("%s/images/%s/%s",
 				SessionContext.configDir,
-				vm.Channel, version)); err != nil {
+				vm.Channel, i)); err != nil {
 				log.Fatalln(err)
 			}
 		}
+	} else {
+		if version == "latest" {
+			version = l[l.Len()-1].String()
+		}
+		if err := os.RemoveAll(fmt.Sprintf("%s/images/%s/%s",
+			SessionContext.configDir,
+			vm.Channel, version)); err != nil {
+			log.Fatalln(err)
+		}
 	}
+}
+
+func init() {
+	rmCmd.Flags().String("channel", "alpha",
+		"CoreOS channel")
+	rmCmd.Flags().String("version", "latest",
+		"CoreOS version")
+
+	viper.BindPFlag("channel", rmCmd.Flags().Lookup("channel"))
+	viper.BindPFlag("version", rmCmd.Flags().Lookup("version"))
+
+	rmCmd.Flags().Bool("old", false,
+		"removes outdated images")
+	viper.BindPFlag("rm.o", rmCmd.Flags().Lookup("old"))
+
+	RootCmd.AddCommand(rmCmd)
 }

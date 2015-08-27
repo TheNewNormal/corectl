@@ -22,30 +22,41 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codegangsta/cli"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-func psFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all,a",
-			Usage: "Shows expanded info about running instances",
-		},
+var (
+	psCmd = &cobra.Command{
+		Use:   "ps",
+		Short: "lists running CoreOS instances",
+		Run:   psCommand,
+	}
+)
+
+func psCommand(cmd *cobra.Command, args []string) {
+	ls, _ := ioutil.ReadDir(filepath.Join(SessionContext.configDir, "running"))
+	if len(ls) > 0 {
+		for _, d := range ls {
+			fmt.Printf("- %s (up %s)\n", d.Name(), time.Now().Sub(d.ModTime()))
+			if buf, _ := ioutil.ReadFile(filepath.Join(SessionContext.configDir,
+				fmt.Sprintf("running/%s/%s", d.Name(), "ip"))); buf != nil {
+				fmt.Println("  - IP:", string(buf))
+			}
+			if viper.GetBool("ps.a") {
+				cfg := filepath.Join(SessionContext.configDir,
+					fmt.Sprintf("running/%s/config", d.Name()))
+				cc, _ := ioutil.ReadFile(cfg)
+				fmt.Printf("  %s\n", strings.Replace(string(cc), "\n", "\n  ", -1))
+			}
+		}
 	}
 }
-func psAction(c *cli.Context) {
-	ls, _ := ioutil.ReadDir(filepath.Join(SessionContext.configDir, "running"))
-	for _, d := range ls {
-		fmt.Printf("- %s (up %s)\n", d.Name(), time.Now().Sub(d.ModTime()))
-		if buf, _ := ioutil.ReadFile(filepath.Join(SessionContext.configDir,
-			fmt.Sprintf("running/%s/%s", d.Name(), "ip"))); buf != nil {
-			fmt.Println("  - IP:", string(buf))
-		}
-		if c.Bool("a") {
-			cfg := filepath.Join(SessionContext.configDir,
-				fmt.Sprintf("running/%s/config", d.Name()))
-			cc, _ := ioutil.ReadFile(cfg)
-			fmt.Printf("  %s\n", strings.Replace(string(cc), "\n", "\n  ", -1))
-		}
-	}
+
+func init() {
+	psCmd.Flags().BoolP("all", "a", false,
+		"shows extended info about running instances")
+	viper.BindPFlag("ps.a", psCmd.Flags().Lookup("all"))
+
+	RootCmd.AddCommand(psCmd)
 }

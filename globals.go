@@ -21,9 +21,10 @@ import (
 	"os"
 	"os/user"
 	"strconv"
-
-	"github.com/codegangsta/cli"
 )
+
+//
+const Version = "0.0.1"
 
 type sessionInfo struct {
 	configDir string
@@ -36,10 +37,9 @@ type sessionInfo struct {
 	data      VMInfo
 }
 
-// SessionContext - running session
 var SessionContext sessionInfo
 
-// VMInfo - individual VM settings
+// VMInfo - per VM settings
 type VMInfo struct {
 	Channel     string
 	Version     string
@@ -100,31 +100,29 @@ const (
 )
 
 func (session *sessionInfo) init() {
-	log.SetFlags(0)
-	log.SetOutput(os.Stderr)
-	log.SetPrefix("[coreos] ")
-
 	var caller *user.User
 
 	if uid := os.Geteuid(); uid == 0 {
-		if usr := os.Getenv("SUDO_USER"); usr == "" {
+		usr := os.Getenv("SUDO_USER")
+		if usr == "" {
 			log.Fatalln("This shouldn't be called straight as 'root' user.",
 				"It should be run either as a regular user or via 'sudo'.")
-		} else {
-			caller, _ = user.Lookup(usr)
-			session.hasPowers = true
 		}
+		caller, _ = user.Lookup(usr)
+		session.hasPowers = true
 	} else {
 		session.hasPowers = false
 		caller, _ = user.Current()
 	}
 	session.uid, session.gid = caller.Uid, caller.Gid
 	session.configDir = fmt.Sprintf("%s/.coreos/", caller.HomeDir)
-	if pwd, err := os.Getwd(); err != nil {
+
+	pwd, err := os.Getwd()
+	if err != nil {
 		log.Fatalln(err)
-	} else {
-		session.pwd = pwd
 	}
+	session.pwd = pwd
+
 	for _, i := range DefaultChannels {
 		d := fmt.Sprintf("%s/images/%s", session.configDir, i)
 		if err := os.MkdirAll(d, 0755); err != nil {
@@ -141,11 +139,13 @@ func (session *sessionInfo) init() {
 		}
 	}
 }
+
 func (session *sessionInfo) canRun() {
 	if !session.hasPowers {
 		log.Fatalln("not enough permissions to run VMs. use 'sudo'.")
 	}
 }
+
 func (vm *VMInfo) setChannel(channel string) {
 	var b string
 	for _, b = range DefaultChannels {
@@ -154,11 +154,12 @@ func (vm *VMInfo) setChannel(channel string) {
 			return
 		}
 	}
+	vm.Channel = "alpha"
 	log.Printf("'%s' is not a recognized CoreOS image channel. %s",
 		channel, "Using default ('alpha').")
-	vm.Channel = "alpha"
 	return
 }
+
 func (vm *VMInfo) setVersion(version string) {
 	vm.Version = version
 }
@@ -173,11 +174,6 @@ func (vm *VMInfo) setDefaultNIC() {
 
 // CoreOS public release streams
 var DefaultChannels = []string{"alpha", "beta", "stable"}
-
-// NOTyetImplementedCommand ...
-func NOTyetImplementedCommand(c *cli.Context) {
-	fmt.Println("placeholder. NOT YET IMPLEMENTED...")
-}
 
 // GPGLongId
 const GPGLongID = "50E0885593D2DCB4"
@@ -342,19 +338,17 @@ coreos:
       content: |
         [Unit]
           Description=Load cloud-config from file
-          Requires=coreos-setup-environment.service
-          After=coreos-setup-environment.service
+          Requires=coreos-setup-environment.service Users.mount user-config.target
+          After=coreos-setup-environment.service Users.mount
           Before=user-config.target
-          Requires=Users.mount
-          After=Users.mount
 
         [Service]
           Type=oneshot
           RemainAfterExit=yes
           EnvironmentFile=/etc/environment
           ExecStart=/bin/bash -c "[[ -f $STATUSDIR/cloud-config.local ]] && \
-						/usr/bin/coreos-cloudinit \
-							-from-file $STATUSDIR/cloud-config.local || true"
+                        /usr/bin/coreos-cloudinit \
+                            -from-file $STATUSDIR/cloud-config.local || true"
     - name: xhyve.service
       command: start
       content: |

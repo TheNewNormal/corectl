@@ -15,63 +15,47 @@
 
 package main
 
-import "github.com/codegangsta/cli"
+import (
+	"fmt"
+	"log"
+	"os"
 
-func pullCommand() cli.Command {
-	return cli.Command{
-		Name:    "pull",
-		Usage:   "Pull a CoreOS image from upstream",
-		Aliases: []string{"get", "fetch"},
-		Flags:   imageFlags(),
-		Action:  pullAction,
-	}
-}
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
 
-func runCommand() cli.Command {
-	return cli.Command{
-		Name:  "run",
-		Usage: "Runs a new CoreOS container",
-		Flags: append(append([]cli.Flag(nil),
-			runFlags()...), imageFlags()...),
-		Action: runAction,
+var (
+	RootCmd = &cobra.Command{
+		Use:   "coreos",
+		Short: "CoreOS, on top of OS X and xhyve, made simple.",
+		Long: fmt.Sprintf("%s\n%s",
+			"CoreOS, on top of OS X and xhyve, made simple.",
+			"❯❯❯ http://github.com/coreos/coreos-xhyve"),
+		Run: func(cmd *cobra.Command, args []string) {
+			versionCommand(cmd, args)
+			cmd.Usage()
+		},
 	}
-}
+)
 
-func lsCommand() cli.Command {
-	return cli.Command{
-		Name:    "ls",
-		Aliases: []string{"list"},
-		Usage:   "Lists locally available CoreOS images",
-		Flags: append(append([]cli.Flag(nil),
-			listFlags()...), imageFlags()...),
-		Action: listAction,
-	}
-}
+func init() {
+	// viper & cobra
+	viper.SetEnvPrefix("COREOS")
+	viper.AutomaticEnv()
 
-func psCommand() cli.Command {
-	return cli.Command{
-		Name:   "ps",
-		Usage:  "Lists running CoreOS instances",
-		Action: psAction,
-		Flags:  psFlags(),
-	}
-}
+	RootCmd.Flags().Bool("json", false,
+		"outputs in JSON for easy 3rd party integration")
+	viper.BindPFlag("json", RootCmd.Flags().Lookup("json"))
 
-func rmCommand() cli.Command {
-	return cli.Command{
-		Name:    "rm",
-		Aliases: []string{"rmi"},
-		Usage:   "Deletes CoreOS image locally",
-		Flags: append(append([]cli.Flag(nil),
-			deleteFlags()...), imageFlags()...),
-		Action: deleteAction,
-	}
-}
+	RootCmd.Flags().Bool("debug", false,
+		"adds extra verbosity for debugging purposes")
+	viper.BindPFlag("debug", RootCmd.Flags().Lookup("debug"))
 
-func killCommand() cli.Command {
-	return cli.Command{
-		Name:   "kill",
-		Usage:  "Kills a running CoreOS instance",
-		Action: NOTyetImplementedCommand,
-	}
+	// logger defaults
+	log.SetFlags(0)
+	log.SetOutput(os.Stderr)
+	log.SetPrefix("[coreos] ")
+
+	// remaining defaults / startupChecks
+	SessionContext.init()
 }

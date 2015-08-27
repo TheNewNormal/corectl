@@ -26,34 +26,35 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/codeskyblue/go-sh"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-//
-func pullAction(c *cli.Context) {
-	SessionContext.data.setChannel(c.String("channel"))
-	SessionContext.data.setVersion(c.String("version"))
+var (
+	pullCmd = &cobra.Command{
+		Use:   "pull",
+		Short: "pull a CoreOS image from upstream",
+		Run:   pullCommand,
+	}
+)
+
+func pullCommand(cmd *cobra.Command, args []string) {
+	SessionContext.data.setChannel(viper.GetString("channel"))
+	SessionContext.data.setVersion(viper.GetString("version"))
 
 	SessionContext.data.lookupImage()
 }
+func init() {
+	pullCmd.Flags().String("channel", "alpha",
+		"CoreOS channel")
+	pullCmd.Flags().String("version", "latest",
+		"CoreOS version")
 
-//
-func imageFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.StringFlag{
-			Name:   "version",
-			Value:  "latest",
-			Usage:  "CoreOS version",
-			EnvVar: "COREOS_VERSION,VERSION",
-		},
-		cli.StringFlag{
-			Name:   "channel",
-			Value:  "alpha",
-			Usage:  "CoreOS channel",
-			EnvVar: "COREOS_CHANNEL,CHANNEL",
-		},
-	}
+	viper.BindPFlag("channel", pullCmd.Flags().Lookup("channel"))
+	viper.BindPFlag("version", pullCmd.Flags().Lookup("version"))
+
+	RootCmd.AddCommand(pullCmd)
 }
 
 func (vm *VMInfo) findLatestUpstream() (version string, err error) {
@@ -106,17 +107,18 @@ func (vm *VMInfo) lookupImage() {
 	}
 	if isLocal {
 		fmt.Println("    -", vm.Version, "already downloaded.")
-	} else {
-		root := fmt.Sprintf("http://%s.release.core-os.net/amd64-usr/%s/",
-			vm.Channel, vm.Version)
-		prefix := "coreos_production_pxe"
-		files := []string{fmt.Sprintf("%s.vmlinuz", prefix),
-			fmt.Sprintf("%s_image.cpio.gz", prefix)}
+		return
+	}
 
-		for _, j := range files {
-			src := fmt.Sprintf("%s%s", root, j)
-			downloadAndVerify(src)
-		}
+	root := fmt.Sprintf("http://%s.release.core-os.net/amd64-usr/%s/",
+		vm.Channel, vm.Version)
+	prefix := "coreos_production_pxe"
+	files := []string{fmt.Sprintf("%s.vmlinuz", prefix),
+		fmt.Sprintf("%s_image.cpio.gz", prefix)}
+
+	for _, j := range files {
+		src := fmt.Sprintf("%s%s", root, j)
+		downloadAndVerify(src)
 	}
 }
 
