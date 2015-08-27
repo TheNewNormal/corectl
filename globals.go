@@ -330,21 +330,19 @@ coreos:
       command: start
       content: |
         [Mount]
-        ConditionPathExists=/etc/environment
-        What=192.168.64.1:/Users
-        Where=/Users
-        Options=rw,async,nolock,noatime,rsize=32768,wsize=32768
-        Type=nfs
+          What=192.168.64.1:/Users
+          Where=/Users
+          Options=rw,async,nolock,noatime,rsize=32768,wsize=32768
+          Type=nfs
     - name: local-cloud-config.service
       command: start
       enable: true
       content: |
         [Unit]
           Description=Load cloud-config from file
-          Requires=coreos-setup-environment.service Users.mount user-config.target
-          After=coreos-setup-environment.service Users.mount
-          Before=user-config.target
-
+          Requires=xhyve.service
+          After=xhyve.service Users.mount
+          ConditionPathExists=/etc/environment
         [Service]
           Type=oneshot
           RemainAfterExit=yes
@@ -356,14 +354,13 @@ coreos:
       command: start
       content: |
         [Unit]
-        Description=updates xhyve context
-        Requires=Users.mount
-        After=Users.mount
-        ConditionPathExists=/etc/environment
-
+          Description=updates xhyve context
+          Requires=coreos-setup-environment.service Users.mount
+          After=coreos-setup-environment.service Users.mount
+          ConditionPathExists=/etc/environment
         [Service]
-        Type=oneshot
-        RemainAfterExit=true
-        EnvironmentFile=/etc/environment
-        ExecStart=/bin/bash -c "echo ${COREOS_PUBLIC_IPV4} > ${STATUSDIR}/ip"
+          Type=oneshot
+          RemainAfterExit=true
+          EnvironmentFile=/etc/environment
+          ExecStart=/bin/bash -c "echo ${COREOS_PUBLIC_IPV4} > ${STATUSDIR}/ip"
 `
