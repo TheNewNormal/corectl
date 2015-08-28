@@ -12,7 +12,6 @@ mkdir -p ./documentation/{man,markdown}
 COREOS_DEBUG=true ./coreos-xhyve utils mkMan
 (pushd ./documentation/man
     for page in $(ls *.1); do
-        sed -i '/^\.TH/ d' ${page}
         sed -i '/spf13\/cobra$/ d' ${page}
     done
 popd

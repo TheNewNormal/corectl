@@ -71,7 +71,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "e4993076d845b7127c760e2e57a4984c166c6c05"
+			"Rev": "7cd6c9c0002674e06c5c40868b4e364ef90ed590"
 		},
 		{
 			"ImportPath": "github.com/spf13/jwalterweatherman",
