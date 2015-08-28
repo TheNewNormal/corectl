@@ -296,8 +296,14 @@ func (vm *VMInfo) validateRAM(ram string) {
 		fmt.Printf(" '%s' not a reasonable memory value. %s", ram,
 			"Using '1024', the default")
 		ram = "1024"
+	} else if v > 3072 {
+		fmt.Printf(" '%s' not a reasonable memory value. %s %s", ram,
+			"as presently xhyve only supports VMs with up to 3GB of RAM.",
+			"setting it to '3072'")
+		ram = "3072"
+	} else {
+		vm.Memory = ram
 	}
-	vm.Memory = ram
 }
 func (vm *VMInfo) validateCloudConfig(config string) {
 	if config != "" {
