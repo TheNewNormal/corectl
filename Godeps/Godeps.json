@@ -59,7 +59,7 @@
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
-			"Rev": "afe1e2ddf0f05b7c29d388a3f8e76cb15c2231ca"
+			"Rev": "6b8e5b55d20d01ad47ecfe98e5171688397c61e9"
 		},
 		{
 			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",
