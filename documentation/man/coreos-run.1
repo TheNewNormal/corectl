@@ -1,0 +1,82 @@
+
+
+.SH NAME
+.PP
+coreos run \- runs a new CoreOS container
+
+
+.SH SYNOPSIS
+.PP
+\fBcoreos run\fP [OPTIONS]
+
+
+.SH DESCRIPTION
+.PP
+runs a new CoreOS container
+
+
+.SH OPTIONS
+.PP
+\fB\-\-cdrom\fP=""
+    append an CDROM (.iso) to VM
+
+.PP
+\fB\-\-channel\fP="alpha"
+    CoreOS channel
+
+.PP
+\fB\-\-cloud\_config\fP=""
+    cloud\-config file location (either URL or local path)
+
+.PP
+\fB\-\-cpus\fP="1"
+    VM's vCPUS
+
+.PP
+\fB\-\-extra\fP=""
+    additional arguments to xhyve hypervisor
+
+.PP
+\fB\-h\fP, \fB\-\-help\fP[=false]
+    help for run
+
+.PP
+\fB\-\-memory\fP="1024"
+    VM's RAM
+
+.PP
+\fB\-\-net\fP=[]
+    append additional network interfaces to VM
+
+.PP
+\fB\-\-root\fP=""
+    append a (persistent) root volume to VM
+
+.PP
+\fB\-\-sshkey\fP=""
+    VM's default ssh key
+
+.PP
+\fB\-\-uuid\fP="random"
+    VM's UUID
+
+.PP
+\fB\-\-version\fP="latest"
+    CoreOS version
+
+.PP
+\fB\-\-volume\fP=[]
+    append disk volumes to VM
+
+.PP
+\fB\-\-xhyve\fP="/usr/local/bin/xhyve"
+    xhyve binary to use
+
+
+.SH SEE ALSO
+.PP
+\fBcoreos(1)\fP,
+
+
+.SH HISTORY
+.PP

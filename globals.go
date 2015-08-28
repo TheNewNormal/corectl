@@ -25,9 +25,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-//
-const Version = "0.0.1"
-
 type sessionInfo struct {
 	configDir string
 	pwd       string

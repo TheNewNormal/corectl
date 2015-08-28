@@ -37,7 +37,7 @@ Usage: xhyve [-behuwxACHPWY] [-c vcpus] [-g <gdb port>] [-l <lpc>] ...
 ```
 ❯❯❯ git clone git@github.com:coreos/coreos-xhyve.git
 ❯❯❯ cd coreos-xhyve
-❯❯❯ godep go build
+❯❯❯ ./build.sh
 ```
 ### kickstart a CoreOS VM
 the following command will fetch the `latest` CoreOS Alpha image
@@ -95,6 +95,8 @@ Flags:
 
 Use "coreos [command] --help" for more information about a command.
 ```
+> read [here](documentation/markdown/coreos.md) the full
+> auto-generated documentation. 
 
 ### simple usage recipe - a docker and rkt playground.
 - create a volume to store your persistent data. (will be
