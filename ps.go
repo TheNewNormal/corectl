@@ -28,15 +28,17 @@ import (
 
 var (
 	psCmd = &cobra.Command{
-		Use:   "ps",
-		Short: "lists running CoreOS instances",
-		Run:   psCommand,
+		Use:     "ps",
+		Aliases: []string{"status"},
+		Short:   "lists running CoreOS instances",
+		Run:     psCommand,
 	}
 )
 
 func psCommand(cmd *cobra.Command, args []string) {
 	ls, _ := ioutil.ReadDir(filepath.Join(SessionContext.configDir, "running"))
 	if len(ls) > 0 {
+		fmt.Println(len(ls), "running CoreOS instances:")
 		for _, d := range ls {
 			fmt.Printf("- %s (up %s)\n", d.Name(), time.Now().Sub(d.ModTime()))
 			if buf, _ := ioutil.ReadFile(filepath.Join(SessionContext.configDir,
