@@ -53,7 +53,8 @@ func init() {
 	viper.BindPFlag("json", RootCmd.Flags().Lookup("json"))
 
 	RootCmd.Flags().Bool("debug", false,
-		"adds extra verbosity for debugging purposes")
+		"adds extra verbosity, and options, for debugging purposes "+
+			"and/or power users")
 	viper.BindPFlag("debug", RootCmd.Flags().Lookup("debug"))
 
 	// logger defaults

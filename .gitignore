@@ -1,4 +1,7 @@
+.imdone
+.imdoneignore
 imgs
 *.img
 coreos-xhyve
 tmp.*
+blablabla.go

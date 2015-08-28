@@ -1,14 +1,13 @@
 #!/bin/sh
 
 VERSION=$(git describe --abbrev=6 --dirty --always --tags)
-V="$(mktemp -u -p $(pwd)).go"
+V="blablabla.go"
 
 echo "package main" > ${V}
 echo "var Version = \"${VERSION}\"" >> ${V}
 godep save ./...
 git status
-godep go build
-rm -rf ${V}
+godep go build -o coreos-xhyve *.go
 mkdir -p ./documentation/{man,markdown}
 COREOS_DEBUG=true ./coreos-xhyve utils mkMan
 (pushd ./documentation/man

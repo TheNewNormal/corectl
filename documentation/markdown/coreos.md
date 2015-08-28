@@ -15,7 +15,7 @@ coreos
 ### Options
 
 ```
-      --debug[=false]: adds extra verbosity for debugging purposes
+      --debug[=false]: adds extra verbosity, and options, for debugging purposes and/or power users
   -h, --help[=false]: help for coreos
       --json[=false]: outputs in JSON for easy 3rd party integration
 ```

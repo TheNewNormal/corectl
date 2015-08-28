@@ -182,8 +182,10 @@ func init() {
 	runCmd.Flags().String("sshkey", "", "VM's default ssh key")
 	runCmd.Flags().String("xhyve", "/usr/local/bin/xhyve",
 		"xhyve binary to use")
-	runCmd.Flags().String("extra", "",
-		"additional arguments to xhyve hypervisor")
+	if SessionContext.debug {
+		runCmd.Flags().String("extra", "",
+			"additional arguments to xhyve hypervisor")
+	}
 	runCmd.Flags().String("root", "",
 		"append a (persistent) root volume to VM")
 	runCmd.Flags().String("cdrom", "",
@@ -330,7 +332,6 @@ func (vm *VMInfo) setSSHKey(key string) {
 }
 
 func (vm *VMInfo) tweakXhyve(extra string) {
-	// XXX we need to wipe -s x:y,... if passed thru here
 	vm.Extra = extra
 }
 
