@@ -48,11 +48,11 @@ func init() {
 	viper.SetEnvPrefix("COREOS")
 	viper.AutomaticEnv()
 
-	RootCmd.Flags().Bool("json", false,
+	RootCmd.PersistentFlags().Bool("json", false,
 		"outputs in JSON for easy 3rd party integration")
 	viper.BindPFlag("json", RootCmd.Flags().Lookup("json"))
 
-	RootCmd.Flags().Bool("debug", false,
+	RootCmd.PersistentFlags().Bool("debug", false,
 		"adds extra verbosity, and options, for debugging purposes "+
 			"and/or power users")
 	viper.BindPFlag("debug", RootCmd.Flags().Lookup("debug"))

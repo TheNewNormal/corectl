@@ -1,5 +1,6 @@
 #cloud-config
 
+hostname: containerLand
 coreos:
   units:
     - name: docker-tcp.socket

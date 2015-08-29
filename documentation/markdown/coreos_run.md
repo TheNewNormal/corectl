@@ -1,11 +1,11 @@
 ## coreos run
 
-runs a new CoreOS container
+starts a new CoreOS VM
 
 ### Synopsis
 
 
-runs a new CoreOS container
+starts a new CoreOS VM
 
 ```
 coreos run
@@ -28,6 +28,13 @@ coreos run
       --version="latest": CoreOS version
       --volume=[]: append disk volumes to VM
       --xhyve="/usr/local/bin/xhyve": xhyve binary to use
+```
+
+### Options inherited from parent commands
+
+```
+      --debug[=false]: adds extra verbosity, and options, for debugging purposes and/or power users
+      --json[=false]: outputs in JSON for easy 3rd party integration
 ```
 
 ### SEE ALSO
