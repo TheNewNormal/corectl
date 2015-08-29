@@ -33,9 +33,10 @@ import (
 
 var (
 	pullCmd = &cobra.Command{
-		Use:   "pull",
-		Short: "pull a CoreOS image from upstream",
-		Run:   pullCommand,
+		Use:     "pull",
+		Aliases: []string{"get", "fetch"},
+		Short:   "pull a CoreOS image from upstream",
+		Run:     pullCommand,
 	}
 )
 

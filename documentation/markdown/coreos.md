@@ -26,7 +26,7 @@ coreos
 * [coreos ps](coreos_ps.md)	 - lists running CoreOS instances
 * [coreos pull](coreos_pull.md)	 - pull a CoreOS image from upstream
 * [coreos rm](coreos_rm.md)	 - deletes CoreOS image locally
-* [coreos run](coreos_run.md)	 - runs a new CoreOS container
+* [coreos run](coreos_run.md)	 - starts a new CoreOS VM
 * [coreos utils](coreos_utils.md)	 - some developer focused utilies
 * [coreos version](coreos_version.md)	 - displays the version number
 

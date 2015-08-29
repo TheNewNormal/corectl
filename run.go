@@ -39,7 +39,7 @@ var (
 	runCmd = &cobra.Command{
 		Use:     "run",
 		Aliases: []string{"start"},
-		Short:   "runs a new CoreOS container",
+		Short:   "starts a new CoreOS VM",
 		Run:     runCommand,
 	}
 )
