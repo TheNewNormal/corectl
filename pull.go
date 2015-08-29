@@ -41,10 +41,10 @@ var (
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
-	SessionContext.data.setChannel(viper.GetString("channel"))
-	SessionContext.data.setVersion(viper.GetString("version"))
+	SessionContext.data[0].setChannel(viper.GetString("channel"))
+	SessionContext.data[0].setVersion(viper.GetString("version"))
 
-	SessionContext.data.lookupImage()
+	SessionContext.data[0].lookupImage()
 }
 func init() {
 	pullCmd.Flags().String("channel", "alpha",
@@ -197,9 +197,8 @@ func downloadAndVerify(t string) {
 			log.Fatalln(out, err)
 		}
 	}
-
 	dest := fmt.Sprintf("%s/images/%s/%s", SessionContext.configDir,
-		SessionContext.data.Channel, SessionContext.data.Version)
+		SessionContext.data[0].Channel, SessionContext.data[0].Version)
 	if err = os.MkdirAll(dest, 0755); err != nil {
 		log.Fatalln(err)
 	}

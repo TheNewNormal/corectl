@@ -35,13 +35,13 @@ var (
 
 func lsCommand(cmd *cobra.Command, args []string) {
 	var channels []string
-
-	SessionContext.data.setChannel(viper.GetString("channel"))
+	s := SessionContext.data[0]
+	s.setChannel(viper.GetString("channel"))
 
 	if viper.GetBool("ls.a") {
 		channels = DefaultChannels
 	} else {
-		channels = append(channels, SessionContext.data.Channel)
+		channels = append(channels, s.Channel)
 	}
 
 	local := getLocalImages()
