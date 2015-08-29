@@ -33,7 +33,7 @@ type sessionInfo struct {
 	hasPowers bool
 	debug     bool
 	json      bool
-	data      VMInfo
+	data      []VMInfo
 }
 
 var SessionContext sessionInfo
@@ -139,6 +139,7 @@ func (session *sessionInfo) init() {
 			log.Fatalln(err)
 		}
 	}
+	session.data = append(session.data, VMInfo{})
 }
 
 func (session *sessionInfo) canRun() {

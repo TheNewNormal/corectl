@@ -46,7 +46,7 @@ var (
 
 func runCommand(cmd *cobra.Command, args []string) {
 	SessionContext.canRun()
-	vm := &SessionContext.data
+	vm := &SessionContext.data[0]
 
 	vm.setChannel(viper.GetString("channel"))
 	vm.setVersion(viper.GetString("version"))

@@ -34,7 +34,7 @@ var (
 )
 
 func rmCommand(cmd *cobra.Command, args []string) {
-	vm := &SessionContext.data
+	vm := &SessionContext.data[0]
 
 	vm.setChannel(viper.GetString("channel"))
 	vm.setVersion(viper.GetString("version"))
