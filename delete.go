@@ -34,6 +34,8 @@ var (
 )
 
 func rmCommand(cmd *cobra.Command, args []string) {
+	viper.BindPFlags(cmd.Flags())
+
 	vm := &SessionContext.data[0]
 
 	vm.setChannel(viper.GetString("channel"))
@@ -45,7 +47,7 @@ func rmCommand(cmd *cobra.Command, args []string) {
 	if l.Len() == 0 {
 		return
 	}
-	if viper.GetBool("rm.o") {
+	if viper.GetBool("old") {
 		for _, i := range l[0 : l.Len()-1] {
 			if err := os.RemoveAll(fmt.Sprintf("%s/images/%s/%s",
 				SessionContext.configDir,
@@ -66,17 +68,10 @@ func rmCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	rmCmd.Flags().String("channel", "alpha",
-		"CoreOS channel")
-	rmCmd.Flags().String("version", "latest",
-		"CoreOS version")
-
-	viper.BindPFlag("channel", rmCmd.Flags().Lookup("channel"))
-	viper.BindPFlag("version", rmCmd.Flags().Lookup("version"))
-
+	rmCmd.Flags().String("channel", "alpha", "CoreOS channel")
+	rmCmd.Flags().String("version", "latest", "CoreOS version")
 	rmCmd.Flags().Bool("old", false,
 		"removes outdated images")
-	viper.BindPFlag("rm.o", rmCmd.Flags().Lookup("old"))
 
 	RootCmd.AddCommand(rmCmd)
 }

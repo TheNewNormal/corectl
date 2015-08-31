@@ -41,19 +41,18 @@ var (
 )
 
 func pullCommand(cmd *cobra.Command, args []string) {
-	SessionContext.data[0].setChannel(viper.GetString("channel"))
-	SessionContext.data[0].setVersion(viper.GetString("version"))
-
-	SessionContext.data[0].lookupImage()
+	viper.BindPFlags(cmd.Flags())
+	vm := &SessionContext.data[0]
+	vm.setChannel(viper.GetString("channel"))
+	vm.setVersion(viper.GetString("version"))
+	vm.lookupImage()
 }
+
 func init() {
 	pullCmd.Flags().String("channel", "alpha",
 		"CoreOS channel")
 	pullCmd.Flags().String("version", "latest",
 		"CoreOS version")
-
-	viper.BindPFlag("channel", pullCmd.Flags().Lookup("channel"))
-	viper.BindPFlag("version", pullCmd.Flags().Lookup("version"))
 
 	RootCmd.AddCommand(pullCmd)
 }

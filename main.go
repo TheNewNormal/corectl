@@ -50,12 +50,12 @@ func init() {
 
 	RootCmd.PersistentFlags().Bool("json", false,
 		"outputs in JSON for easy 3rd party integration")
-	viper.BindPFlag("json", RootCmd.Flags().Lookup("json"))
 
 	RootCmd.PersistentFlags().Bool("debug", false,
 		"adds extra verbosity, and options, for debugging purposes "+
 			"and/or power users")
-	viper.BindPFlag("debug", RootCmd.Flags().Lookup("debug"))
+
+	viper.BindPFlags(RootCmd.PersistentFlags())
 
 	// logger defaults
 	log.SetFlags(0)

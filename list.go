@@ -34,11 +34,12 @@ var (
 )
 
 func lsCommand(cmd *cobra.Command, args []string) {
+	viper.BindPFlags(cmd.Flags())
 	var channels []string
 	s := SessionContext.data[0]
 	s.setChannel(viper.GetString("channel"))
 
-	if viper.GetBool("ls.a") {
+	if viper.GetBool("all") {
 		channels = DefaultChannels
 	} else {
 		channels = append(channels, s.Channel)
@@ -55,15 +56,8 @@ func lsCommand(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-
-	lsCmd.Flags().String("channel", "alpha",
-		"CoreOS channel")
-	viper.BindPFlag("channel", lsCmd.Flags().Lookup("channel"))
-
-	lsCmd.Flags().BoolP("all", "a", false,
-		"browses all channels")
-	viper.BindPFlag("ls.a", lsCmd.Flags().Lookup("all"))
-
+	lsCmd.Flags().String("channel", "alpha", "CoreOS channel")
+	lsCmd.Flags().BoolP("all", "a", false, "browses all channels")
 	RootCmd.AddCommand(lsCmd)
 }
 

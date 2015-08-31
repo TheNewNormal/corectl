@@ -48,6 +48,8 @@ func runCommand(cmd *cobra.Command, args []string) {
 	SessionContext.canRun()
 	vm := &SessionContext.data[0]
 
+	viper.BindPFlags(cmd.Flags())
+
 	vm.setChannel(viper.GetString("channel"))
 	vm.setVersion(viper.GetString("version"))
 
@@ -57,8 +59,8 @@ func runCommand(cmd *cobra.Command, args []string) {
 	vm.tweakXhyve(viper.GetString("extra"))
 
 	vm.uuidCheck(viper.GetString("uuid"))
-	vm.validateCPU(viper.GetString("cpus"))
-	vm.validateRAM(viper.GetString("memory"))
+	vm.validateCPU(viper.GetInt("cpus"))
+	vm.validateRAM(viper.GetInt("memory"))
 	vm.setSSHKey(viper.GetString("sshkey"))
 
 	vm.validateCDROM(viper.GetString("cdrom"))
@@ -89,8 +91,8 @@ func runCommand(cmd *cobra.Command, args []string) {
 		"-l", "com1,stdio",
 		"-s", "31,lpc",
 		"-U", vm.UUID,
-		"-m", fmt.Sprintf("%sM", vm.Memory),
-		"-c", vm.Cpus,
+		"-m", fmt.Sprintf("%vM", vm.Memory),
+		"-c", fmt.Sprintf("%v", vm.Cpus),
 		"-A",
 	}
 	if vm.Extra != "" {
@@ -175,17 +177,19 @@ func init() {
 	runCmd.Flags().String("channel", "alpha", "CoreOS channel")
 	runCmd.Flags().String("version", "latest", "CoreOS version")
 	runCmd.Flags().String("uuid", "random", "VM's UUID")
-	runCmd.Flags().String("memory", "1024", "VM's RAM")
-	runCmd.Flags().String("cpus", "1", "VM's vCPUS")
+	runCmd.Flags().Int("memory", 1024, "VM's RAM")
+	runCmd.Flags().Int("cpus", 1, "VM's vCPUS")
 	runCmd.Flags().String("cloud_config", "",
 		"cloud-config file location (either URL or local path)")
 	runCmd.Flags().String("sshkey", "", "VM's default ssh key")
 	runCmd.Flags().String("xhyve", "/usr/local/bin/xhyve",
 		"xhyve binary to use")
+
 	if SessionContext.debug {
 		runCmd.Flags().String("extra", "",
 			"additional arguments to xhyve hypervisor")
 	}
+
 	runCmd.Flags().String("root", "",
 		"append a (persistent) root volume to VM")
 	runCmd.Flags().String("cdrom", "",
@@ -198,15 +202,7 @@ func init() {
 	runCmd.Flags().StringSlice("net", nil,
 		"append additional network interfaces to VM")
 
-	// Thanks God, for the for loop!
-	for _, v := range []string{"channel", "version", "uuid",
-		"memory", "cpus", "cloud_config", "sshkey", "xhyve",
-		"extra", "root", "cdrom", "volume", "net"} {
-		viper.BindPFlag(v, runCmd.Flags().Lookup(v))
-	}
-
 	RootCmd.AddCommand(runCmd)
-
 }
 
 type etcExports struct {
@@ -284,29 +280,24 @@ func (vm *VMInfo) uuidCheck(xxid string) {
 	}
 }
 
-func (vm *VMInfo) validateCPU(cores string) {
-	if _, err := strconv.Atoi(cores); err != nil {
-		log.Printf(" %s not a reasonable CPU #. %s", cores,
-			"    using '1', the default")
-		cores = "1"
-	}
+func (vm *VMInfo) validateCPU(cores int) {
 	vm.Cpus = cores
 }
 
-func (vm *VMInfo) validateRAM(ram string) {
-	if v, err := strconv.Atoi(ram); err != nil || v < 1024 {
-		fmt.Printf(" '%s' not a reasonable memory value. %s", ram,
+func (vm *VMInfo) validateRAM(ram int) {
+	if ram < 1024 {
+		fmt.Printf(" '%v' not a reasonable memory value. %s", ram,
 			"Using '1024', the default")
-		ram = "1024"
-	} else if v > 3072 {
-		fmt.Printf(" '%s' not a reasonable memory value. %s %s", ram,
+		ram = 1024
+	} else if ram > 3072 {
+		fmt.Printf(" '%v' not a reasonable memory value. %s %s", ram,
 			"as presently xhyve only supports VMs with up to 3GB of RAM.",
 			"setting it to '3072'")
-		ram = "3072"
-	} else {
-		vm.Memory = ram
+		ram = 3072
 	}
+	vm.Memory = ram
 }
+
 func (vm *VMInfo) validateCloudConfig(config string) {
 	if config != "" {
 		response, err := http.Get(config)

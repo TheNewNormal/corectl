@@ -42,8 +42,8 @@ var SessionContext sessionInfo
 type VMInfo struct {
 	Channel     string
 	Version     string
-	Cpus        string
-	Memory      string
+	Cpus        int
+	Memory      int
 	UUID        string
 	Xhyve       string
 	CloudConfig string
