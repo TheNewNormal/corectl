@@ -15,6 +15,7 @@ coreos pull
 
 ```
       --channel="alpha": CoreOS channel
+  -f, --force[=false]: override local image, if any
   -h, --help[=false]: help for pull
       --version="latest": CoreOS version
 ```

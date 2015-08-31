@@ -53,7 +53,7 @@ func runCommand(cmd *cobra.Command, args []string) {
 	vm.setChannel(viper.GetString("channel"))
 	vm.setVersion(viper.GetString("version"))
 
-	vm.lookupImage()
+	vm.lookupImage(false)
 
 	vm.xhyveCheck(viper.GetString("xhyve"))
 	vm.tweakXhyve(viper.GetString("extra"))

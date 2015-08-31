@@ -45,7 +45,7 @@ func pullCommand(cmd *cobra.Command, args []string) {
 	vm := &SessionContext.data[0]
 	vm.setChannel(viper.GetString("channel"))
 	vm.setVersion(viper.GetString("version"))
-	vm.lookupImage()
+	vm.lookupImage(viper.GetBool("force"))
 }
 
 func init() {
@@ -53,6 +53,8 @@ func init() {
 		"CoreOS channel")
 	pullCmd.Flags().String("version", "latest",
 		"CoreOS version")
+	pullCmd.Flags().BoolP("force", "f", false,
+		"override local image, if any")
 
 	RootCmd.AddCommand(pullCmd)
 }
@@ -81,7 +83,7 @@ func (vm *VMInfo) findLatestUpstream() (version string, err error) {
 	// shouldn 't happen ever. will be treated as if offline'
 	return version, fmt.Errorf("version not found parsing %s (!)", upstream)
 }
-func (vm *VMInfo) lookupImage() {
+func (vm *VMInfo) lookupImage(override bool) {
 	var err error
 	var isLocal bool
 	local := getLocalImages()
@@ -108,10 +110,12 @@ func (vm *VMInfo) lookupImage() {
 		}
 	}
 	if isLocal {
-		if SessionContext.debug {
-			fmt.Println("    -", vm.Version, "already downloaded.")
+		if !override {
+			if SessionContext.debug {
+				fmt.Println("    -", vm.Version, "already downloaded.")
+			}
+			return
 		}
-		return
 	}
 
 	root := fmt.Sprintf("http://%s.release.core-os.net/amd64-usr/%s/",
