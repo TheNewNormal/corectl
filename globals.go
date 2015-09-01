@@ -36,6 +36,7 @@ type sessionInfo struct {
 	data      []VMInfo
 }
 
+// SessionContext ...
 var SessionContext sessionInfo
 
 // VMInfo - per VM settings
@@ -48,7 +49,7 @@ type VMInfo struct {
 	UUID        string
 	Xhyve       string
 	CloudConfig string
-	CClocation  int
+	CClocation  string
 	SSHkey      string
 	Extra       string
 	Root        string
@@ -65,9 +66,9 @@ const (
 
 // storageDevice types
 const (
-	_ = iota
-	HDD
-	CDROM
+	_     = iota
+	HDD   = "HDD"
+	CDROM = "CDROM"
 )
 
 //
@@ -79,7 +80,7 @@ type NetworkInterface struct {
 //
 type StorageDevice struct {
 	Slot int
-	Type int
+	Type string
 	Path string
 }
 
@@ -95,9 +96,9 @@ type networkAssets struct {
 
 // CloudConfig types
 const (
-	_ = iota
-	Local
-	Remote
+	_      = iota
+	Local  = "localfs"
+	Remote = "URL"
 )
 
 func (session *sessionInfo) init() {
