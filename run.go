@@ -59,6 +59,11 @@ func runCommand(cmd *cobra.Command, args []string) {
 	vm.tweakXhyve(viper.GetString("extra"))
 
 	vm.uuidCheck(viper.GetString("uuid"))
+	if name := viper.GetString("name"); name == "" {
+		vm.Name = vm.UUID
+	} else {
+		vm.Name = name
+	}
 	vm.validateCPU(viper.GetInt("cpus"))
 	vm.validateRAM(viper.GetInt("memory"))
 	vm.setSSHKey(viper.GetString("sshkey"))
@@ -201,6 +206,8 @@ func init() {
 		"append disk volumes to VM")
 	runCmd.Flags().StringSlice("net", nil,
 		"append additional network interfaces to VM")
+	runCmd.Flags().StringP("name", "n", "",
+		"names the VM. (the default is the uuid)")
 
 	RootCmd.AddCommand(runCmd)
 }

@@ -40,6 +40,7 @@ var SessionContext sessionInfo
 
 // VMInfo - per VM settings
 type VMInfo struct {
+	Name        string
 	Channel     string
 	Version     string
 	Cpus        int
