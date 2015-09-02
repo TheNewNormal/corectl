@@ -14,6 +14,7 @@ coreos kill
 ### Options
 
 ```
+  -a, --all[=false]: halts all running instances
   -h, --help[=false]: help for kill
 ```
 

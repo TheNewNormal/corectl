@@ -16,10 +16,13 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -33,11 +36,22 @@ var (
 
 func killCommand(cmd *cobra.Command, args []string) {
 	SessionContext.canRun()
-	if len(args) == 0 {
+	viper.BindPFlags(cmd.Flags())
+	if len(args) == 0 && !viper.GetBool("all") {
 		log.Println("nothing to kill...")
 		return
 	}
-	for _, v := range args {
+	var targets []string
+	if viper.GetBool("all") {
+		ls, _ := ioutil.ReadDir(filepath.Join(SessionContext.configDir,
+			"running"))
+		for _, v := range ls {
+			targets = append(targets, v.Name())
+		}
+	} else {
+		targets = args
+	}
+	for _, v := range targets {
 		vm, err := findVM(v)
 		if err == nil {
 			if err := vm.runCommand([]string{"id", ";", "sync"}); err != nil {
@@ -56,10 +70,12 @@ func killCommand(cmd *cobra.Command, args []string) {
 				_ = vm.runCommand([]string{"sudo", "halt"})
 			}
 		}
-		break
+		continue
 	}
 }
 
 func init() {
+	killCmd.Flags().BoolP("all", "a", false,
+		"halts all running instances")
 	RootCmd.AddCommand(killCmd)
 }
