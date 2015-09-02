@@ -16,6 +16,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -37,24 +38,46 @@ var (
 
 func psCommand(cmd *cobra.Command, args []string) {
 	viper.BindPFlags(cmd.Flags())
-
 	ls, _ := ioutil.ReadDir(filepath.Join(SessionContext.configDir, "running"))
 	if len(ls) > 0 {
-		fmt.Println(len(ls), "running CoreOS instances:")
 		for _, d := range ls {
-			fmt.Printf("- %s (up %s)\n", d.Name(), time.Now().Sub(d.ModTime()))
-			if buf, _ := ioutil.ReadFile(filepath.Join(SessionContext.configDir,
-				fmt.Sprintf("running/%s/%s", d.Name(), "ip"))); buf != nil {
-				fmt.Println("  - IP:", string(buf))
-			}
-			if viper.GetBool("all") {
-				cfg := filepath.Join(SessionContext.configDir,
-					fmt.Sprintf("running/%s/config", d.Name()))
-				cc, _ := ioutil.ReadFile(cfg)
-				fmt.Printf("  %s\n", strings.Replace(string(cc), "\n", "\n  ", -1))
+			vm, err := getSavedConfig(d.Name())
+			if err == nil && vm.isAlive() {
+				fmt.Printf("- %v (PID %v/detached=%v), up %v\n",
+					vm.Name, vm.Pid, vm.Detached,
+					time.Now().Sub(d.ModTime()))
+				if buf, _ := ioutil.ReadFile(
+					filepath.Join(SessionContext.configDir,
+						fmt.Sprintf("running/%s/%s",
+							d.Name(), "ip"))); buf != nil {
+					fmt.Println("  - IP (public):",
+						strings.TrimSpace(string(buf)))
+				}
+				if viper.GetBool("all") {
+					pp, _ := json.MarshalIndent(vm, "", "    ")
+					// FIXME get a PrettyPrint f
+					fmt.Println(string(pp))
+				}
 			}
 		}
 	}
+}
+
+func getSavedConfig(uuid string) (VMInfo, error) {
+	vm := VMInfo{}
+	buf, err := ioutil.ReadFile(filepath.Join(SessionContext.configDir,
+		fmt.Sprintf("running/%s/config", uuid)))
+	if err != nil {
+		return vm, err
+	}
+	json.Unmarshal(buf, &vm)
+	if buf, err := ioutil.ReadFile(
+		filepath.Join(SessionContext.configDir,
+			fmt.Sprintf("running/%s/%s",
+				vm.UUID, "ip"))); err == nil && buf != nil {
+		vm.PublicIP = strings.TrimSpace(string(buf))
+	}
+	return vm, err
 }
 
 func init() {

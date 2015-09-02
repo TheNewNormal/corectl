@@ -17,10 +17,14 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"os/user"
+	"path/filepath"
 	"strconv"
+	"syscall"
 
 	"github.com/spf13/viper"
 )
@@ -41,20 +45,25 @@ var SessionContext sessionInfo
 
 // VMInfo - per VM settings
 type VMInfo struct {
-	Name        string
-	Channel     string
-	Version     string
-	Cpus        int
-	Memory      int
-	UUID        string
-	Xhyve       string
-	CloudConfig string
-	CClocation  string
-	SSHkey      string
-	Extra       string
-	Root        string
-	Network     networkAssets
-	Storage     storageAssets
+	Name               string
+	Channel            string
+	Version            string
+	Cpus               int
+	Memory             int
+	UUID               string
+	Xhyve              string
+	CloudConfig        string
+	CClocation         string
+	SSHkey             string
+	Extra              string
+	Root               string
+	Network            networkAssets
+	Storage            storageAssets
+	InternalSSHauthKey string
+	InternalSSHprivKey string
+	Detached           bool
+	Pid                int
+	PublicIP           string
 }
 
 // networkDevice types
@@ -99,6 +108,12 @@ const (
 	_      = iota
 	Local  = "localfs"
 	Remote = "URL"
+)
+
+// in bg or not
+const (
+	Attached = true
+	Detached = false
 )
 
 func (session *sessionInfo) init() {
@@ -149,6 +164,72 @@ func (session *sessionInfo) canRun() {
 		log.Fatalln("not enough permissions to run VMs. use 'sudo'.")
 	}
 }
+func (vm *VMInfo) attach() {
+	if len(vm.PublicIP) == 0 {
+		log.Fatalln("oops, no IP address found for", vm.Name)
+	}
+	if SessionContext.debug {
+		fmt.Println("attaching to", vm.Name, vm.PublicIP)
+	}
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			log.Fatalln(err)
+		}
+	}()
+	secretF := filepath.Join(tmpDir, "secret")
+	if err := ioutil.WriteFile(secretF,
+		[]byte(vm.InternalSSHprivKey), 0600); err != nil {
+		log.Fatalln(err)
+	}
+	target := fmt.Sprintf("core@%s", vm.PublicIP)
+	c := exec.Command("ssh", target, "-i", secretF,
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null")
+	c.Stdout, c.Stdin, c.Stderr = os.Stdout, os.Stdin, os.Stderr
+	if err := c.Run(); err != nil {
+		log.Fatalln("Aborting:", err)
+	}
+}
+func (vm *VMInfo) runCommand(args []string) (err error) {
+	if len(vm.PublicIP) == 0 {
+		return err
+	}
+
+	if SessionContext.debug {
+		fmt.Println("attaching to", vm.Name, vm.PublicIP)
+	}
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			log.Fatalln(err)
+		}
+	}()
+	secretF := filepath.Join(tmpDir, "secret")
+	if err := ioutil.WriteFile(secretF,
+		[]byte(vm.InternalSSHprivKey), 0600); err != nil {
+		return err
+	}
+	target := fmt.Sprintf("core@%s", vm.PublicIP)
+	instr := []string{target, "-i", secretF,
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null"}
+	instr = append(instr, args...)
+	c := exec.Command("ssh", instr...)
+	if err := c.Start(); err != nil {
+		return err
+	}
+	if err := c.Wait(); err != nil {
+		return err
+	}
+	return err
+}
 
 func (vm *VMInfo) setChannel(channel string) {
 	var b string
@@ -162,6 +243,20 @@ func (vm *VMInfo) setChannel(channel string) {
 	log.Printf("'%s' is not a recognized CoreOS image channel. %s",
 		channel, "Using default ('alpha').")
 	return
+}
+
+func (vm *VMInfo) isAlive() bool {
+	if foo, err := os.FindProcess(vm.Pid); err != nil {
+		return false
+	} else {
+		if err := foo.Signal(syscall.Signal(0)); err != nil {
+			// avoids need for sudo in ps
+			if err.Error() != "operation not permitted" {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (vm *VMInfo) setVersion(version string) {
@@ -295,8 +390,8 @@ Pg==
 
 //
 const CoreOEMsetupEnv = `#!/bin/bash
-UUID=$(cat /proc/cmdline | sed -e 's,.*uuid=,,' -e 's, .*,,')
-CALLERID=$(cat /proc/cmdline | sed -e 's,.*localuser=,,' -e 's, .*,,')
+[[ $(</proc/cmdline) =~ uuid=([^\ ]+) ]]; UUID=${BASH_REMATCH[1]}
+[[ $(</proc/cmdline) =~ localuser=([^\ ]+) ]]; CALLERID=${BASH_REMATCH[1]}
 STATUSDIR=/Users/${CALLERID}/.coreos/running/${UUID}
 # wait for eth0 to get up...
 while [ 1 ]; do
@@ -312,6 +407,9 @@ COREOS_PRIVATE_IPV4=${COREOS_PUBLIC_IPV4}
   echo COREOS_PUBLIC_IPV4=${COREOS_PUBLIC_IPV4};
   echo COREOS_PRIVATE_IPV4=${COREOS_PRIVATE_IPV4};
 ) > /etc/environment
+[[ $(</proc/cmdline) =~ sshkey_internal=\"([^\"]+)\" ]]
+echo "${BASH_REMATCH[1]}" | update-ssh-keys -a proc-cmdline-ssh_internal
+
 `
 
 //

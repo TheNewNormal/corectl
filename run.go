@@ -29,6 +29,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
@@ -59,6 +60,7 @@ func runCommand(cmd *cobra.Command, args []string) {
 	vm.tweakXhyve(viper.GetString("extra"))
 
 	vm.uuidCheck(viper.GetString("uuid"))
+
 	if name := viper.GetString("name"); name == "" {
 		vm.Name = vm.UUID
 	} else {
@@ -81,6 +83,16 @@ func runCommand(cmd *cobra.Command, args []string) {
 	if vm.SSHkey != "" {
 		cmdline = fmt.Sprintf("%s sshkey=\"%s\"", cmdline, vm.SSHkey)
 	}
+	if privKey, pubKey, err := sshKeyGen(); err != nil {
+		log.Fatalln("Aborting: unable to generate internal SSH key pair (!)",
+			err)
+	} else {
+		vm.InternalSSHprivKey = privKey
+		vm.InternalSSHauthKey = pubKey
+	}
+	cmdline = fmt.Sprintf("%s sshkey_internal=\"%s\"",
+		cmdline, strings.TrimSpace(vm.InternalSSHauthKey))
+
 	if vm.Root != "" {
 		t, _ := strconv.Atoi(vm.Root)
 		cmdline = fmt.Sprintf("%s root=/dev/vd%s", cmdline,
@@ -104,8 +116,17 @@ func runCommand(cmd *cobra.Command, args []string) {
 		instr = append(instr, vm.Extra)
 	}
 	rundir := fmt.Sprintf("%s/running/%s/", SessionContext.configDir, vm.UUID)
-	if _, err := os.Stat(filepath.Join(rundir, "/config")); err == nil {
-		log.Fatalln("Aborting. Another VM seems to be running with same UUID.")
+	if _, err := findVM(vm.Name); err == nil {
+		if vm.Name == vm.UUID {
+			log.Fatalf("%s %s (%s)\n", "Aborting.",
+				"Another VM is running with same UUID.", vm.UUID)
+		}
+		log.Fatalf("%s %s (%s)\n", "Aborting.",
+			"Another VM is running with same name.", vm.Name)
+	}
+	// XXX we assume above is enough...
+	if err := os.RemoveAll(rundir); err != nil {
+		log.Fatalln(err)
 	}
 	if err := os.MkdirAll(rundir, 0755); err != nil {
 		log.Fatalln("unable to create", rundir)
@@ -144,38 +165,51 @@ func runCommand(cmd *cobra.Command, args []string) {
 	usersDir := etcExports{}
 	usersDir.share()
 
-	cfg, _ := json.MarshalIndent(vm, "", "    ")
-	if SessionContext.debug {
-		fmt.Println(string(cfg))
-	}
-	if err := ioutil.WriteFile(fmt.Sprintf("%s/config", rundir),
-		[]byte(cfg), 0644); err != nil {
-		log.Fatalln(err)
-	}
-
-	if SessionContext.hasPowers {
-		if err := fixPerms(rundir); err != nil {
-			log.Fatalln(err)
-		}
-	}
-
-	defer func() {
-		if err := os.RemoveAll(rundir); err != nil {
-			log.Fatalln(err)
-		}
-	}()
-
 	fmt.Println("\nbooting ...")
 	c := exec.Command(vm.Xhyve, append(instr, "-f",
 		fmt.Sprintf("kexec,%s,%s,%s", vmlinuz, initrd, cmdline))...)
+	detached := viper.GetBool("detached")
 
-	c.Stdout, c.Stdin, c.Stderr = os.Stdout, os.Stdin, os.Stderr
+	go func() {
+		// XXX hopefully this delay always enough...
+		timer := time.NewTimer(time.Second * 1)
+		<-timer.C
+		vm.Detached = detached
+		vm.Pid = c.Process.Pid
+		cfg, _ := json.MarshalIndent(vm, "", "    ")
+		if SessionContext.debug {
+			fmt.Println(string(cfg))
+		}
+		if err := ioutil.WriteFile(fmt.Sprintf("%s/config", rundir),
+			[]byte(cfg), 0644); err != nil {
+			log.Fatalln(err)
+		}
 
-	if err := c.Run(); err != nil {
-		log.Println("xhyve exited with", err)
+		if SessionContext.hasPowers {
+			if err := fixPerms(rundir); err != nil {
+				log.Fatalln(err)
+			}
+		}
+	}()
+	// FIXME save bootlog
+	if !detached {
+		c.Stdout, c.Stdin, c.Stderr = os.Stdout, os.Stdin, os.Stderr
+		if err := c.Run(); err != nil {
+			log.Fatalln("Aborting: xhyve exited with", err)
+		}
+	} else {
+		if err := c.Start(); err != nil {
+			log.Fatalln("Aborting: unable to start in background.",
+				"xhyve exited with", err)
+		} else {
+			// 1 sec more than above...
+			timer := time.NewTimer(time.Second * 2)
+			<-timer.C
+			fmt.Println("started VM in background with PID", c.Process.Pid)
+		}
 	}
 
-	usersDir.unshare()
+	// usersDir.unshare()
 }
 
 func init() {
@@ -206,6 +240,8 @@ func init() {
 		"append disk volumes to VM")
 	runCmd.Flags().StringSlice("net", nil,
 		"append additional network interfaces to VM")
+	runCmd.Flags().BoolP("detached", "d", false,
+		"starts the VM in detached (background) mode")
 	runCmd.Flags().StringP("name", "n", "",
 		"names the VM. (the default is the uuid)")
 

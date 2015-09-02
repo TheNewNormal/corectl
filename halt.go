@@ -16,23 +16,50 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	haltCmd = &cobra.Command{
-		Use:     "halt",
-		Short:   "halts a running CoreOS instance",
-		Run:     haltCommand,
-		Aliases: []string{"kill"},
+	killCmd = &cobra.Command{
+		Use:     "kill",
+		Aliases: []string{"stop", "halt"},
+		Short:   "halts a running VM",
+		Run:     killCommand,
 	}
 )
 
-func haltCommand(cmd *cobra.Command, args []string) {
-	fmt.Println("TBD")
+func killCommand(cmd *cobra.Command, args []string) {
+	SessionContext.canRun()
+	if len(args) == 0 {
+		log.Println("nothing to kill...")
+		return
+	}
+	for _, v := range args {
+		vm, err := findVM(v)
+		if err == nil {
+			if err := vm.runCommand([]string{"id", ";", "sync"}); err != nil {
+				// ssh messed up for some reason
+				if vm.isAlive() {
+					if p, err := os.FindProcess(vm.Pid); err == nil {
+						log.Println("hard kill...", err)
+						if err := p.Kill(); err != nil {
+							log.Fatalln(err)
+						}
+					}
+				}
+			} else {
+				// will work. bellow returns an error, by design,
+				// that we can safely ignore (because 'id' above worked)
+				_ = vm.runCommand([]string{"sudo", "halt"})
+			}
+		}
+		break
+	}
 }
+
 func init() {
-	RootCmd.AddCommand(haltCmd)
+	RootCmd.AddCommand(killCmd)
 }

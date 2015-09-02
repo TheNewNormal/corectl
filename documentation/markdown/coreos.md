@@ -21,12 +21,13 @@ coreos
 ```
 
 ### SEE ALSO
-* [coreos halt](coreos_halt.md)	 - halts a running CoreOS instance
+* [coreos kill](coreos_kill.md)	 - halts a running VM
 * [coreos ls](coreos_ls.md)	 - lists locally available CoreOS images
 * [coreos ps](coreos_ps.md)	 - lists running CoreOS instances
 * [coreos pull](coreos_pull.md)	 - pull a CoreOS image from upstream
 * [coreos rm](coreos_rm.md)	 - deletes CoreOS image locally
 * [coreos run](coreos_run.md)	 - starts a new CoreOS VM
+* [coreos ssh](coreos_ssh.md)	 - attach to a running VM
 * [coreos utils](coreos_utils.md)	 - some developer focused utilies
 * [coreos version](coreos_version.md)	 - displays the version number
 

@@ -34,6 +34,10 @@ starts a new CoreOS VM
     VM's vCPUS
 
 .PP
+\fB\-d\fP, \fB\-\-detached\fP[=false]
+    starts the VM in detached (background) mode
+
+.PP
 \fB\-\-extra\fP=""
     additional arguments to xhyve hypervisor
 
@@ -44,6 +48,10 @@ starts a new CoreOS VM
 .PP
 \fB\-\-memory\fP=1024
     VM's RAM
+
+.PP
+\fB\-n\fP, \fB\-\-name\fP=""
+    names the VM. (the default is the uuid)
 
 .PP
 \fB\-\-net\fP=[]

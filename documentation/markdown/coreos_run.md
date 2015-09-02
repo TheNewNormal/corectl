@@ -18,9 +18,11 @@ coreos run
       --channel="alpha": CoreOS channel
       --cloud_config="": cloud-config file location (either URL or local path)
       --cpus=1: VM's vCPUS
+  -d, --detached[=false]: starts the VM in detached (background) mode
       --extra="": additional arguments to xhyve hypervisor
   -h, --help[=false]: help for run
       --memory=1024: VM's RAM
+  -n, --name="": names the VM. (the default is the uuid)
       --net=[]: append additional network interfaces to VM
       --root="": append a (persistent) root volume to VM
       --sshkey="": VM's default ssh key

@@ -16,6 +16,10 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,6 +29,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/ssh"
 
 	"github.com/spf13/viper"
 )
@@ -95,4 +101,26 @@ func wget(url string) (f string) {
 		fmt.Println("      -", n, "bytes downloaded.")
 	}
 	return f
+}
+
+// sshKeyGen creates a one-time ssh public and private key pair
+func sshKeyGen() (string, string, error) {
+	secret, err := rsa.GenerateKey(rand.Reader, 2014)
+	if err != nil {
+		return "", "", err
+	}
+
+	secretDer := x509.MarshalPKCS1PrivateKey(secret)
+	secretBlk := pem.Block{
+		Type:    "RSA PRIVATE KEY",
+		Headers: nil,
+		Bytes:   secretDer,
+	}
+
+	privateKey := string(pem.EncodeToMemory(&secretBlk))
+
+	public, _ := ssh.NewPublicKey(&secret.PublicKey)
+	publicFormated := string(ssh.MarshalAuthorizedKey(public))
+
+	return privateKey, publicFormated, nil
 }

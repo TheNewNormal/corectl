@@ -1,20 +1,20 @@
-## coreos halt
+## coreos ssh
 
-halts a running CoreOS instance
+attach to a running VM
 
 ### Synopsis
 
 
-halts a running CoreOS instance
+attach to a running VM
 
 ```
-coreos halt
+coreos ssh
 ```
 
 ### Options
 
 ```
-  -h, --help[=false]: help for halt
+  -h, --help[=false]: help for ssh
 ```
 
 ### Options inherited from parent commands
