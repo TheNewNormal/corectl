@@ -1,6 +1,5 @@
 # CoreOS _over_ OSX made simple
-###### built on top of [xhyve](https://github.com/xhyve-xyz/xhyve)'s _golang_
-[bindings](https://github.com/hooklift/xhyve)
+###### built on top of [xhyve](https://github.com/xhyve-xyz/xhyve)'s _golang_ [bindings](https://github.com/hooklift/xhyve)
 
 **caveats**
 -----------
@@ -201,7 +200,7 @@ is now using `corectl` underneath.
   - [kube-cluster-osx](https://github.com/TheNewNormal/kube-cluster-osx) -
  **Multi node Kubernetes Cluster for OS X**
 
- ## acknowledgements
+## acknowledgements
 -  [Michael Steil](https://github.com/mist64) for releasing in the wild his
    awesome [xhyve](https://github.com/mist64/xhyve) lightweight OS X
    virtualization solution and [Jeremy Sequoia](https://github.com/jeremyhu),
@@ -213,7 +212,7 @@ is now using `corectl` underneath.
 -  [Brandon Philips](https://github.com/philips) who come with the
    original, `bash` based, [coreos-xhyve](https://github.com/coreos/coreos-xhyve)
    prototype that this project supersedes
-  
+
 ## contributing
 `corectl` is an [open source](http://opensource.org/osd) project under the
 [Apache License, Version 2.0](http://opensource.org/licenses/Apache-2.0), ence
