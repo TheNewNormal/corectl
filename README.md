@@ -1,7 +1,8 @@
 # CoreOS _over_ OSX made simple
-###### built on top of [xhyve](https://github.com/mist64/xhyve)'s _golang_ [bindings](https://github.com/hooklift/xhyve)
+###### built on top of [xhyve](https://github.com/xhyve-xyz/xhyve)'s _golang_
+[bindings](https://github.com/hooklift/xhyve)
 
-**CAVEATS**
+**caveats**
 -----------
 
  > - `xhyve`, on top of we built, is a young project, so expect bugs!
@@ -17,9 +18,15 @@
  >   your Mac before attempting to run `corectl`.
 
 
-## Step by Step Instructions
+## step by step instructions
 
-### Install `corectl`
+### install `corectl`
+#### - by downloading a release build (prefered for end users)
+just go to our [releases](https://github.com/TheNewNormal/corectl/releases) page
+and download the binary to your system, and then rename it to `corectl` placing
+it in some directory in your PATH (`/usr/local/bin/` is a good choice)
+
+#### - build it locally (for power users)
 ```
 ❯❯❯ git clone git@github.com:TheNewNormal/corectl.git
 ❯❯❯ cd corectl
@@ -55,7 +62,7 @@ core@localhost ~ $
 you 'll find out that `/Users` is available (via NFS) already inside your VM.
 that will come handy when you come to play with `docker` volumes later...
 
-### Usage
+### usage
 ```
 CoreOS over OSX made simple.
 ❯❯❯ http://github.com/TheNewNormal/corectl
@@ -185,18 +192,29 @@ or ...
   ```
 - have fun!
 
-## Acknowledgements
--  [Michael Steil](https://github.com/mist64) for his awesome
-   [xhyve](https://github.com/mist64/xhyve) lightweight OS X
-   virtualization solution
+## projects using `corectl`
+- [Rimas Mocevicius](https://github.com/rimusz) entire toolset of OSX GUI apps
+is now using `corectl` underneath.
+  - [coreos-osx](https://github.com/TheNewNormal/coreos-osx) - **CoreOS VM for OS X**
+  - [kube-solo-osx](https://github.com/TheNewNormal/kube-solo-osx) -
+ **Kubernetes Solo Cluster for OS X**
+  - [kube-cluster-osx](https://github.com/TheNewNormal/kube-cluster-osx) -
+ **Multi node Kubernetes Cluster for OS X**
+
+ ## acknowledgements
+-  [Michael Steil](https://github.com/mist64) for releasing in the wild his
+   awesome [xhyve](https://github.com/mist64/xhyve) lightweight OS X
+   virtualization solution and [Jeremy Sequoia](https://github.com/jeremyhu),
+   from Apple, for taking stewardship of it allowing it to move
+   [forward](https://github.com/xhyve-xyz).
 -  [Camilo Aguilar](https://github.com/c4milo) for his
    [xhyve](https://github.com/mist64/xhyve) golang
    [bindings](https://github.com/hooklift/xhyve)
 -  [Brandon Philips](https://github.com/philips) who come with the
    original, `bash` based, [coreos-xhyve](https://github.com/coreos/coreos-xhyve)
    prototype that this project supersedes
-
-## Contributing
+  
+## contributing
 `corectl` is an [open source](http://opensource.org/osd) project under the
 [Apache License, Version 2.0](http://opensource.org/licenses/Apache-2.0), ence
 contributions are gladly welcomed!
