@@ -43,7 +43,11 @@ var (
 		Short:   "Display information about the running CoreOS instances",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
 			engine.rawArgs.BindPFlags(cmd.Flags())
-			return nil
+			if engine.rawArgs.GetBool("ip") && len(args) != 1 {
+				err = fmt.Errorf(" -i, --ip is only allowed when there's one " +
+					"and only one argument (a VM's name or UUID).")
+			}
+			return err
 		},
 		RunE: queryCommand,
 	}
@@ -87,7 +91,13 @@ func queryCommand(cmd *cobra.Command, args []string) (err error) {
 		}
 		return
 	}
-
+	if len(args) == 1 && engine.rawArgs.GetBool("ip") {
+		if vm, err = vmInfo(args[0]); err != nil {
+			return
+		}
+		fmt.Println(vm.PublicIP)
+		return
+	}
 	for _, target := range args {
 		if vm, err = vmInfo(target); err != nil {
 			return
@@ -218,5 +228,7 @@ func init() {
 		"outputs in JSON for easy 3rd party integration")
 	queryCmd.Flags().BoolP("all", "a", false,
 		"display extended information about a running CoreOS instances")
+	queryCmd.Flags().BoolP("ip", "i", false,
+		"displays given instance IP address")
 	RootCmd.AddCommand(queryCmd)
 }
