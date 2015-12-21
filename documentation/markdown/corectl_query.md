@@ -15,6 +15,7 @@ corectl query
 
 ```
   -a, --all    display extended information about a running CoreOS instances
+  -i, --ip     displays given instance IP address
   -j, --json   outputs in JSON for easy 3rd party integration
 ```
 
