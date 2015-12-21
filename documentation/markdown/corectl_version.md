@@ -14,7 +14,7 @@ corectl version
 ### Options inherited from parent commands
 
 ```
-      --debug[=false]: adds extra verbosity, and options, for debugging purposes and/or power users
+      --debug   adds extra verbosity, and options, for debugging purposes and/or power users
 ```
 
 ### SEE ALSO

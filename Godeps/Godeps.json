@@ -36,12 +36,20 @@
 			"Rev": "a2b219a95688efad5e1ad8b6e33b9656df5ae7f4"
 		},
 		{
-			"ImportPath": "github.com/hooklift/xhyve",
-			"Rev": "9622b3100eaeebde930c87c55a2a08e0ade2c3af"
+			"ImportPath": "github.com/google/go-github/github",
+			"Rev": "44b1ede22d71e26fa5d7af7a50204f7e6daadfc8"
 		},
 		{
-			"ImportPath": "github.com/inconshreveable/mousetrap",
-			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+			"ImportPath": "github.com/google/go-querystring/query",
+			"Rev": "2a60fc2ba6c19de80291203597d752e9ba58e4c0"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl",
+			"Rev": "197e8d3cf42199cfd53cd775deb37f3637234635"
+		},
+		{
+			"ImportPath": "github.com/hooklift/xhyve",
+			"Rev": "9622b3100eaeebde930c87c55a2a08e0ade2c3af"
 		},
 		{
 			"ImportPath": "github.com/kr/fs",
@@ -75,8 +83,8 @@
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.4-8-ge3cbadc",
-			"Rev": "e3cbadc5c960894017d53ecf49dba4c361dacddf"
+			"Comment": "v1.4-12-gd18b67a",
+			"Rev": "d18b67ae0afd61dae240896eae1785f00709aa31"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
@@ -88,11 +96,11 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cast",
-			"Rev": "ee815aaf958c707ad07547cd62150d973710f747"
+			"Rev": "ee7b3e0353166ab1f3a605294ac8cd2b77953778"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "1c44ec8d3f1552cac48999f9306da23c4d8a288b"
+			"Rev": "c65e6422ff177777e8949362bbf6bb76fc217c3a"
 		},
 		{
 			"ImportPath": "github.com/spf13/jwalterweatherman",
@@ -100,11 +108,11 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
-			"Rev": "08b1a584251b5b62f458943640fc8ebd4d50aaa5"
+			"Rev": "7f60f83a2c81bc3c3c0d5297f61ddfa68da9d3b7"
 		},
 		{
 			"ImportPath": "github.com/spf13/viper",
-			"Rev": "e37b56e207dda4d79b9defe0548e960658ee8b6b"
+			"Rev": "79971f1ae71e74d2e814b9b4bb91fb59b0263654"
 		},
 		{
 			"ImportPath": "github.com/yeonsh/go-ps",
@@ -112,24 +120,24 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "7b85b097bf7527677d54d3220065e966a0e3b613"
+			"Rev": "f18420efc3b4f8e9f3d51f6bd2476e92c46260e9"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
-			"Rev": "7b85b097bf7527677d54d3220065e966a0e3b613"
+			"Rev": "f18420efc3b4f8e9f3d51f6bd2476e92c46260e9"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "7b85b097bf7527677d54d3220065e966a0e3b613"
+			"Rev": "f18420efc3b4f8e9f3d51f6bd2476e92c46260e9"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh",
-			"Rev": "7b85b097bf7527677d54d3220065e966a0e3b613"
+			"Rev": "f18420efc3b4f8e9f3d51f6bd2476e92c46260e9"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
-			"Comment": "v1.2.5",
-			"Rev": "2cdd39bd6129c6a49c74fb07fb9d77ba1271c572"
+			"Comment": "v1.2.8",
+			"Rev": "508915b7500b6e42a87132e4afeb4729cebc7cbb"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

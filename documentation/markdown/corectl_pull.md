@@ -14,15 +14,15 @@ corectl pull
 ### Options
 
 ```
-      --channel="alpha": CoreOS channel
-  -f, --force[=false]: override local image, if any
-      --version="latest": CoreOS version
+      --channel string   CoreOS channel (default "alpha")
+  -f, --force            override local image, if any
+      --version string   CoreOS version (default "latest")
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --debug[=false]: adds extra verbosity, and options, for debugging purposes and/or power users
+      --debug   adds extra verbosity, and options, for debugging purposes and/or power users
 ```
 
 ### SEE ALSO

@@ -6,9 +6,9 @@
 package cast
 
 import (
-	"testing"
-
 	"html/template"
+	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -40,6 +40,8 @@ func TestToString(t *testing.T) {
 	assert.Equal(t, ToString(template.URL("http://somehost.foo")), "http://somehost.foo")
 	assert.Equal(t, ToString(foo), "one more time")
 	assert.Equal(t, ToString(nil), "")
+	assert.Equal(t, ToString(true), "true")
+	assert.Equal(t, ToString(false), "false")
 }
 
 type foo struct {
@@ -150,4 +152,13 @@ func TestIndirectPointers(t *testing.T) {
 
 	assert.Equal(t, ToInt(y), 13)
 	assert.Equal(t, ToInt(z), 13)
+}
+
+func TestToDuration(t *testing.T) {
+	a := time.Second * 5
+	ai := int64(a)
+	b := time.Second * 5
+	bf := float64(b)
+	assert.Equal(t, ToDuration(ai), a)
+	assert.Equal(t, ToDuration(bf), b)
 }

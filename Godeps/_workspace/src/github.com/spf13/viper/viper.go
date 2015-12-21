@@ -63,7 +63,7 @@ func (str UnsupportedConfigError) Error() string {
 }
 
 // Denotes encountering an unsupported remote
-// provider. Currently only Etcd and Consul are
+// provider. Currently only etcd and Consul are
 // supported.
 type UnsupportedRemoteProviderError string
 
@@ -108,11 +108,11 @@ func (fnfe ConfigFileNotFoundError) Error() string {
 //  Defaults : {
 //  	"secret": "",
 //  	"user": "default",
-// 	    "endpoint": "https://localhost"
+// 	"endpoint": "https://localhost"
 //  }
 //  Config : {
 //  	"user": "root"
-//	    "secret": "defaultsecret"
+//	"secret": "defaultsecret"
 //  }
 //  Env : {
 //  	"secret": "somesecretkey"
@@ -179,7 +179,7 @@ func New() *Viper {
 // can use it in their testing as well.
 func Reset() {
 	v = New()
-	SupportedExts = []string{"json", "toml", "yaml", "yml"}
+	SupportedExts = []string{"json", "toml", "yaml", "yml", "hcl"}
 	SupportedRemoteProviders = []string{"etcd", "consul"}
 }
 
@@ -218,7 +218,7 @@ type RemoteProvider interface {
 }
 
 // Universally supported extensions.
-var SupportedExts []string = []string{"json", "toml", "yaml", "yml", "properties", "props", "prop"}
+var SupportedExts []string = []string{"json", "toml", "yaml", "yml", "properties", "props", "prop", "hcl"}
 
 // Universally supported remote providers.
 var SupportedRemoteProviders []string = []string{"etcd", "consul"}
@@ -742,8 +742,21 @@ func (v *Viper) find(key string) interface{} {
 // Check to see if the key has been set in any of the data locations
 func IsSet(key string) bool { return v.IsSet(key) }
 func (v *Viper) IsSet(key string) bool {
-	t := v.Get(key)
-	return t != nil
+	path := strings.Split(key, v.keyDelim)
+
+	lcaseKey := strings.ToLower(key)
+	val := v.find(lcaseKey)
+
+	if val == nil {
+		source := v.find(strings.ToLower(path[0]))
+		if source != nil {
+			if reflect.TypeOf(source).Kind() == reflect.Map {
+				val = v.searchMap(cast.ToStringMap(source), path[1:])
+			}
+		}
+	}
+
+	return val != nil
 }
 
 // Have Viper check ENV variables for all
@@ -962,19 +975,27 @@ func (v *Viper) AllKeys() []string {
 	m := map[string]struct{}{}
 
 	for key, _ := range v.defaults {
-		m[key] = struct{}{}
+		m[strings.ToLower(key)] = struct{}{}
+	}
+
+	for key, _ := range v.pflags {
+		m[strings.ToLower(key)] = struct{}{}
+	}
+
+	for key, _ := range v.env {
+		m[strings.ToLower(key)] = struct{}{}
 	}
 
 	for key, _ := range v.config {
-		m[key] = struct{}{}
+		m[strings.ToLower(key)] = struct{}{}
 	}
 
 	for key, _ := range v.kvstore {
-		m[key] = struct{}{}
+		m[strings.ToLower(key)] = struct{}{}
 	}
 
 	for key, _ := range v.override {
-		m[key] = struct{}{}
+		m[strings.ToLower(key)] = struct{}{}
 	}
 
 	a := []string{}

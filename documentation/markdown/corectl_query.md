@@ -14,14 +14,14 @@ corectl query
 ### Options
 
 ```
-  -a, --all[=false]: display extended information about a running CoreOS instances
-  -j, --json[=false]: outputs in JSON for easy 3rd party integration
+  -a, --all    display extended information about a running CoreOS instances
+  -j, --json   outputs in JSON for easy 3rd party integration
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --debug[=false]: adds extra verbosity, and options, for debugging purposes and/or power users
+      --debug   adds extra verbosity, and options, for debugging purposes and/or power users
 ```
 
 ### SEE ALSO
