@@ -14,15 +14,15 @@ corectl rm
 ### Options
 
 ```
-      --channel="alpha": CoreOS channel
-      --old[=false]: removes outdated images
-      --version="latest": CoreOS version
+      --channel string   CoreOS channel (default "alpha")
+      --old              removes outdated images
+      --version string   CoreOS version (default "latest")
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --debug[=false]: adds extra verbosity, and options, for debugging purposes and/or power users
+      --debug   adds extra verbosity, and options, for debugging purposes and/or power users
 ```
 
 ### SEE ALSO

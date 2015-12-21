@@ -12,10 +12,10 @@ to work within an application, and can handle all types of configuration needs
 and formats. It supports:
 
 * setting defaults
-* reading from JSON, TOML, and YAML config files
+* reading from JSON, TOML, YAML and HCL config files
 * live watching and re-reading of config files (optional)
 * reading from environment variables
-* reading from remote config systems (Etcd or Consul), and watching changes
+* reading from remote config systems (etcd or Consul), and watching changes
 * reading from command line flags
 * reading from buffer
 * setting explicit values
@@ -31,7 +31,7 @@ Viper is here to help with that.
 
 Viper does the following for you:
 
-1. Find, load, and unmarshal a configuration file in JSON, TOML, or YAML.
+1. Find, load, and unmarshal a configuration file in JSON, TOML, YAML or HCL.
 2. Provide a mechanism to set default values for your different
    configuration options.
 3. Provide a mechanism to set override values for options specified through
@@ -58,7 +58,7 @@ Viper configuration keys are case insensitive.
 ### Establishing Defaults
 
 A good configuration system will support default values. A default value is not
-required for a key, but it's useful in the event that a key hasn’t be set via
+required for a key, but it's useful in the event that a key hasn’t been set via
 config file, environment variable, remote configuration or flag.
 
 Examples:
@@ -72,7 +72,7 @@ viper.SetDefault("Taxonomies", map[string]string{"tag": "tags", "category": "cat
 ### Reading Config Files
 
 Viper requires minimal configuration so it knows where to look for config files.
-Viper supports JSON, TOML and YAML files. Viper can search multiple paths, but
+Viper supports JSON, TOML, YAML and HCL files. Viper can search multiple paths, but
 currently a single Viper instance only supports a single configuration file.
 Viper does not default to any configuration search paths leaving defaults decision
 to an application.
@@ -235,6 +235,30 @@ serverCmd.Flags().Int("port", 1138, "Port to run Application server on")
 viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
 ```
 
+The use of [pflag](https://github.com/spf13/pflag/) in Viper does not preclude
+the use of other packages that use the [flag](https://golang.org/pkg/flag/)
+package from the standard library. The pflag package can handle the flags
+defined for the flag package by importing these flags. This is accomplished
+by a calling a convenience function provided by the pflag package called
+AddGoFlagSet().
+
+Example:
+
+```go
+package main
+
+import (
+	"flag"
+	"github.com/spf13/pflag"
+)
+
+func main() {
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
+    ...
+}
+```
+
 ### Remote Key/Value Store Support
 
 To enable remote support in Viper, do a blank import of the `viper/remote`
@@ -242,8 +266,8 @@ package:
 
 `import _ "github.com/spf13/viper/remote"`
 
-Viper will read a config string (as JSON, TOML, or YAML) retrieved from a path
-in a Key/Value store such as Etcd or Consul.  These values take precedence over
+Viper will read a config string (as JSON, TOML, YAML or HCL) retrieved from a path
+in a Key/Value store such as etcd or Consul.  These values take precedence over
 default values, but are overridden by configuration values retrieved from disk,
 flags, or environment variables.
 
@@ -288,7 +312,7 @@ viper.SetConfigType("json") // because there is no file extension in a stream of
 err := viper.ReadRemoteConfig()
 ```
 
-### Watching Changes in Etcd - Unencrypted
+### Watching Changes in etcd - Unencrypted
 
 ```go
 // alternatively, you can create a new viper instance.
@@ -433,6 +457,7 @@ Example:
 type config struct {
 	Port int
 	Name string
+	PathMap string `mapstructure:"path_map"`
 }
 
 var C config
