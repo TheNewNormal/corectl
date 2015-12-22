@@ -4,7 +4,7 @@ include xhyve.mk
 # It also applies a patch to rename the main function so we can use xhyve
 # as a library instead.
 upstream:
-	git clone https://github.com/mist64/xhyve.git vendor/xhyve
+	git clone https://github.com/xhyve-xyz/xhyve.git vendor/xhyve
 	-cd vendor/xhyve; patch -N -p1 < ../../xhyve.patch
 	find . \( -name \*.orig -o -name \*.rej \) -delete
 	for file in $(SRC); do \
