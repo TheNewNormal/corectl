@@ -17,8 +17,12 @@
 		},
 		{
 			"ImportPath": "github.com/TheNewNormal/corectl/uuid2ip",
-			"Comment": "v0.0.12",
-			"Rev": "a7ab6d77d94e3ac3fe9d6bd05f5d4144290b69f6"
+			"Comment": "v0.0.16-2-g4064f95",
+			"Rev": "4064f954813701365c5f9d60440a134e2a3ef648"
+		},
+		{
+			"ImportPath": "github.com/TheNewNormal/libxhyve",
+			"Rev": "072ea534db6ae29cdb91de267b4484f9e76d9a87"
 		},
 		{
 			"ImportPath": "github.com/blang/semver",
@@ -46,10 +50,6 @@
 		{
 			"ImportPath": "github.com/hashicorp/hcl",
 			"Rev": "197e8d3cf42199cfd53cd775deb37f3637234635"
-		},
-		{
-			"ImportPath": "github.com/hooklift/xhyve",
-			"Rev": "9622b3100eaeebde930c87c55a2a08e0ade2c3af"
 		},
 		{
 			"ImportPath": "github.com/kr/fs",

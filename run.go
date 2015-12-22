@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"github.com/TheNewNormal/corectl/uuid2ip"
-	"github.com/hooklift/xhyve"
+	"github.com/TheNewNormal/libxhyve"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
