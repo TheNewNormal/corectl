@@ -223,7 +223,7 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 	go func() {
 		select {
 		case <-time.After(90 * time.Second):
-			log.Println("Unable to grab VM's pid and IP after 15s (!)... " +
+			log.Println("Unable to grab VM's pid and IP after 90s (!)... " +
 				"Aborting")
 			return
 		case <-time.Tick(100 * time.Millisecond):
