@@ -33,35 +33,36 @@ var (
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
 			engine.rawArgs.BindPFlags(cmd.Flags())
 			if len(args) < 1 && !engine.rawArgs.GetBool("all") {
-				return fmt.Errorf("This command requires either at least " +
+				err = fmt.Errorf("This command requires either at least " +
 					"one argument to work or --all.")
 			}
-			return nil
+			return
 		},
 		RunE: killCommand,
 	}
 )
 
 func killCommand(cmd *cobra.Command, args []string) (err error) {
-	var up []VMInfo
+	var (
+		up []VMInfo
+		vm VMInfo
+	)
 	if up, err = allRunningInstances(); err != nil {
 		return
 	}
 	if engine.rawArgs.GetBool("all") {
 		for _, vm := range up {
 			if err = vm.halt(); err != nil {
-				return err
+				return
 			}
 		}
 		return
 	}
 	for _, arg := range args {
-		for _, vm := range up {
-			if vm.Name == arg || vm.UUID == arg {
-				if err = vm.halt(); err != nil {
-					return err
-				}
-			}
+		if vm, err = vmInfo(arg); err != nil {
+			return
+		} else if err = vm.halt(); err != nil {
+			return
 		}
 	}
 	return
