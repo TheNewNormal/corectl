@@ -16,6 +16,7 @@
 package main
 
 import "github.com/spf13/cobra"
+import "github.com/spf13/cobra/doc"
 
 var (
 	utilsCmd = &cobra.Command{
@@ -43,14 +44,14 @@ func utilsCommand(cmd *cobra.Command, args []string) {
 }
 
 func manCommand(cmd *cobra.Command, args []string) {
-	header := &cobra.GenManHeader{
+	header := &doc.GenManHeader{
 		Title: "corectl", Source: " ",
 	}
-	RootCmd.GenManTree(header, engine.pwd+"/documentation/man/")
+	doc.GenManTree(RootCmd, header, engine.pwd+"/documentation/man/")
 }
 
 func mkdownCommand(cmd *cobra.Command, args []string) {
-	cobra.GenMarkdownTree(RootCmd,
+	doc.GenMarkdownTree(RootCmd,
 		engine.pwd+"/documentation/markdown/")
 }
 

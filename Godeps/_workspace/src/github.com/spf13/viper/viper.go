@@ -149,7 +149,7 @@ type Viper struct {
 	override       map[string]interface{}
 	defaults       map[string]interface{}
 	kvstore        map[string]interface{}
-	pflags         map[string]*pflag.Flag
+	pflags         map[string]FlagValue
 	env            map[string]string
 	aliases        map[string]string
 	typeByDefValue bool
@@ -166,7 +166,7 @@ func New() *Viper {
 	v.override = make(map[string]interface{})
 	v.defaults = make(map[string]interface{})
 	v.kvstore = make(map[string]interface{})
-	v.pflags = make(map[string]*pflag.Flag)
+	v.pflags = make(map[string]FlagValue)
 	v.env = make(map[string]string)
 	v.aliases = make(map[string]string)
 	v.typeByDefValue = false
@@ -404,7 +404,17 @@ func (v *Viper) searchMap(source map[string]interface{}, path []string) interfac
 		return source
 	}
 
-	if next, ok := source[path[0]]; ok {
+	var ok bool
+	var next interface{}
+	for k, v := range source {
+		if strings.ToLower(k) == strings.ToLower(path[0]) {
+			ok = true
+			next = v
+			break
+		}
+	}
+
+	if ok {
 		switch next.(type) {
 		case map[interface{}]interface{}:
 			return v.searchMap(cast.ToStringMap(next), path[1:])
@@ -454,7 +464,7 @@ func (v *Viper) Get(key string) interface{} {
 	val := v.find(lcaseKey)
 
 	if val == nil {
-		source := v.find(path[0])
+		source := v.find(strings.ToLower(path[0]))
 		if source != nil {
 			if reflect.TypeOf(source).Kind() == reflect.Map {
 				val = v.searchMap(cast.ToStringMap(source), path[1:])
@@ -467,13 +477,13 @@ func (v *Viper) Get(key string) interface{} {
 	if val == nil {
 		if flag, exists := v.pflags[lcaseKey]; exists {
 			jww.TRACE.Println(key, "get pflag default", val)
-			switch flag.Value.Type() {
+			switch flag.ValueType() {
 			case "int", "int8", "int16", "int32", "int64":
-				val = cast.ToInt(flag.Value.String())
+				val = cast.ToInt(flag.ValueString())
 			case "bool":
-				val = cast.ToBool(flag.Value.String())
+				val = cast.ToBool(flag.ValueString())
 			default:
-				val = flag.Value.String()
+				val = flag.ValueString()
 			}
 		}
 	}
@@ -511,6 +521,18 @@ func (v *Viper) Get(key string) interface{} {
 		return cast.ToStringSlice(val)
 	}
 	return val
+}
+
+// Returns new Viper instance representing a sub tree of this instance
+func Sub(key string) *Viper { return v.Sub(key) }
+func (v *Viper) Sub(key string) *Viper {
+	data, ok := v.Get(key).(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	subv := New()
+	subv.config = data
+	return subv
 }
 
 // Returns the value associated with the key as a string
@@ -606,15 +628,10 @@ func (v *Viper) Unmarshal(rawVal interface{}) error {
 // name as the config key.
 func BindPFlags(flags *pflag.FlagSet) (err error) { return v.BindPFlags(flags) }
 func (v *Viper) BindPFlags(flags *pflag.FlagSet) (err error) {
-	flags.VisitAll(func(flag *pflag.Flag) {
-		if err = v.BindPFlag(flag.Name, flag); err != nil {
-			return
-		}
-	})
-	return nil
+	return v.BindFlagValues(pflagValueSet{flags})
 }
 
-// Bind a specific key to a flag (as used by cobra)
+// Bind a specific key to a pflag (as used by cobra)
 // Example(where serverCmd is a Cobra instance):
 //
 //	 serverCmd.Flags().Int("port", 1138, "Port to run Application server on")
@@ -622,6 +639,29 @@ func (v *Viper) BindPFlags(flags *pflag.FlagSet) (err error) {
 //
 func BindPFlag(key string, flag *pflag.Flag) (err error) { return v.BindPFlag(key, flag) }
 func (v *Viper) BindPFlag(key string, flag *pflag.Flag) (err error) {
+	return v.BindFlagValue(key, pflagValue{flag})
+}
+
+// Bind a full FlagValue set to the configuration, using each flag's long
+// name as the config key.
+func BindFlagValues(flags FlagValueSet) (err error) { return v.BindFlagValues(flags) }
+func (v *Viper) BindFlagValues(flags FlagValueSet) (err error) {
+	flags.VisitAll(func(flag FlagValue) {
+		if err = v.BindFlagValue(flag.Name(), flag); err != nil {
+			return
+		}
+	})
+	return nil
+}
+
+// Bind a specific key to a FlagValue.
+// Example(where serverCmd is a Cobra instance):
+//
+//	 serverCmd.Flags().Int("port", 1138, "Port to run Application server on")
+//	 Viper.BindFlagValue("port", serverCmd.Flags().Lookup("port"))
+//
+func BindFlagValue(key string, flag FlagValue) (err error) { return v.BindFlagValue(key, flag) }
+func (v *Viper) BindFlagValue(key string, flag FlagValue) (err error) {
 	if flag == nil {
 		return fmt.Errorf("flag for %q is nil", key)
 	}
@@ -666,15 +706,15 @@ func (v *Viper) find(key string) interface{} {
 
 	// PFlag Override first
 	flag, exists := v.pflags[key]
-	if exists && flag.Changed {
-		jww.TRACE.Println(key, "found in override (via pflag):", flag.Value)
-		switch flag.Value.Type() {
+	if exists && flag.HasChanged() {
+		jww.TRACE.Println(key, "found in override (via pflag):", flag.ValueString())
+		switch flag.ValueType() {
 		case "int", "int8", "int16", "int32", "int64":
-			return cast.ToInt(flag.Value.String())
+			return cast.ToInt(flag.ValueString())
 		case "bool":
-			return cast.ToBool(flag.Value.String())
+			return cast.ToBool(flag.ValueString())
 		default:
-			return flag.Value.String()
+			return flag.ValueString()
 		}
 	}
 
@@ -871,10 +911,122 @@ func (v *Viper) ReadInConfig() error {
 	return v.unmarshalReader(bytes.NewReader(file), v.config)
 }
 
+// MergeInConfig merges a new configuration with an existing config.
+func MergeInConfig() error { return v.MergeInConfig() }
+func (v *Viper) MergeInConfig() error {
+	jww.INFO.Println("Attempting to merge in config file")
+	if !stringInSlice(v.getConfigType(), SupportedExts) {
+		return UnsupportedConfigError(v.getConfigType())
+	}
+
+	file, err := ioutil.ReadFile(v.getConfigFile())
+	if err != nil {
+		return err
+	}
+
+	return v.MergeConfig(bytes.NewReader(file))
+}
+
+// Viper will read a configuration file, setting existing keys to nil if the
+// key does not exist in the file.
 func ReadConfig(in io.Reader) error { return v.ReadConfig(in) }
 func (v *Viper) ReadConfig(in io.Reader) error {
 	v.config = make(map[string]interface{})
 	return v.unmarshalReader(in, v.config)
+}
+
+// MergeConfig merges a new configuration with an existing config.
+func MergeConfig(in io.Reader) error { return v.MergeConfig(in) }
+func (v *Viper) MergeConfig(in io.Reader) error {
+	if v.config == nil {
+		v.config = make(map[string]interface{})
+	}
+	cfg := make(map[string]interface{})
+	if err := v.unmarshalReader(in, cfg); err != nil {
+		return err
+	}
+	mergeMaps(cfg, v.config, nil)
+	return nil
+}
+
+func keyExists(k string, m map[string]interface{}) string {
+	lk := strings.ToLower(k)
+	for mk := range m {
+		lmk := strings.ToLower(mk)
+		if lmk == lk {
+			return mk
+		}
+	}
+	return ""
+}
+
+func castToMapStringInterface(
+	src map[interface{}]interface{}) map[string]interface{} {
+	tgt := map[string]interface{}{}
+	for k, v := range src {
+		tgt[fmt.Sprintf("%v", k)] = v
+	}
+	return tgt
+}
+
+// mergeMaps merges two maps. The `itgt` parameter is for handling go-yaml's
+// insistence on parsing nested structures as `map[interface{}]interface{}`
+// instead of using a `string` as the key for nest structures beyond one level
+// deep. Both map types are supported as there is a go-yaml fork that uses
+// `map[string]interface{}` instead.
+func mergeMaps(
+	src, tgt map[string]interface{}, itgt map[interface{}]interface{}) {
+	for sk, sv := range src {
+		tk := keyExists(sk, tgt)
+		if tk == "" {
+			jww.TRACE.Printf("tk=\"\", tgt[%s]=%v", sk, sv)
+			tgt[sk] = sv
+			if itgt != nil {
+				itgt[sk] = sv
+			}
+			continue
+		}
+
+		tv, ok := tgt[tk]
+		if !ok {
+			jww.TRACE.Printf("tgt[%s] != ok, tgt[%s]=%v", tk, sk, sv)
+			tgt[sk] = sv
+			if itgt != nil {
+				itgt[sk] = sv
+			}
+			continue
+		}
+
+		svType := reflect.TypeOf(sv)
+		tvType := reflect.TypeOf(tv)
+		if svType != tvType {
+			jww.ERROR.Printf(
+				"svType != tvType; key=%s, st=%v, tt=%v, sv=%v, tv=%v",
+				sk, svType, tvType, sv, tv)
+			continue
+		}
+
+		jww.TRACE.Printf("processing key=%s, st=%v, tt=%v, sv=%v, tv=%v",
+			sk, svType, tvType, sv, tv)
+
+		switch ttv := tv.(type) {
+		case map[interface{}]interface{}:
+			jww.TRACE.Printf("merging maps (must convert)")
+			tsv := sv.(map[interface{}]interface{})
+			ssv := castToMapStringInterface(tsv)
+			stv := castToMapStringInterface(ttv)
+			mergeMaps(ssv, stv, ttv)
+		case map[string]interface{}:
+			jww.TRACE.Printf("merging maps")
+			mergeMaps(sv.(map[string]interface{}), ttv, nil)
+		default:
+			jww.TRACE.Printf("setting value")
+			tgt[tk] = sv
+			if itgt != nil {
+				itgt[tk] = sv
+			}
+		}
+	}
 }
 
 // func ReadBufConfig(buf *bytes.Buffer) error { return v.ReadBufConfig(buf) }

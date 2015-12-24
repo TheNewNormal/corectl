@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/TheNewNormal/corectl",
+	"ImportPath": "github.com/AntonioMeireles/corectl",
 	"GoVersion": "go1.5.2",
 	"Packages": [
 		"./..."
@@ -11,18 +11,8 @@
 			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
 		},
 		{
-			"ImportPath": "github.com/TheNewNormal/corectl/image",
-			"Comment": "v0.0.12",
-			"Rev": "a7ab6d77d94e3ac3fe9d6bd05f5d4144290b69f6"
-		},
-		{
-			"ImportPath": "github.com/TheNewNormal/corectl/uuid2ip",
-			"Comment": "v0.0.16-2-g4064f95",
-			"Rev": "4064f954813701365c5f9d60440a134e2a3ef648"
-		},
-		{
 			"ImportPath": "github.com/TheNewNormal/libxhyve",
-			"Rev": "072ea534db6ae29cdb91de267b4484f9e76d9a87"
+			"Rev": "4ae96a6c0531cf261ce4128960399be338000c49"
 		},
 		{
 			"ImportPath": "github.com/blang/semver",
@@ -75,7 +65,7 @@
 		},
 		{
 			"ImportPath": "github.com/pkg/sftp",
-			"Rev": "cbc2879daf7b8cff8faff8c509e4c727ba7291d5"
+			"Rev": "739c35a6a165fce018800dcd7caa02040309e024"
 		},
 		{
 			"ImportPath": "github.com/rakyll/pb",
@@ -100,7 +90,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "c65e6422ff177777e8949362bbf6bb76fc217c3a"
+			"Rev": "b3f29e98e63a3618988a231fd02b45c1e6369d4f"
 		},
 		{
 			"ImportPath": "github.com/spf13/jwalterweatherman",
@@ -112,7 +102,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/viper",
-			"Rev": "79971f1ae71e74d2e814b9b4bb91fb59b0263654"
+			"Rev": "110492b3001269a0777997fcbe68a60828fac4cb"
 		},
 		{
 			"ImportPath": "github.com/yeonsh/go-ps",
