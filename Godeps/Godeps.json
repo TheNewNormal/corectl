@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/AntonioMeireles/corectl",
+	"ImportPath": "github.com/TheNewNormal/corectl",
 	"GoVersion": "go1.5.2",
 	"Packages": [
 		"./..."
