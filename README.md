@@ -1,4 +1,4 @@
-# CoreOS _over_ OSX made simple
+# CoreOS _over_ OS X made simple
 ###### built on top of [xhyve](https://github.com/xhyve-xyz/xhyve)'s _golang_ [bindings](https://github.com/hooklift/xhyve)
 
 **caveats**
@@ -192,7 +192,7 @@ or ...
 - have fun!
 
 ## projects using `corectl`
-- [Rimas Mocevicius](https://github.com/rimusz) entire toolset of OSX GUI apps
+- [Rimas Mocevicius](https://github.com/rimusz) entire toolset of OS X GUI apps
 is now using `corectl` underneath.
   - [coreos-osx](https://github.com/TheNewNormal/coreos-osx) - **CoreOS VM for OS X**
   - [kube-solo-osx](https://github.com/TheNewNormal/kube-solo-osx) -
