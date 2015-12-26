@@ -65,7 +65,7 @@
 		},
 		{
 			"ImportPath": "github.com/pkg/sftp",
-			"Rev": "739c35a6a165fce018800dcd7caa02040309e024"
+			"Rev": "4f25752b7ac0c524bfb6f780435f29cfd5b6c9e3"
 		},
 		{
 			"ImportPath": "github.com/rakyll/pb",
@@ -73,8 +73,8 @@
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.4-12-gd18b67a",
-			"Rev": "d18b67ae0afd61dae240896eae1785f00709aa31"
+			"Comment": "v1.4-17-gb803157",
+			"Rev": "b8031576aa454ce8a52a7faf1a4359a72f8bdf95"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
