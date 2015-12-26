@@ -8,7 +8,7 @@ Halts one or more running CoreOS instances
 Halts one or more running CoreOS instances
 
 ```
-corectl kill
+corectl kill [VMids]
 ```
 
 ### Options

@@ -8,7 +8,7 @@ Attach to or run commands inside a running CoreOS instance
 Attach to or run commands inside a running CoreOS instance
 
 ```
-corectl ssh
+corectl ssh VMid ["command1;..."]
 ```
 
 ### Examples

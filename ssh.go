@@ -33,7 +33,7 @@ import (
 
 var (
 	sshCmd = &cobra.Command{
-		Use:     "ssh",
+		Use:     "ssh VMid [\"command1;...\"]",
 		Aliases: []string{"attach"},
 		Short:   "Attach to or run commands inside a running CoreOS instance",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
@@ -49,7 +49,7 @@ var (
   corectl ssh VMid "some commands" // runs 'some commands' inside VMid and exits`,
 	}
 	scpCmd = &cobra.Command{
-		Use:     "put",
+		Use:     "put path/to/file VMid:/file/path/on/destination",
 		Aliases: []string{"copy", "cp", "scp"},
 		Short:   "copy file to inside VM",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {

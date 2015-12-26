@@ -8,13 +8,13 @@ Display information about the running CoreOS instances
 Display information about the running CoreOS instances
 
 ```
-corectl query
+corectl query [VMids]
 ```
 
 ### Options
 
 ```
-  -a, --all    display extended information about a running CoreOS instances
+  -a, --all    display extended information about a running CoreOS instance
   -i, --ip     displays given instance IP address
   -j, --json   outputs in JSON for easy 3rd party integration
 ```
