@@ -69,14 +69,13 @@ func init() {
 
 func versionCommand(cmd *cobra.Command, args []string) {
 	var (
-		err     error
-		latest  *github.RepositoryRelease
+		err    error
+		latest *github.RepositoryRelease
 	)
 	fmt.Printf("%s\n%s\n\n", "CoreOS over OSX made simple.",
 		"❯❯❯ http://github.com/TheNewNormal/corectl")
 
-	fmt.Println("Installed version:",
-		strings.Split(strings.TrimPrefix(Version, "v"), "-")[0])
+	fmt.Println("Installed version:", strings.TrimPrefix(Version, "v"))
 	if latest, _, err =
 		github.NewClient(nil).Repositories.GetLatestRelease("TheNewNormal",
 			"corectl"); err != nil {
