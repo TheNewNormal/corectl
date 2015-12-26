@@ -38,7 +38,7 @@ var (
 		RunE:    psCommand,
 	}
 	queryCmd = &cobra.Command{
-		Use:     "query",
+		Use:     "query [VMids]",
 		Aliases: []string{"q"},
 		Short:   "Display information about the running CoreOS instances",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
@@ -227,7 +227,7 @@ func init() {
 	queryCmd.Flags().BoolP("json", "j", false,
 		"outputs in JSON for easy 3rd party integration")
 	queryCmd.Flags().BoolP("all", "a", false,
-		"display extended information about a running CoreOS instances")
+		"display extended information about a running CoreOS instance")
 	queryCmd.Flags().BoolP("ip", "i", false,
 		"displays given instance IP address")
 	RootCmd.AddCommand(queryCmd)

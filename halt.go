@@ -27,7 +27,7 @@ import (
 
 var (
 	killCmd = &cobra.Command{
-		Use:     "kill",
+		Use:     "kill [VMids]",
 		Aliases: []string{"stop", "halt"},
 		Short:   "Halts one or more running CoreOS instances",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {

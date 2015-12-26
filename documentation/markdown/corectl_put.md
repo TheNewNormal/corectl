@@ -8,7 +8,7 @@ copy file to inside VM
 copy file to inside VM
 
 ```
-corectl put
+corectl put path/to/file VMid:/file/path/on/destination
 ```
 
 ### Examples

@@ -30,7 +30,7 @@ import (
 
 var (
 	loadFCmd = &cobra.Command{
-		Use:   "load",
+		Use:   "load path/to/yourProfile",
 		Short: "Loads CoreOS instances defined in an instrumentation file.",
 		Long: "Loads CoreOS instances defined in an instrumentation file " +
 			"(either in TOML, JSON or YAML format).\n" + "VMs are always launched " +

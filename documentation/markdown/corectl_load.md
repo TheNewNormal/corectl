@@ -9,7 +9,7 @@ Loads CoreOS instances defined in an instrumentation file (either in TOML, JSON 
 VMs are always launched by alphabetical order relative to their names.
 
 ```
-corectl load
+corectl load path/to/yourProfile
 ```
 
 ### Examples
