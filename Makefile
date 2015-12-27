@@ -1,14 +1,25 @@
+export GOARCH=amd64
+export GOOS=darwin
+export CGO_ENABLED=1
+
 VERSION := $(shell git describe --abbrev=6 --dirty=-unreleased --always --tags)
-V := "blablabla.go"
+
+ifeq ($(DEBUG),true)
+    GO_GCFLAGS := -gcflags "-N -l"
+else
+    GO_LDFLAGS := $(GO_LDFLAGS) -w -s
+endif
+
+GO_LDFLAGS := $(GO_LDFLAGS) -X main.Version=$(VERSION)
 
 all: corectl docs
 	@git status
 
+homebrewHack:
+	@echo godep go build -o corectl ${GO_GCFLAGS} -ldflags \"${GO_LDFLAGS}\"
+
 corectl: clean Makefile
-	@echo "package main" > $(V)
-	@echo "var Version = \"$(VERSION)\"" >> $(V)
-	@mkdir -p ./documentation/
-	godep go build -o corectl
+	godep go build -o corectl ${GO_GCFLAGS} -ldflags "${GO_LDFLAGS}"
 	@touch $@
 
 clean:
@@ -25,18 +36,18 @@ godeps_save: godeps_diff
 docs: corectl documentation/markdown documentation/man
 
 documentation/man: force
-	@mkdir documentation/man
+	@mkdir -p documentation/man
 	@./corectl utils mkMan
 	@for p in $$(ls documentation/man/*.1); do \
-		sed -i "s/$$(/bin/date '+%h %Y')//" "$$p" ;\
-		sed -i '/spf13\/cobra$$/d' "$$p" ;\
+		gsed -i "s/$$(/bin/date '+%h %Y')//" "$$p" ;\
+		gsed -i '/spf13\/cobra$$/d' "$$p" ;\
 	done
 
 documentation/markdown: force
-		@mkdir documentation/markdown
-		@./corectl utils mkMkdown
-		@for p in $$(ls documentation/markdown/*.md); do \
-			sed -i '/spf13\/cobra/d' "$$p" ;\
-		done
+	@mkdir -p documentation/markdown
+	@./corectl utils mkMkdown
+	@for p in $$(ls documentation/markdown/*.md); do \
+		gsed -i '/spf13\/cobra/d' "$$p" ;\
+	done
 
 .PHONY: clean all docs force
