@@ -43,6 +43,9 @@ var (
 		Run: versionCommand,
 	}
 	engine sessionContext
+	// -ldflags "-X main.Version=
+	//            `git describe --abbrev=6 --dirty=-unreleased --always --tags`"
+	Version string
 )
 
 func main() {
