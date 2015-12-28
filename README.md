@@ -20,10 +20,15 @@
 ## step by step instructions
 
 ### install `corectl`
-#### - by downloading a release build (prefered for end users)
-just go to our [releases](https://github.com/TheNewNormal/corectl/releases) page
-and download the binary to your system, and then rename it to `corectl` placing
-it in some directory in your PATH (`/usr/local/bin/` is a good choice)
+#### - installing a release build (prefered for end users)
+ - via [homebrew's](http://brew.sh)
+    ```
+    ❯❯❯ brew install corectl
+    ```
+ - downloading from GitHub
+    just go to our [releases](https://github.com/TheNewNormal/corectl/releases) page
+    and download the binary to your system, and then rename it to `corectl` placing
+    it in some directory in your PATH (`/usr/local/bin/` is a good choice)
 
 #### - build it locally (for power users)
 ```
