@@ -36,15 +36,17 @@ documentation/man: force
 	@mkdir -p documentation/man
 	@./corectl utils mkMan
 	@for p in $$(ls documentation/man/*.1); do \
-		gsed -i "s/$$(/bin/date '+%h %Y')//" "$$p" ;\
-		gsed -i '/spf13\/cobra$$/d' "$$p" ;\
+		sed -i.bak "s/$$(/bin/date '+%h %Y')//" "$$p" ;\
+		sed -i.bak "/spf13\/cobra$$/d" "$$p" ;\
+		rm "$$p.bak" ;\
 	done
 
 documentation/markdown: force
 	@mkdir -p documentation/markdown
 	@./corectl utils mkMkdown
 	@for p in $$(ls documentation/markdown/*.md); do \
-		gsed -i '/spf13\/cobra/d' "$$p" ;\
+		sed -i.bak "/spf13\/cobra/d" "$$p" ;\
+		rm "$$p.bak" ;\
 	done
 
 .PHONY: clean all docs force
