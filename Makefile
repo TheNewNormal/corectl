@@ -15,9 +15,6 @@ GO_LDFLAGS := $(GO_LDFLAGS) -X main.Version=$(VERSION)
 all: corectl docs
 	@git status
 
-homebrewHack:
-	@echo godep go build -o corectl ${GO_GCFLAGS} -ldflags \"${GO_LDFLAGS}\"
-
 corectl: clean Makefile
 	godep go build -o corectl ${GO_GCFLAGS} -ldflags "${GO_LDFLAGS}"
 	@touch $@
