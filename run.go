@@ -145,11 +145,11 @@ func vmBootstrap(args *viper.Viper) (vm *VMInfo, err error) {
 		log.Printf("'%v' not a reasonable memory value. %s\n", vm.Memory,
 			"Using '1024', the default")
 		vm.Memory = 1024
-	} else if vm.Memory > 3072 {
+	} else if vm.Memory > 8192 {
 		log.Printf("'%v' not a reasonable memory value. %s %s\n", vm.Memory,
-			"as presently xhyve only supports VMs with up to 3GB of RAM.",
-			"setting it to '3072'")
-		vm.Memory = 3072
+			"as presently we only support VMs with up to 8GB of RAM.",
+			"setting it to '8192'")
+		vm.Memory = 8192
 	}
 
 	if vm.Channel, vm.Version, err =
@@ -263,7 +263,7 @@ func runFlagsDefaults(setFlag *pflag.FlagSet) {
 	setFlag.String("version", "latest", "CoreOS version")
 	setFlag.String("uuid", "random", "VM's UUID")
 	setFlag.Int("memory", 1024,
-		"VM's RAM, in MB, per instance (1024 < memory < 3072)")
+		"VM's RAM, in MB, per instance (1024 < memory < 8192)")
 	setFlag.Int("cpus", 1, "VM's vCPUS")
 	setFlag.String("cloud_config", "",
 		"cloud-config file location (either a remote URL or a local path)")
