@@ -20,7 +20,7 @@ corectl run
       --cpus int              VM's vCPUS (default 1)
   -d, --detached              starts the VM in detached (background) mode
   -l, --local latest          consumes whatever image is latest locally instead of looking online unless there's nothing available.
-      --memory int            VM's RAM, in MB, per instance (1024 < memory < 3072) (default 1024)
+      --memory int            VM's RAM, in MB, per instance (1024 < memory < 8192) (default 1024)
   -n, --name string           names the VM. (if absent defaults to VM's UUID)
       --root string           append a (persistent) root volume to VM
       --sshkey string         VM's default ssh key
