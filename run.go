@@ -31,6 +31,7 @@ import (
 
 	"github.com/TheNewNormal/corectl/uuid2ip"
 	"github.com/TheNewNormal/libxhyve"
+	"github.com/johanneswuerbach/nfsexports"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -334,70 +335,18 @@ func init() {
 }
 
 func nfsSetup() (err error) {
-	const exportsF = "/etc/exports"
 	var (
-		buf      []byte
-		shared   bool
-		isShared = func(buf []byte, signature string) bool {
-			lines := strings.Split(string(buf), "\n")
-			for _, lc := range lines {
-				if lc == signature {
-					return true
-				}
-			}
-			return false
-		}
+		buf       []byte
+		shared    bool
 		signature = fmt.Sprintf("/Users %s -alldirs -mapall=%s:%s",
 			"-network 192.168.64.0 -mask 255.255.255.0", engine.uid, engine.gid)
-		nfsIsRunning = func() bool {
-			all, _ := ps.Processes()
-			for _, p := range all {
-				if strings.HasSuffix(p.Executable(), "nfsd") {
-					return true
-				}
-			}
-			return false
-		}()
 	)
-	// check if /etc/exports exists, and if not create an empty one
-	if _, err = os.Stat(exportsF); os.IsNotExist(err) {
-		if err = ioutil.WriteFile(exportsF, []byte(""), 0644); err != nil {
-			return
-		}
+
+	if _, err := nfsexports.Add("", fmt.Sprintf("corectl"), signature); err != nil {
+		return err
 	}
 
-	if buf, err = ioutil.ReadFile(exportsF); err != nil {
-		return
-	}
-
-	shared = isShared(buf, signature)
-
-	if !shared {
-		ioutil.WriteFile(exportsF,
-			append(buf, append([]byte("\n"),
-				append([]byte(signature), []byte("\n")...)...)...),
-			os.ModeAppend)
-	}
-	if nfsIsRunning {
-		if !shared {
-			if err = exec.Command("nfsd", "update").Run(); err != nil {
-				err = fmt.Errorf("unable to update NFS "+
-					"service definitions... (%v)", err)
-			} else {
-				log.Println("'/Users' was made available to VMs via NFS")
-			}
-		}
-	} else if err = exec.Command("nfsd", "start").Run(); err != nil {
-		err = fmt.Errorf("unable to start NFS service... (%v)", err)
-	} else {
-		log.Println("NFS started in order for '/Users' to be " +
-			"made available to the VMs")
-	}
-	err = exec.Command("nfsd", "-F", exportsF, "checkexports").Run()
-	if err != nil {
-		err = fmt.Errorf("unable to validate %s (%v)", exportsF, err)
-	}
-	return
+	return nfsexports.ReloadDaemon()
 }
 
 func (vm *VMInfo) storeConfig() (err error) {
