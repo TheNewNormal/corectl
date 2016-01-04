@@ -12,7 +12,7 @@
 		},
 		{
 			"ImportPath": "github.com/TheNewNormal/libxhyve",
-			"Rev": "92109fabbb6169ebd858658e32a6a78415ff6a1a"
+			"Rev": "a332baee6bb6ae83b1ed630ea710609a494b692b"
 		},
 		{
 			"ImportPath": "github.com/blang/semver",

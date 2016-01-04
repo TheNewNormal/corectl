@@ -365,7 +365,9 @@ func (vm *VMInfo) metadataService() (endpoint string, err error) {
 			func(w http.ResponseWriter, r *http.Request) {
 				if isAllowed(rIP(r.RemoteAddr), w) {
 					w.Write(txt)
-					sentCC.Do(func() { vm.wg.Done() })
+					sentCC.Do(func() {
+						vm.wg.Done()
+					})
 				}
 			})
 	}
@@ -374,7 +376,9 @@ func (vm *VMInfo) metadataService() (endpoint string, err error) {
 		func(w http.ResponseWriter, r *http.Request) {
 			if isAllowed(rIP(r.RemoteAddr), w) {
 				w.Write([]byte(vm.InternalSSHauthKey))
-				sentSSHk.Do(func() { vm.wg.Done() })
+				sentSSHk.Do(func() {
+					vm.wg.Done()
+				})
 			}
 		})
 	mux.HandleFunc(root+"/hostname",

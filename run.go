@@ -16,7 +16,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -36,6 +35,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	// until github.com/mitchellh/go-ps consumes it
+	"github.com/yeonsh/go-ps"
 )
 
 var (
@@ -96,14 +97,16 @@ func xhyveCommand(cmd *cobra.Command, args []string) (err error) {
 }
 
 func vmBootstrap(args *viper.Viper) (vm *VMInfo, err error) {
-	vm = &VMInfo{}
+	vm = new(VMInfo)
 	vm.publicIP = make(chan string)
+	vm.errch, vm.done = make(chan error), make(chan bool)
+
 	vm.PreferLocalImages = args.GetBool("local")
 	vm.Detached = args.GetBool("detached")
 	vm.Cpus = args.GetInt("cpus")
 	vm.Extra = args.GetString("extra")
 	vm.SSHkey = args.GetString("sshkey")
-	vm.Root, vm.Pid = -1, -1
+	vm.Root, vm.Pid, vm.exitStatus = -1, -1, nil
 
 	vm.Name, vm.UUID = args.GetString("name"), args.GetString("uuid")
 
@@ -192,7 +195,7 @@ func vmBootstrap(args *viper.Viper) (vm *VMInfo, err error) {
 }
 
 func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
-	var c = &exec.Cmd{}
+	var c = new(exec.Cmd)
 
 	if running.VMs[slt].vm, err = vmBootstrap(rawArgs); err != nil {
 		return
@@ -207,8 +210,9 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 		return
 	}
 
-	usersDir := &etcExports{}
-	usersDir.share()
+	if err = nfsSetup(); err != nil {
+		return
+	}
 
 	if c, err = vm.assembleBootPayload(); err != nil {
 		return
@@ -221,41 +225,79 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 	}
 
 	go func() {
-		select {
-		case <-time.After(90 * time.Second):
-			log.Println("Unable to grab VM's pid and IP after 90s (!)... " +
-				"Aborting")
-			return
-		case <-time.Tick(100 * time.Millisecond):
-			vm.Pid = c.Process.Pid
+		for {
 			select {
+			case <-time.After(30 * time.Second):
+				vm.errch <- fmt.Errorf("Unable to grab VM's pid and IP after " +
+					"30s (!)... Aborting")
+				return
 			case ip := <-vm.publicIP:
+				vm.Pid = c.Process.Pid
 				vm.PublicIP = ip
 				vm.storeConfig()
 				close(vm.publicIP)
+				if vm.Detached {
+					log.Printf("started '%s' in background with IP %v and "+
+						"PID %v\n", vm.Name, vm.PublicIP, c.Process.Pid)
+				}
+				return
 			}
 		}
 	}()
 
-	defer func() {
-		vm.wg.Wait()
-		if vm.Detached && err == nil {
-			log.Printf("started '%s' in background with IP %v and PID %v\n",
-				vm.Name, vm.PublicIP, c.Process.Pid)
+	go func() {
+		defer close(vm.done)
+		for {
+			select {
+			case err := <-vm.errch:
+				if err != nil {
+					return
+				}
+			default:
+				vm.wg.Wait()
+				return
+			}
 		}
 	}()
 
-	if !vm.Detached {
-		c.Stdout, c.Stdin, c.Stderr = os.Stdout, os.Stdin, os.Stderr
-		return c.Run()
-	}
+	go func() {
+		if !vm.Detached {
+			c.Stdout, c.Stdin, c.Stderr = os.Stdout, os.Stdin, os.Stderr
+			err = c.Run()
+		} else {
+			err = c.Start()
+			go func() {
+				for {
+					select {
+					case <-vm.done:
+					case <-vm.errch:
+						return
+					default:
+						if err = c.Wait(); err != nil {
+							log.Println(err)
+							vm.errch <- fmt.Errorf("VM exited with error" +
+								"while starting in background")
+						}
+					}
+				}
+			}()
+		}
+		vm.errch <- err
+	}()
 
-	if err = c.Start(); err != nil {
-		return fmt.Errorf("Aborting: unable to start in background. (%v)", err)
+	for {
+		select {
+		case <-vm.done:
+			if vm.Detached {
+				return vm.exitStatus
+			}
+		case exit := <-vm.errch:
+			vm.exitStatus = exit
+			if exit != nil || (vm.PublicIP != "" && vm.Pid != -1) {
+				return vm.exitStatus
+			}
+		}
 	}
-
-	// usersDir.unshare()
-	return
 }
 
 func runFlagsDefaults(setFlag *pflag.FlagSet) {
@@ -291,65 +333,71 @@ func init() {
 	RootCmd.AddCommand(xhyveCmd)
 }
 
-type etcExports struct {
-	restart, shared    bool
-	exports, signature string
-	buf                []byte
-}
-
-func (f *etcExports) check() {
-	f.exports = "/etc/exports"
-	var err error
-
+func nfsSetup() (err error) {
+	const exportsF = "/etc/exports"
+	var (
+		buf      []byte
+		shared   bool
+		isShared = func(buf []byte, signature string) bool {
+			lines := strings.Split(string(buf), "\n")
+			for _, lc := range lines {
+				if lc == signature {
+					return true
+				}
+			}
+			return false
+		}
+		signature = fmt.Sprintf("/Users %s -alldirs -mapall=%s:%s",
+			"-network 192.168.64.0 -mask 255.255.255.0", engine.uid, engine.gid)
+		nfsIsRunning = func() bool {
+			all, _ := ps.Processes()
+			for _, p := range all {
+				if strings.HasSuffix(p.Executable(), "nfsd") {
+					return true
+				}
+			}
+			return false
+		}()
+	)
 	// check if /etc/exports exists, and if not create an empty one
-	if _, err = os.Stat(f.exports); os.IsNotExist(err) {
-		if err = ioutil.WriteFile(f.exports, []byte(""), 0644); err != nil {
-			log.Fatalln(err)
+	if _, err = os.Stat(exportsF); os.IsNotExist(err) {
+		if err = ioutil.WriteFile(exportsF, []byte(""), 0644); err != nil {
+			return
 		}
 	}
 
-	if f.buf, err = ioutil.ReadFile(f.exports); err != nil {
-		log.Fatalln(err)
+	if buf, err = ioutil.ReadFile(exportsF); err != nil {
+		return
 	}
-	f.signature = fmt.Sprintf("/Users %s -alldirs -mapall=%s:%s",
-		"-network 192.168.64.0 -mask 255.255.255.0",
-		engine.uid, engine.gid)
-	f.restart, f.shared = false, false
-	lines := strings.Split(string(f.buf), "\n")
 
-	for _, lc := range lines {
-		if lc == f.signature {
-			f.shared = true
-			break
-		}
-	}
-}
+	shared = isShared(buf, signature)
 
-func (f *etcExports) reload() {
-	if err := exec.Command("nfsd", "restart").Run(); err != nil {
-		log.Fatalln("unable to restart NFS...", err)
-	}
-}
-
-func (f *etcExports) share() {
-	f.check()
-	if !f.shared {
-		ioutil.WriteFile(f.exports,
-			append(f.buf, append([]byte("\n"),
-				append([]byte(f.signature), []byte("\n")...)...)...),
+	if !shared {
+		ioutil.WriteFile(exportsF,
+			append(buf, append([]byte("\n"),
+				append([]byte(signature), []byte("\n")...)...)...),
 			os.ModeAppend)
-		f.reload()
 	}
-}
-
-func (f *etcExports) unshare() {
-	f.check()
-	if f.shared {
-		ioutil.WriteFile(f.exports, bytes.Replace(f.buf,
-			append(append([]byte("\n"), []byte(f.signature)...),
-				[]byte("\n")...), []byte(""), -1), os.ModeAppend)
-		f.reload()
+	if nfsIsRunning {
+		if !shared {
+			if err = exec.Command("nfsd", "update").Run(); err != nil {
+				err = fmt.Errorf("unable to update NFS "+
+					"service definitions... (%v)", err)
+			} else {
+				log.Println("'/Users' was made available to VMs via NFS")
+			}
+		}
+	} else if err = exec.Command("nfsd", "start").Run(); err != nil {
+		err = fmt.Errorf("unable to start NFS service... (%v)", err)
+	} else {
+		log.Println("NFS started in order for '/Users' to be " +
+			"made available to the VMs")
 	}
+	err = exec.Command("nfsd", "-F", exportsF, "checkexports").Run()
+	if err != nil {
+		err = fmt.Errorf("unable to validate %s (%v)", exportsF, err)
+	}
+	return
 }
 
 func (vm *VMInfo) storeConfig() (err error) {
