@@ -7,8 +7,18 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
-			"Comment": "v0.1.0-21-g056c9bc",
-			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
+			"Comment": "v0.1.0-23-g5c4df71",
+			"Rev": "5c4df71dfe9ac89ef6287afc05e4c1b16ae65a1e"
+		},
+		{
+			"ImportPath": "github.com/TheNewNormal/corectl/image",
+			"Comment": "v0.0.20-5-g91ea1cf",
+			"Rev": "91ea1cf4155c5670a1c5a23bf21445b392fd7f6b"
+		},
+		{
+			"ImportPath": "github.com/TheNewNormal/corectl/uuid2ip",
+			"Comment": "v0.0.20-5-g91ea1cf",
+			"Rev": "91ea1cf4155c5670a1c5a23bf21445b392fd7f6b"
 		},
 		{
 			"ImportPath": "github.com/TheNewNormal/libxhyve",
@@ -21,8 +31,8 @@
 		},
 		{
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
-			"Comment": "v1.0.4",
-			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
+			"Comment": "v1.0.4-2-g2724a9c",
+			"Rev": "2724a9c9051aa62e9cca11304e7dd518e9e41599"
 		},
 		{
 			"ImportPath": "github.com/deoxxa/gocpio",
@@ -31,7 +41,7 @@
 		},
 		{
 			"ImportPath": "github.com/google/go-github/github",
-			"Rev": "44b1ede22d71e26fa5d7af7a50204f7e6daadfc8"
+			"Rev": "63fbbb283ce4913a5ac1b6de7abae50dbf594a04"
 		},
 		{
 			"ImportPath": "github.com/google/go-querystring/query",
@@ -65,7 +75,7 @@
 		},
 		{
 			"ImportPath": "github.com/pkg/sftp",
-			"Rev": "4f25752b7ac0c524bfb6f780435f29cfd5b6c9e3"
+			"Rev": "9e66bf3ae26ff73a0dd2557c891853f3f3a59a7b"
 		},
 		{
 			"ImportPath": "github.com/rakyll/pb",
@@ -73,8 +83,8 @@
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.4-17-gb803157",
-			"Rev": "b8031576aa454ce8a52a7faf1a4359a72f8bdf95"
+			"Comment": "v1.4-19-gc8875c0",
+			"Rev": "c8875c0ed47e07b063c3628e2e4d4c9826721795"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
@@ -90,11 +100,11 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "b3f29e98e63a3618988a231fd02b45c1e6369d4f"
+			"Rev": "c6399cd398905db8208d06e30525513f53aaca98"
 		},
 		{
 			"ImportPath": "github.com/spf13/jwalterweatherman",
-			"Rev": "c2aa07df593850a04644d77bb757d002e517a296"
+			"Rev": "d00654080cddbd2b082acaa74007cb94a2b40866"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
@@ -102,7 +112,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/viper",
-			"Rev": "110492b3001269a0777997fcbe68a60828fac4cb"
+			"Rev": "0c82789feb03da74b3390a5d64b8ce2ce9ba0f3e"
 		},
 		{
 			"ImportPath": "github.com/yeonsh/go-ps",
@@ -110,19 +120,19 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "f18420efc3b4f8e9f3d51f6bd2476e92c46260e9"
+			"Rev": "552e9d568fde9701ea1944fb01c8aadaceaa7353"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
-			"Rev": "f18420efc3b4f8e9f3d51f6bd2476e92c46260e9"
+			"Rev": "552e9d568fde9701ea1944fb01c8aadaceaa7353"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "f18420efc3b4f8e9f3d51f6bd2476e92c46260e9"
+			"Rev": "552e9d568fde9701ea1944fb01c8aadaceaa7353"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh",
-			"Rev": "f18420efc3b4f8e9f3d51f6bd2476e92c46260e9"
+			"Rev": "552e9d568fde9701ea1944fb01c8aadaceaa7353"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
