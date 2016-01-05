@@ -338,17 +338,28 @@ func nfsSetup() (err error) {
 	var (
 		buf      []byte
 		shared   bool
-		isShared = func(buf []byte, signature string) bool {
-			lines := strings.Split(string(buf), "\n")
-			for _, lc := range lines {
-				if lc == signature {
-					return true
+		right    string
+		shortSig = "/Users -network 192.168.64.0 " +
+			"-mask 255.255.255.0 -alldirs -mapall="
+		suffix    = engine.uid + ":" + engine.gid
+		signature = shortSig + suffix
+		exportSet = func() (ok bool, err error) {
+			for _, line := range strings.Split(string(buf), "\n") {
+				if strings.HasPrefix(line, shortSig) {
+					right = strings.Split(line, "=")[1]
+					if right != suffix {
+						err = fmt.Errorf("'/Users' is already being shared " +
+							"via NFS by another user other than the " +
+							"currently running one. Either keep invoking " +
+							"'corectl' as that user or manually fix your " +
+							"'/etc/exports' file")
+						break
+					}
+					ok = true
 				}
 			}
-			return false
+			return
 		}
-		signature = fmt.Sprintf("/Users %s -alldirs -mapall=%s:%s",
-			"-network 192.168.64.0 -mask 255.255.255.0", engine.uid, engine.gid)
 		nfsIsRunning = func() bool {
 			all, _ := ps.Processes()
 			for _, p := range all {
@@ -357,6 +368,15 @@ func nfsSetup() (err error) {
 				}
 			}
 			return false
+		}()
+		exportsCheck = func() (err error) {
+			cmd := exec.Command("nfsd", "-F", exportsF, "checkexports")
+			cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, os.Stderr
+
+			if err = cmd.Run(); err != nil {
+				err = fmt.Errorf("unable to validate %s (see above)", exportsF)
+			}
+			return
 		}()
 	)
 	// check if /etc/exports exists, and if not create an empty one
@@ -370,7 +390,9 @@ func nfsSetup() (err error) {
 		return
 	}
 
-	shared = isShared(buf, signature)
+	if shared, err = exportSet(); err != nil {
+		return
+	}
 
 	if !shared {
 		ioutil.WriteFile(exportsF,
@@ -378,26 +400,23 @@ func nfsSetup() (err error) {
 				append([]byte(signature), []byte("\n")...)...)...),
 			os.ModeAppend)
 	}
+
 	if nfsIsRunning {
 		if !shared {
 			if err = exec.Command("nfsd", "update").Run(); err != nil {
-				err = fmt.Errorf("unable to update NFS "+
+				return fmt.Errorf("unable to update NFS "+
 					"service definitions... (%v)", err)
-			} else {
-				log.Println("'/Users' was made available to VMs via NFS")
 			}
+			log.Println("'/Users' was made available to VMs via NFS")
 		}
-	} else if err = exec.Command("nfsd", "start").Run(); err != nil {
-		err = fmt.Errorf("unable to start NFS service... (%v)", err)
 	} else {
+		if err = exec.Command("nfsd", "start").Run(); err != nil {
+			return fmt.Errorf("unable to start NFS service... (%v)", err)
+		}
 		log.Println("NFS started in order for '/Users' to be " +
 			"made available to the VMs")
 	}
-	err = exec.Command("nfsd", "-F", exportsF, "checkexports").Run()
-	if err != nil {
-		err = fmt.Errorf("unable to validate %s (%v)", exportsF, err)
-	}
-	return
+	return exportsCheck
 }
 
 func (vm *VMInfo) storeConfig() (err error) {
