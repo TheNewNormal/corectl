@@ -378,6 +378,8 @@ func nfsSetup() (err error) {
 
 			if err = cmd.Run(); err != nil {
 				err = fmt.Errorf("unable to validate %s (see above)", exportsF)
+				// getting back to where we were
+				ioutil.WriteFile(exportsF, buf, os.ModeAppend)
 			}
 			return
 		}()
