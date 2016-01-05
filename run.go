@@ -228,6 +228,9 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 		for {
 			select {
 			case <-time.After(30 * time.Second):
+				if p, ee := os.FindProcess(c.Process.Pid); ee == nil {
+					p.Kill()
+				}
 				vm.errch <- fmt.Errorf("Unable to grab VM's pid and IP after " +
 					"30s (!)... Aborting")
 				return
@@ -375,6 +378,8 @@ func nfsSetup() (err error) {
 
 			if err = cmd.Run(); err != nil {
 				err = fmt.Errorf("unable to validate %s (see above)", exportsF)
+				// getting back to where we were
+				ioutil.WriteFile(exportsF, buf, os.ModeAppend)
 			}
 			return
 		}()
