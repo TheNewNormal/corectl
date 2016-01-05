@@ -378,28 +378,28 @@ func TestDo_rateLimit(t *testing.T) {
 		w.Header().Add(headerRateReset, "1372700873")
 	})
 
-	if got, want := client.Rate.Limit, 0; got != want {
+	if got, want := client.Rate().Limit, 0; got != want {
 		t.Errorf("Client rate limit = %v, want %v", got, want)
 	}
-	if got, want := client.Rate.Remaining, 0; got != want {
+	if got, want := client.Rate().Remaining, 0; got != want {
 		t.Errorf("Client rate remaining = %v, got %v", got, want)
 	}
-	if !client.Rate.Reset.IsZero() {
+	if !client.Rate().Reset.IsZero() {
 		t.Errorf("Client rate reset not initialized to zero value")
 	}
 
 	req, _ := client.NewRequest("GET", "/", nil)
 	client.Do(req, nil)
 
-	if got, want := client.Rate.Limit, 60; got != want {
+	if got, want := client.Rate().Limit, 60; got != want {
 		t.Errorf("Client rate limit = %v, want %v", got, want)
 	}
-	if got, want := client.Rate.Remaining, 59; got != want {
+	if got, want := client.Rate().Remaining, 59; got != want {
 		t.Errorf("Client rate remaining = %v, want %v", got, want)
 	}
 	reset := time.Date(2013, 7, 1, 17, 47, 53, 0, time.UTC)
-	if client.Rate.Reset.UTC() != reset {
-		t.Errorf("Client rate reset = %v, want %v", client.Rate.Reset, reset)
+	if client.Rate().Reset.UTC() != reset {
+		t.Errorf("Client rate reset = %v, want %v", client.Rate().Reset, reset)
 	}
 }
 
@@ -418,15 +418,33 @@ func TestDo_rateLimit_errorResponse(t *testing.T) {
 	req, _ := client.NewRequest("GET", "/", nil)
 	client.Do(req, nil)
 
-	if got, want := client.Rate.Limit, 60; got != want {
+	if got, want := client.Rate().Limit, 60; got != want {
 		t.Errorf("Client rate limit = %v, want %v", got, want)
 	}
-	if got, want := client.Rate.Remaining, 59; got != want {
+	if got, want := client.Rate().Remaining, 59; got != want {
 		t.Errorf("Client rate remaining = %v, want %v", got, want)
 	}
 	reset := time.Date(2013, 7, 1, 17, 47, 53, 0, time.UTC)
-	if client.Rate.Reset.UTC() != reset {
-		t.Errorf("Client rate reset = %v, want %v", client.Rate.Reset, reset)
+	if client.Rate().Reset.UTC() != reset {
+		t.Errorf("Client rate reset = %v, want %v", client.Rate().Reset, reset)
+	}
+}
+
+func TestDo_noContent(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	var body json.RawMessage
+
+	req, _ := client.NewRequest("GET", "/", nil)
+	_, err := client.Do(req, &body)
+
+	if err != nil {
+		t.Fatalf("Do returned unexpected error: %v", err)
 	}
 }
 
@@ -453,7 +471,7 @@ func TestCheckResponse(t *testing.T) {
 	res := &http.Response{
 		Request:    &http.Request{},
 		StatusCode: http.StatusBadRequest,
-		Body: ioutil.NopCloser(strings.NewReader(`{"message":"m", 
+		Body: ioutil.NopCloser(strings.NewReader(`{"message":"m",
 			"errors": [{"resource": "r", "field": "f", "code": "c"}]}`)),
 	}
 	err := CheckResponse(res).(*ErrorResponse)
@@ -672,6 +690,55 @@ func TestUnauthenticatedRateLimitedTransport_transport(t *testing.T) {
 		ClientID:     "id",
 		ClientSecret: "secret",
 		Transport:    &http.Transport{},
+	}
+	if tp.transport() == http.DefaultTransport {
+		t.Errorf("Expected custom transport to be used.")
+	}
+}
+
+func TestBasicAuthTransport(t *testing.T) {
+	setup()
+	defer teardown()
+
+	username, password, otp := "u", "p", "123456"
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+		if !ok {
+			t.Errorf("request does not contain basic auth credentials")
+		}
+		if u != username {
+			t.Errorf("request contained basic auth username %q, want %q", u, username)
+		}
+		if p != password {
+			t.Errorf("request contained basic auth password %q, want %q", p, password)
+		}
+		if got, want := r.Header.Get(headerOTP), otp; got != want {
+			t.Errorf("request contained OTP %q, want %q", got, want)
+		}
+	})
+
+	tp := &BasicAuthTransport{
+		Username: username,
+		Password: password,
+		OTP:      otp,
+	}
+	basicAuthClient := NewClient(tp.Client())
+	basicAuthClient.BaseURL = client.BaseURL
+	req, _ := basicAuthClient.NewRequest("GET", "/", nil)
+	basicAuthClient.Do(req, nil)
+}
+
+func TestBasicAuthTransport_transport(t *testing.T) {
+	// default transport
+	tp := &BasicAuthTransport{}
+	if tp.transport() != http.DefaultTransport {
+		t.Errorf("Expected http.DefaultTransport to be used.")
+	}
+
+	// custom transport
+	tp = &BasicAuthTransport{
+		Transport: &http.Transport{},
 	}
 	if tp.transport() == http.DefaultTransport {
 		t.Errorf("Expected custom transport to be used.")

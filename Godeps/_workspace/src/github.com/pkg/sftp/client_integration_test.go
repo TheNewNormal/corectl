@@ -85,8 +85,14 @@ func (w delayedWriter) Close() error {
 }
 
 func testClientGoSvr(t testing.TB, readonly bool, delay time.Duration) (*Client, *exec.Cmd) {
-	txPipeRd, txPipeWr := io.Pipe()
-	rxPipeRd, rxPipeWr := io.Pipe()
+	txPipeRd, txPipeWr, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rxPipeRd, rxPipeWr, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	server, err := NewServer(txPipeRd, rxPipeWr, os.Stderr, 0, readonly, ".")
 	if err != nil {
@@ -182,7 +188,7 @@ func TestClientLstat(t *testing.T) {
 	}
 }
 
-func TestClientLstatMissing(t *testing.T) {
+func TestClientLstatIsNotExist(t *testing.T) {
 	sftp, cmd := testClient(t, READONLY, NO_DELAY)
 	defer cmd.Wait()
 	defer sftp.Close()
@@ -193,9 +199,8 @@ func TestClientLstatMissing(t *testing.T) {
 	}
 	os.Remove(f.Name())
 
-	_, err = sftp.Lstat(f.Name())
-	if err1, ok := err.(*StatusError); !ok || err1.Code != ssh_FX_NO_SUCH_FILE {
-		t.Fatalf("Lstat: want: %v, got %#v", ssh_FX_NO_SUCH_FILE, err)
+	if _, err := sftp.Lstat(f.Name()); !os.IsNotExist(err) {
+		t.Errorf("os.IsNotExist(%v) = false, want true", err)
 	}
 }
 
@@ -234,6 +239,26 @@ func TestClientOpen(t *testing.T) {
 	}
 	if err := got.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestClientOpenIsNotExist(t *testing.T) {
+	sftp, cmd := testClient(t, READONLY, NO_DELAY)
+	defer cmd.Wait()
+	defer sftp.Close()
+
+	if _, err := sftp.Open("/doesnt/exist/"); !os.IsNotExist(err) {
+		t.Errorf("os.IsNotExist(%v) = false, want true", err)
+	}
+}
+
+func TestClientStatIsNotExist(t *testing.T) {
+	sftp, cmd := testClient(t, READONLY, NO_DELAY)
+	defer cmd.Wait()
+	defer sftp.Close()
+
+	if _, err := sftp.Stat("/doesnt/exist/"); !os.IsNotExist(err) {
+		t.Errorf("os.IsNotExist(%v) = false, want true", err)
 	}
 }
 
@@ -1217,7 +1242,12 @@ func TestClientWalk(t *testing.T) {
 
 // sftp/issue/42, abrupt server hangup would result in client hangs.
 func TestServerRoughDisconnect(t *testing.T) {
+	if *testServerImpl {
+		t.Skipf("skipping with -testserver")
+	}
 	sftp, cmd := testClient(t, READONLY, NO_DELAY)
+	defer cmd.Wait()
+	defer sftp.Close()
 
 	f, err := sftp.Open("/dev/zero")
 	if err != nil {
@@ -1230,7 +1260,6 @@ func TestServerRoughDisconnect(t *testing.T) {
 	}()
 
 	io.Copy(ioutil.Discard, f)
-	sftp.Close()
 }
 
 // sftp/issue/26 writing to a read only file caused client to loop.
