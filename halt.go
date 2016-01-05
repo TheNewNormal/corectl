@@ -101,20 +101,24 @@ func (vm VMInfo) halt() (err error) {
 		}
 	}
 	// wait until it's _really_ dead, but not forever
-	select {
-	case <-time.After(3 * time.Second):
-		err = fmt.Errorf("VM didn't shutdown normally after 3s (!)... ")
-	case <-time.Tick(100 * time.Millisecond):
-		if _, ee := os.FindProcess(vm.Pid); ee == nil {
-			if e :=
-				os.RemoveAll(filepath.Join(engine.runDir,
-					vm.UUID)); e != nil {
-				log.Println(e.Error())
+	for {
+		select {
+		// unmounts may take a bit in slow drives...
+		case <-time.After(30 * time.Second):
+			return fmt.Errorf(fmt.Sprintf("'%s' didn't shutdown normally "+
+				"after 30s (!)... ", vm.Name))
+		case <-time.Tick(100 * time.Millisecond):
+			if _, ee := os.FindProcess(vm.Pid); ee == nil {
+				if e :=
+					os.RemoveAll(filepath.Join(engine.runDir,
+						vm.UUID)); e != nil {
+					log.Println(e.Error())
+				}
+				log.Printf("successfully halted '%s'\n", vm.Name)
+				return
 			}
-			log.Printf("successfully halted '%s'\n", vm.Name)
 		}
 	}
-	return
 }
 
 func init() {
