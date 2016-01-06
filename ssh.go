@@ -223,8 +223,9 @@ func (c *sshClient) sCopy(source, destination, target string) (err error) {
 		target + ":" + destination + "'")
 	bar = pb.New(int(srcS.Size())).SetUnits(pb.U_BYTES)
 	bar.Start()
+	writer := io.MultiWriter(bar, dest)
 	defer bar.Finish()
-	if _, err = io.Copy(dest, src); err != nil {
+	if _, err = io.Copy(writer, src); err != nil {
 		return
 	}
 
