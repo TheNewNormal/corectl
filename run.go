@@ -244,6 +244,8 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 						"PID %v\n", vm.Name, vm.PublicIP, c.Process.Pid)
 				}
 				return
+			default:
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
@@ -299,6 +301,8 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 			if exit != nil || (vm.PublicIP != "" && vm.Pid != -1) {
 				return vm.exitStatus
 			}
+		default:
+			time.Sleep(1 * time.Second)
 		}
 	}
 }
