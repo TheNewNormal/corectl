@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/spf13/cobra"
@@ -45,7 +46,7 @@ var (
 	engine sessionContext
 	// -ldflags "-X main.Version=
 	//            `git describe --abbrev=6 --dirty=-unreleased --always --tags`"
-	Version string
+	Version, BuildDate string
 )
 
 func main() {
@@ -72,13 +73,15 @@ func init() {
 
 func versionCommand(cmd *cobra.Command, args []string) {
 	var (
-		err    error
-		latest *github.RepositoryRelease
+		err      error
+		latest   *github.RepositoryRelease
+		stamp, _ = time.Parse("2006-01-02T15:04:05MST", BuildDate)
 	)
 	fmt.Printf("%s\n%s\n\n", "CoreOS over OSX made simple.",
 		"❯❯❯ http://github.com/TheNewNormal/corectl")
+	fmt.Printf("Installed version: %s (built at %v)\n",
+		strings.TrimPrefix(Version, "v"), stamp)
 
-	fmt.Println("Installed version:", strings.TrimPrefix(Version, "v"))
 	if latest, _, err =
 		github.NewClient(nil).Repositories.GetLatestRelease("TheNewNormal",
 			"corectl"); err != nil {
