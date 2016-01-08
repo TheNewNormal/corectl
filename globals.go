@@ -27,10 +27,10 @@ const LatestImageBreackage = "2016-01-08T16:00:00WET"
 type (
 	vmContext      struct{ vm *VMInfo }
 	sessionContext struct {
-		configDir, imageDir, runDir, pwd, uid, gid, username string
-		hasPowers, debug, json                               bool
-		rawArgs                                              *viper.Viper
-		VMs                                                  []vmContext
+		configDir, imageDir, runDir, pwd, uid, gid, homedir string
+		hasPowers, debug, json                              bool
+		rawArgs                                             *viper.Viper
+		VMs                                                 []vmContext
 	}
 	// VMInfo - per VM settings
 	VMInfo struct {
@@ -274,16 +274,20 @@ COREOS_PRIVATE_IPV4=${COREOS_PUBLIC_IPV4}
 block-until-url "${endpoint}"
 
 HOSTNAME="$(curl -Ls ${endpoint}/hostname)"
+HOMEDIR="$(curl -Ls ${endpoint}/homedir)"
 
 ( echo endpoint=${endpoint}
   echo UUID=${UUID}
   echo HOSTNAME="${HOSTNAME}"
+  echo HOMEDIR="${HOMEDIR}"
 
   echo COREOS_PUBLIC_IPV4=${COREOS_PUBLIC_IPV4}
   echo COREOS_PRIVATE_IPV4=${COREOS_PRIVATE_IPV4}
 ) > /etc/environment
 
 sed -i "s,@@hostname@@,${HOSTNAME},g" /usr/share/oem/xhyve.yml
+sed -i "s,@@homedir@@,${HOMEDIR},g" /usr/share/oem/xhyve.yml
+sed -i "s,Users\.mount,$(systemd-escape -p ${HOMEDIR})\.mount,g" /usr/share/oem/xhyve.yml
 
 echo "$(curl -Ls ${endpoint}/sshKey)" | update-ssh-keys -a proc-cmdline-ssh_internal
 
@@ -322,8 +326,8 @@ coreos:
     command: start
     content: |
       [Mount]
-        What=192.168.64.1:/Users
-        Where=/Users
+        What=192.168.64.1:@@homedir@@
+        Where=@@homedir@@
         Options=rw,async,nolock,noatime,rsize=32768,wsize=32768
         Type=nfs
 `
