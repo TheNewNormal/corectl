@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/blang/semver"
 	"github.com/spf13/cobra"
@@ -87,9 +88,10 @@ func init() {
 
 func localImages() (local map[string]semver.Versions, err error) {
 	var (
-		files   []os.FileInfo
-		f       os.FileInfo
-		channel string
+		files    []os.FileInfo
+		f        os.FileInfo
+		channel  string
+		stamp, _ = time.Parse("2006-01-02T15:04:05MST", LatestImageBreackage)
 	)
 	local = make(map[string]semver.Versions, 0)
 	for _, channel = range DefaultChannels {
@@ -100,11 +102,20 @@ func localImages() (local map[string]semver.Versions, err error) {
 		var v semver.Versions
 		for _, f = range files {
 			if f.IsDir() {
-				var s semver.Version
-				if s, err = semver.Make(f.Name()); err != nil {
-					return
+				if f.ModTime().After(stamp) {
+					var s semver.Version
+					if s, err = semver.Make(f.Name()); err != nil {
+						return
+					}
+					v = append(v, s)
+				} else {
+					// force rebuild if local image assembled before last time
+					// we changed its expcted format
+					if err = os.RemoveAll(filepath.Join(engine.imageDir,
+						channel, f.Name())); err != nil {
+						return
+					}
 				}
-				v = append(v, s)
 			}
 		}
 		semver.Sort(v)

@@ -22,6 +22,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const LatestImageBreackage = "2016-01-08T16:00:00WET"
+
 type (
 	vmContext      struct{ vm *VMInfo }
 	sessionContext struct {
