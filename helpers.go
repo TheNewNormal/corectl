@@ -267,7 +267,7 @@ func (session *sessionContext) init() (err error) {
 	session.runDir = filepath.Join(session.configDir, "/running/")
 
 	session.uid, session.gid = caller.Uid, caller.Gid
-	session.username = caller.Username
+	session.homedir = caller.HomeDir
 
 	if session.pwd, err = os.Getwd(); err != nil {
 		return
@@ -385,6 +385,12 @@ func (vm *VMInfo) metadataService() (endpoint string, err error) {
 		func(w http.ResponseWriter, r *http.Request) {
 			if isAllowed(rIP(r.RemoteAddr), w) {
 				w.Write([]byte(vm.Name))
+			}
+		})
+	mux.HandleFunc(root+"/homedir",
+		func(w http.ResponseWriter, r *http.Request) {
+			if isAllowed(rIP(r.RemoteAddr), w) {
+				w.Write([]byte(engine.homedir))
 			}
 		})
 

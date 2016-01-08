@@ -3,6 +3,7 @@ export GOOS=darwin
 export CGO_ENABLED=1
 
 VERSION := $(shell git describe --abbrev=6 --dirty=-unreleased --always --tags)
+BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 ifeq ($(DEBUG),true)
     GO_GCFLAGS := -gcflags "-N -l"
@@ -10,7 +11,8 @@ else
     GO_LDFLAGS := $(GO_LDFLAGS) -w -s
 endif
 
-GO_LDFLAGS := $(GO_LDFLAGS) -X main.Version=$(VERSION)
+GO_LDFLAGS := $(GO_LDFLAGS) -X main.Version=$(VERSION) \
+    -X main.BuildDate=$(BUILDDATE)
 
 all: corectl docs
 	@git status

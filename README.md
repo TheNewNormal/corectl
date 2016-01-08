@@ -63,7 +63,7 @@ Update Strategy: No Reboots
 Last login: Tue Aug 25 13:23:20 +0000 2015 on /dev/tty1.
 core@localhost ~ $
 ```
-you 'll find out that `/Users` is available (via NFS) already inside your VM.
+you 'll find out that your `${HOME}` become available (via NFS) inside your VM.
 that will come handy when you come to play with `docker` volumes later...
 
 ### usage
