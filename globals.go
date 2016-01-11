@@ -325,6 +325,9 @@ coreos:
   - name: Users.mount
     command: start
     content: |
+      [Unit]
+      Requires=rpc-statd.service
+      After=rpc-statd.service
       [Mount]
         What=192.168.64.1:@@homedir@@
         Where=@@homedir@@

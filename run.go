@@ -301,9 +301,8 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 			if exit != nil || (vm.PublicIP != "" && vm.Pid != -1) {
 				return vm.exitStatus
 			}
-		default:
-			time.Sleep(1 * time.Second)
 		}
+		time.Sleep(250 * time.Millisecond)
 	}
 }
 
@@ -373,11 +372,10 @@ func nfsSetup() (err error) {
 			return false
 		}()
 		exportsCheck = func(previous []byte) (err error) {
-			cmd := exec.Command("nfsd", "-F", exportsF, "checkexports")
-			cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, os.Stderr
-
-			if err = cmd.Run(); err != nil {
-				err = fmt.Errorf("unable to validate %s (see above)", exportsF)
+			var out []byte
+			if out, err = exec.Command("nfsd", "-F",
+				exportsF, "checkexports").Output(); err != nil {
+				err = fmt.Errorf("unable to validate %s ('%v')", exportsF, out)
 				// getting back to where we were
 				ioutil.WriteFile(exportsF, previous, os.ModeAppend)
 			}
@@ -411,6 +409,9 @@ func nfsSetup() (err error) {
 					"service definitions... (%v)", err)
 			}
 			log.Printf("'%s' was made available to VMs via NFS\n",
+				engine.homedir)
+		} else {
+			log.Printf("'%s' was already available to VMs via NFS\n",
 				engine.homedir)
 		}
 	} else {
