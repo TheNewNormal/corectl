@@ -94,7 +94,17 @@ func testClientGoSvr(t testing.TB, readonly bool, delay time.Duration) (*Client,
 		t.Fatal(err)
 	}
 
-	server, err := NewServer(txPipeRd, rxPipeWr, os.Stderr, 0, readonly, ".")
+	options := []ServerOption{WithDebug(os.Stderr)}
+	if readonly {
+		options = append(options, ReadOnly())
+	}
+
+	server, err := NewServer(
+		txPipeRd,
+		rxPipeWr,
+		".",
+		options...,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -640,11 +650,11 @@ func TestClientChown(t *testing.T) {
 		t.Log("must be root to run chown tests")
 		t.Skip()
 	}
-	toUid, err := strconv.Atoi(chownto.Uid)
+	toUID, err := strconv.Atoi(chownto.Uid)
 	if err != nil {
 		t.Fatal(err)
 	}
-	toGid, err := strconv.Atoi(chownto.Gid)
+	toGID, err := strconv.Atoi(chownto.Gid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -657,7 +667,7 @@ func TestClientChown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sftp.Chown(f.Name(), toUid, toGid); err != nil {
+	if err := sftp.Chown(f.Name(), toUID, toGID); err != nil {
 		t.Fatal(err)
 	}
 	after, err := exec.Command("ls", "-nl", f.Name()).Output()
@@ -697,11 +707,11 @@ func TestClientChownReadonly(t *testing.T) {
 		t.Log("must be root to run chown tests")
 		t.Skip()
 	}
-	toUid, err := strconv.Atoi(chownto.Uid)
+	toUID, err := strconv.Atoi(chownto.Uid)
 	if err != nil {
 		t.Fatal(err)
 	}
-	toGid, err := strconv.Atoi(chownto.Gid)
+	toGID, err := strconv.Atoi(chownto.Gid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -710,7 +720,7 @@ func TestClientChownReadonly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sftp.Chown(f.Name(), toUid, toGid); err == nil {
+	if err := sftp.Chown(f.Name(), toUID, toGID); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -1164,14 +1174,14 @@ func TestClientWalk(t *testing.T) {
 	makeTree(t)
 	errors := make([]error, 0, 10)
 	clear := true
-	markFn := func(walker *fs.Walker) (err error) {
+	markFn := func(walker *fs.Walker) error {
 		for walker.Step() {
-			err = mark(walker.Path(), walker.Stat(), walker.Err(), &errors, clear)
+			err := mark(walker.Path(), walker.Stat(), walker.Err(), &errors, clear)
 			if err != nil {
-				break
+				return err
 			}
 		}
-		return err
+		return nil
 	}
 	// Expect no errors.
 	err := markFn(sftp.Walk(tree.name))

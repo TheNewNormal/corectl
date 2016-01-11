@@ -22,7 +22,7 @@
 		},
 		{
 			"ImportPath": "github.com/TheNewNormal/libxhyve",
-			"Rev": "a332baee6bb6ae83b1ed630ea710609a494b692b"
+			"Rev": "521052cea7cd3571d8dacaf3da72fcee2bd4731f"
 		},
 		{
 			"ImportPath": "github.com/blang/semver",
@@ -31,7 +31,7 @@
 		},
 		{
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
-			"Comment": "v1.0.4-2-g2724a9c",
+			"Comment": "v1.0.5",
 			"Rev": "2724a9c9051aa62e9cca11304e7dd518e9e41599"
 		},
 		{
@@ -75,7 +75,7 @@
 		},
 		{
 			"ImportPath": "github.com/pkg/sftp",
-			"Rev": "9e66bf3ae26ff73a0dd2557c891853f3f3a59a7b"
+			"Rev": "d396b1b4cba66ed665c87773546d95fb20c841cf"
 		},
 		{
 			"ImportPath": "github.com/rakyll/pb",
@@ -100,7 +100,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "c6399cd398905db8208d06e30525513f53aaca98"
+			"Rev": "2a426b5c596880d305d848c6765850e2d1bee95c"
 		},
 		{
 			"ImportPath": "github.com/spf13/jwalterweatherman",
@@ -112,7 +112,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/viper",
-			"Rev": "0c82789feb03da74b3390a5d64b8ce2ce9ba0f3e"
+			"Rev": "a212099cbe6fbe8d07476bfda8d2d39b6ff8f325"
 		},
 		{
 			"ImportPath": "github.com/yeonsh/go-ps",
