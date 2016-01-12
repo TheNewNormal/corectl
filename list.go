@@ -70,8 +70,12 @@ func lsCommand(cmd *cobra.Command, args []string) (err error) {
 	}
 	fmt.Println("locally available images")
 	for _, i := range channels {
-		fmt.Printf("  - %s channel \n", i)
+		var header bool
 		for _, d := range local[i] {
+			if !header {
+				fmt.Printf("  - %s channel \n", i)
+				header = true
+			}
 			fmt.Println("    -", d.String())
 		}
 	}
