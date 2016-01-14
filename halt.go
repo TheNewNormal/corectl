@@ -81,7 +81,7 @@ func (vm VMInfo) halt() (err error) {
 				}
 				if p, ee := os.FindProcess(vm.Pid); ee == nil {
 					log.Println("hard kill...")
-					if err = p.Kill(); err != nil {
+					if err = p.Signal(os.Interrupt); err != nil {
 						return
 					}
 				}
@@ -102,9 +102,10 @@ func (vm VMInfo) halt() (err error) {
 	}
 	// wait until it's _really_ dead, but not forever
 	for {
+		timeout := time.After(30 * time.Second)
 		select {
 		// unmounts may take a bit in slow drives...
-		case <-time.After(30 * time.Second):
+		case <-timeout:
 			return fmt.Errorf(fmt.Sprintf("'%s' didn't shutdown normally "+
 				"after 30s (!)... ", vm.Name))
 		case <-time.Tick(100 * time.Millisecond):

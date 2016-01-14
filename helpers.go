@@ -327,17 +327,12 @@ func (vm *VMInfo) isActive() bool {
 
 func (vm *VMInfo) metadataService() (endpoint string, err error) {
 	var (
-		free                           net.Listener
-		sentCC, sentSSHk, foundGuestIP sync.Once
-		mux, root                      = http.NewServeMux(), "/" + vm.Name
-		rIP                            = func(s string) string {
-			return strings.Split(s, ":")[0]
-		}
-		isAllowed = func(origin string, w http.ResponseWriter) bool {
+		free         net.Listener
+		foundGuestIP sync.Once
+		mux, root    = http.NewServeMux(), "/" + vm.Name
+		rIP          = func(s string) string { return strings.Split(s, ":")[0] }
+		isAllowed    = func(origin string, w http.ResponseWriter) bool {
 			if strings.HasPrefix(origin, "192.168.64.") {
-				foundGuestIP.Do(func() {
-					vm.publicIP <- origin
-				})
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				w.WriteHeader(http.StatusOK)
 				return true
@@ -352,21 +347,18 @@ func (vm *VMInfo) metadataService() (endpoint string, err error) {
 		return
 	}
 
-	vm.wg.Add(1)
-
 	if vm.CloudConfig != "" && vm.CClocation == Local {
 		var txt []byte
 		if txt, err = ioutil.ReadFile(vm.CloudConfig); err != nil {
 			return
 		}
-		vm.wg.Add(1)
 
 		mux.HandleFunc(root+"/cloud-config",
 			func(w http.ResponseWriter, r *http.Request) {
 				if isAllowed(rIP(r.RemoteAddr), w) {
 					w.Write(txt)
-					sentCC.Do(func() {
-						vm.wg.Done()
+					foundGuestIP.Do(func() {
+						vm.publicIP <- rIP(r.RemoteAddr)
 					})
 				}
 			})
@@ -376,9 +368,11 @@ func (vm *VMInfo) metadataService() (endpoint string, err error) {
 		func(w http.ResponseWriter, r *http.Request) {
 			if isAllowed(rIP(r.RemoteAddr), w) {
 				w.Write([]byte(vm.InternalSSHauthKey))
-				sentSSHk.Do(func() {
-					vm.wg.Done()
-				})
+				if !(vm.CloudConfig != "" && vm.CClocation == Local) {
+					foundGuestIP.Do(func() {
+						vm.publicIP <- rIP(r.RemoteAddr)
+					})
+				}
 			}
 		})
 	mux.HandleFunc(root+"/hostname",
