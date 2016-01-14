@@ -106,7 +106,7 @@ func vmBootstrap(args *viper.Viper) (vm *VMInfo, err error) {
 	vm.Cpus = args.GetInt("cpus")
 	vm.Extra = args.GetString("extra")
 	vm.SSHkey = args.GetString("sshkey")
-	vm.Root, vm.Pid, vm.exitStatus = -1, -1, nil
+	vm.Root, vm.Pid = -1, -1
 
 	vm.Name, vm.UUID = args.GetString("name"), args.GetString("uuid")
 
@@ -225,42 +225,25 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 	}
 
 	go func() {
-		for {
-			select {
-			case <-time.After(30 * time.Second):
-				if p, ee := os.FindProcess(c.Process.Pid); ee == nil {
-					p.Kill()
-				}
-				vm.errch <- fmt.Errorf("Unable to grab VM's pid and IP after " +
-					"30s (!)... Aborting")
-				return
-			case ip := <-vm.publicIP:
-				vm.Pid = c.Process.Pid
-				vm.PublicIP = ip
-				vm.storeConfig()
-				close(vm.publicIP)
+		timeout := time.After(30 * time.Second)
+		select {
+		case <-timeout:
+			if p, ee := os.FindProcess(c.Process.Pid); ee == nil {
+				p.Signal(os.Interrupt)
+			}
+			vm.errch <- fmt.Errorf("Unable to grab VM's IP after " +
+				"30s (!)... Aborting")
+		case ip := <-vm.publicIP:
+			vm.Pid, vm.PublicIP = c.Process.Pid, ip
+			if err = vm.storeConfig(); err != nil {
+				vm.errch <- err
+			} else {
 				if vm.Detached {
 					log.Printf("started '%s' in background with IP %v and "+
 						"PID %v\n", vm.Name, vm.PublicIP, c.Process.Pid)
 				}
-				return
-			default:
-				time.Sleep(100 * time.Millisecond)
-			}
-		}
-	}()
-
-	go func() {
-		defer close(vm.done)
-		for {
-			select {
-			case err := <-vm.errch:
-				if err != nil {
-					return
-				}
-			default:
-				vm.wg.Wait()
-				return
+				close(vm.publicIP)
+				close(vm.done)
 			}
 		}
 	}()
@@ -268,39 +251,30 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 	go func() {
 		if !vm.Detached {
 			c.Stdout, c.Stdin, c.Stderr = os.Stdout, os.Stdin, os.Stderr
-			err = c.Run()
+			vm.errch <- c.Run()
+		} else if err = c.Start(); err != nil {
+			vm.errch <- err
 		} else {
-			err = c.Start()
-			go func() {
-				for {
-					select {
-					case <-vm.done:
-					case <-vm.errch:
-						return
-					default:
-						if err = c.Wait(); err != nil {
-							log.Println(err)
-							vm.errch <- fmt.Errorf("VM exited with error" +
-								"while starting in background")
-						}
-					}
+			select {
+			default:
+				if err = c.Wait(); err != nil {
+					log.Println(err)
+					vm.errch <- fmt.Errorf("VM exited with error " +
+						"while attempting to start in background")
 				}
-			}()
+			case <-vm.errch:
+			}
 		}
-		vm.errch <- err
 	}()
 
 	for {
 		select {
 		case <-vm.done:
 			if vm.Detached {
-				return vm.exitStatus
+				return
 			}
-		case exit := <-vm.errch:
-			vm.exitStatus = exit
-			if exit != nil || (vm.PublicIP != "" && vm.Pid != -1) {
-				return vm.exitStatus
-			}
+		case err = <-vm.errch:
+			return
 		}
 		time.Sleep(250 * time.Millisecond)
 	}

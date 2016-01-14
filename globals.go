@@ -16,7 +16,6 @@
 package main
 
 import (
-	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -47,10 +46,8 @@ type (
 		PublicIP                               string
 		CreatedAt                              time.Time
 		publicIP                               chan string
-		wg                                     sync.WaitGroup
 		errch                                  chan error
 		done                                   chan bool
-		exitStatus                             error
 	}
 	// NetworkInterface ...
 	NetworkInterface struct {
