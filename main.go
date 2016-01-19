@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -77,16 +78,18 @@ func versionCommand(cmd *cobra.Command, args []string) {
 		latest   *github.RepositoryRelease
 		stamp, _ = time.Parse("2006-01-02T15:04:05MST", BuildDate)
 	)
-	fmt.Printf("%s\n%s\n\n", "CoreOS over OSX made simple.",
-		"❯❯❯ http://github.com/TheNewNormal/corectl")
-	fmt.Printf("Installed version: %s (built at %v)\n",
-		strings.TrimPrefix(Version, "v"), stamp)
+	fmt.Printf("%s\n%s\n%s\n\n", "CoreOS over OSX made simple.",
+		" - http://github.com/TheNewNormal/corectl",
+		"   Copyright (c) 2015-2016, António Meireles")
+	fmt.Printf("Running version: %s\n"+
+		"                 built with %s, %v\n",
+		strings.TrimPrefix(Version, "v"), runtime.Version(), stamp)
 
 	if latest, _, err =
 		github.NewClient(nil).Repositories.GetLatestRelease("TheNewNormal",
 			"corectl"); err != nil {
 		return
 	}
-	fmt.Println("Latest version:", strings.TrimPrefix(
+	fmt.Println("Latest upstream:", strings.TrimPrefix(
 		strings.Trim(github.Stringify(latest.Name), "\""), "v"))
 }
