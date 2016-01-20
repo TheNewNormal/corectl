@@ -234,9 +234,12 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 			vm.errch <- fmt.Errorf("Unable to grab VM's IP after " +
 				"30s (!)... Aborting")
 		case ip := <-vm.publicIP:
+			// afaict there's no race here, regardless of what `go build -race`
+			// claims as vm.publicIP will only be triggered well after the
+			// c.{Start,Run} calls...
 			vm.Pid, vm.PublicIP = c.Process.Pid, ip
-			if err = vm.storeConfig(); err != nil {
-				vm.errch <- err
+			if ee := vm.storeConfig(); ee != nil {
+				vm.errch <- ee
 			} else {
 				if vm.Detached {
 					log.Printf("started '%s' in background with IP %v and "+
@@ -252,13 +255,13 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 		if !vm.Detached {
 			c.Stdout, c.Stdin, c.Stderr = os.Stdout, os.Stdin, os.Stderr
 			vm.errch <- c.Run()
-		} else if err = c.Start(); err != nil {
-			vm.errch <- err
+		} else if ee := c.Start(); ee != nil {
+			vm.errch <- ee
 		} else {
 			select {
 			default:
-				if err = c.Wait(); err != nil {
-					log.Println(err)
+				if ee := c.Wait(); ee != nil {
+					log.Println(ee)
 					vm.errch <- fmt.Errorf("VM exited with error " +
 						"while attempting to start in background")
 				}
@@ -273,8 +276,8 @@ func (running *sessionContext) boot(slt int, rawArgs *viper.Viper) (err error) {
 			if vm.Detached {
 				return
 			}
-		case err = <-vm.errch:
-			return
+		case ee := <-vm.errch:
+			return ee
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
