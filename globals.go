@@ -330,5 +330,7 @@ coreos:
         Where=@@homedir@@
         Options=rw,async,nolock,noatime,rsize=32768,wsize=32768
         Type=nfs
+      [Install]
+        WantedBy=local-fs.target
 `
 )
