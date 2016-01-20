@@ -11,6 +11,8 @@ clone-xhyve:
 	# cherry-picked from https://github.com/mist64/xhyve/pull/81
 	# Fix non-deterministic delays when accessing a vcpu in "running" or "sleeping" state.
 	-cd vendor/xhyve; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/81.patch | patch -N -p1
+	# experimental support for raw devices - https://github.com/mist64/xhyve/pull/80
+	-cd vendor/xhyve; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/80.patch | patch -N -p1
 
 sync: clone-xhyve apply-patch
 	find . \( -name \*.orig -o -name \*.rej \) -delete

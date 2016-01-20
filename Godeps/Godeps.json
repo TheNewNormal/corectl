@@ -1,9 +1,6 @@
 {
 	"ImportPath": "github.com/TheNewNormal/corectl",
-	"GoVersion": "go1.5.2",
-	"Packages": [
-		"./..."
-	],
+	"GoVersion": "go1.5.3",
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -22,7 +19,7 @@
 		},
 		{
 			"ImportPath": "github.com/TheNewNormal/libxhyve",
-			"Rev": "521052cea7cd3571d8dacaf3da72fcee2bd4731f"
+			"Rev": "0c94d077c947d92c08edcc359e15d2498edb70a5"
 		},
 		{
 			"ImportPath": "github.com/blang/semver",
@@ -41,7 +38,7 @@
 		},
 		{
 			"ImportPath": "github.com/google/go-github/github",
-			"Rev": "63fbbb283ce4913a5ac1b6de7abae50dbf594a04"
+			"Rev": "b8b4ac742977310ff6e75140a403a38dab109977"
 		},
 		{
 			"ImportPath": "github.com/google/go-querystring/query",
@@ -49,7 +46,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hcl",
-			"Rev": "197e8d3cf42199cfd53cd775deb37f3637234635"
+			"Rev": "578dd9746824a54637686b51a41bad457a56bcef"
 		},
 		{
 			"ImportPath": "github.com/kr/fs",
@@ -75,7 +72,7 @@
 		},
 		{
 			"ImportPath": "github.com/pkg/sftp",
-			"Rev": "d396b1b4cba66ed665c87773546d95fb20c841cf"
+			"Rev": "e84cc8c755ca39b7b64f510fe1fffc1b51f210a5"
 		},
 		{
 			"ImportPath": "github.com/rakyll/pb",
@@ -100,7 +97,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "2a426b5c596880d305d848c6765850e2d1bee95c"
+			"Rev": "8e91712f174ced10270cf66615e0a9127e7c4de5"
 		},
 		{
 			"ImportPath": "github.com/spf13/jwalterweatherman",
@@ -120,24 +117,24 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "552e9d568fde9701ea1944fb01c8aadaceaa7353"
+			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
-			"Rev": "552e9d568fde9701ea1944fb01c8aadaceaa7353"
+			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "552e9d568fde9701ea1944fb01c8aadaceaa7353"
+			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh",
-			"Rev": "552e9d568fde9701ea1944fb01c8aadaceaa7353"
+			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
-			"Comment": "v1.2.8",
-			"Rev": "508915b7500b6e42a87132e4afeb4729cebc7cbb"
+			"Comment": "v1.2.9",
+			"Rev": "8611c35ab31c1c28aa903d33cf8b6e44a399b09e"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

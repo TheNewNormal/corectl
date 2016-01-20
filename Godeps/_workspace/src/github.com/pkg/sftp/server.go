@@ -29,7 +29,6 @@ type Server struct {
 	outMutex      *sync.Mutex
 	debugStream   io.Writer
 	readOnly      bool
-	rootDir       string
 	lastID        uint32
 	pktChan       chan rxPacket
 	openFiles     map[string]*os.File
@@ -74,26 +73,16 @@ type serverRespondablePacket interface {
 }
 
 // NewServer creates a new Server instance around the provided streams, serving
-// content from the directory specified by rootDir.  Optionally, ServerOption
+// content from the root of the filesystem.  Optionally, ServerOption
 // functions may be specified to further configure the Server.
 //
 // A subsequent call to Serve() is required to begin serving files over SFTP.
-func NewServer(in io.Reader, out io.WriteCloser, rootDir string, options ...ServerOption) (*Server, error) {
-	if rootDir == "" {
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-
-		rootDir = wd
-	}
-
+func NewServer(in io.Reader, out io.WriteCloser, options ...ServerOption) (*Server, error) {
 	s := &Server{
 		in:            in,
 		out:           out,
 		outMutex:      &sync.Mutex{},
 		debugStream:   ioutil.Discard,
-		rootDir:       rootDir,
 		pktChan:       make(chan rxPacket, sftpServerWorkerCount),
 		openFiles:     map[string]*os.File{},
 		openFilesLock: &sync.RWMutex{},
@@ -114,7 +103,7 @@ func NewServer(in io.Reader, out io.WriteCloser, rootDir string, options ...Serv
 type ServerOption func(*Server) error
 
 // WithDebug enables Server debugging output to the supplied io.Writer.
-func WithDebug(w io.Writer) func(*Server) error {
+func WithDebug(w io.Writer) ServerOption {
 	return func(s *Server) error {
 		s.debugStream = w
 		return nil
@@ -122,7 +111,7 @@ func WithDebug(w io.Writer) func(*Server) error {
 }
 
 // ReadOnly configures a Server to serve files in read-only mode.
-func ReadOnly() func(*Server) error {
+func ReadOnly() ServerOption {
 	return func(s *Server) error {
 		s.readOnly = true
 		return nil
