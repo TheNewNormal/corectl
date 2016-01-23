@@ -15,8 +15,9 @@ corectl pull
 
 ```
       --channel string   CoreOS channel (default "alpha")
-  -f, --force            override local image, if any
+  -f, --force            forces rebuild of local image, if already present
       --version string   CoreOS version (default "latest")
+  -w, --warmup           ensures that all channels are on their latest versions
 ```
 
 ### Options inherited from parent commands

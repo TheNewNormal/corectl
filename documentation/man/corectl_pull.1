@@ -25,11 +25,15 @@ Pulls a CoreOS image from upstream
 
 .PP
 \fB\-f\fP, \fB\-\-force\fP[=false]
-    override local image, if any
+    forces rebuild of local image, if already present
 
 .PP
 \fB\-\-version\fP="latest"
     CoreOS version
+
+.PP
+\fB\-w\fP, \fB\-\-warmup\fP[=false]
+    ensures that all channels are on their latest versions
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

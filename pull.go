@@ -43,16 +43,28 @@ var (
 )
 
 func pullCommand(cmd *cobra.Command, args []string) (err error) {
-	_, _, err = lookupImage(normalizeChannelName(engine.rawArgs.GetString("channel")),
-		normalizeVersion(engine.rawArgs.GetString("version")), engine.rawArgs.GetBool("force"),
-		false)
+	if engine.rawArgs.GetBool("warmup") {
+		for _, channel := range DefaultChannels {
+			if _, _, err = lookupImage(channel, normalizeVersion("latest"),
+				engine.rawArgs.GetBool("force"), false); err != nil {
+				return
+			}
+		}
+		return
+	}
+	c := normalizeChannelName(engine.rawArgs.GetString("channel"))
+	v := normalizeVersion(engine.rawArgs.GetString("version"))
+	_, _, err = lookupImage(c, v, engine.rawArgs.GetBool("force"), false)
 	return
 }
 
 func init() {
 	pullCmd.Flags().String("channel", "alpha", "CoreOS channel")
 	pullCmd.Flags().String("version", "latest", "CoreOS version")
-	pullCmd.Flags().BoolP("force", "f", false, "override local image, if any")
+	pullCmd.Flags().BoolP("force", "f", false, "forces rebuild of local "+
+		"image, if already present")
+	pullCmd.Flags().BoolP("warmup", "w", false, "ensures that all channels "+
+		"are on their latest versions")
 	RootCmd.AddCommand(pullCmd)
 }
 
