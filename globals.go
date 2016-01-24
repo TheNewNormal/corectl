@@ -319,6 +319,10 @@ coreos:
     home-url: "https://github.com/TheNewNormal/corectl"
     bug-report-url: "https://github.com/TheNewNormal/corectl/issues/"
   units:
+  - name: update-engine.service
+    command: stop
+  - name: locksmithd.service
+    command: stop
   - name: Users.mount
     command: start
     content: |
