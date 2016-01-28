@@ -31,6 +31,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"regexp"
@@ -236,8 +237,13 @@ func sshKeyGen() (a string, b string, err error) {
 
 func (session *sessionContext) init() (err error) {
 	var (
-		caller *user.User
-		usr    string
+		caller              *user.User
+		usr                 string
+		netMask, netAddress []byte
+		cmdL                = []string{
+			"defaults", "read",
+			"/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist",
+		}
 	)
 	// viper & cobra
 	session.rawArgs = viper.New()
@@ -261,6 +267,21 @@ func (session *sessionContext) init() (err error) {
 			return
 		}
 	}
+
+	if netAddress, err = exec.Command(cmdL[0],
+		append(cmdL[1:], "Shared_Net_Address")...).Output(); err != nil {
+		return
+	}
+
+	if netMask, err = exec.Command(cmdL[0],
+		append(cmdL[1:], "Shared_Net_Mask")...).Output(); err != nil {
+		return
+	}
+
+	session.address = strings.TrimSpace(string(netAddress))
+	session.netmask = strings.TrimSpace(string(netMask))
+	session.network = net.ParseIP(session.address).Mask(net.IPMask(net.ParseIP(
+		session.netmask).To4())).String()
 
 	session.configDir = filepath.Join(caller.HomeDir, "/.coreos/")
 	session.imageDir = filepath.Join(session.configDir, "/images/")
@@ -331,8 +352,12 @@ func (vm *VMInfo) metadataService() (endpoint string, err error) {
 		foundGuestIP sync.Once
 		mux, root    = http.NewServeMux(), "/" + vm.Name
 		rIP          = func(s string) string { return strings.Split(s, ":")[0] }
-		isAllowed    = func(origin string, w http.ResponseWriter) bool {
-			if strings.HasPrefix(origin, "192.168.64.") {
+		netcfg       = net.IPNet{
+			IP:   net.ParseIP(engine.address),
+			Mask: net.IPMask(net.ParseIP(engine.netmask).To4()),
+		}
+		isAllowed = func(origin string, w http.ResponseWriter) bool {
+			if netcfg.Contains(net.ParseIP(origin)) {
 				w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 				w.WriteHeader(http.StatusOK)
 				return true
@@ -387,6 +412,12 @@ func (vm *VMInfo) metadataService() (endpoint string, err error) {
 				w.Write([]byte(engine.homedir))
 			}
 		})
+	mux.HandleFunc(root+"/nfs",
+		func(w http.ResponseWriter, r *http.Request) {
+			if isAllowed(rIP(r.RemoteAddr), w) {
+				w.Write([]byte(engine.address))
+			}
+		})
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%v", free.Addr().(*net.TCPAddr).Port),
@@ -397,5 +428,5 @@ func (vm *VMInfo) metadataService() (endpoint string, err error) {
 		srv.ListenAndServe()
 	}()
 
-	return fmt.Sprintf("http://192.168.64.1%v%v", srv.Addr, root), err
+	return fmt.Sprintf("http://%v%v%v", engine.address, srv.Addr, root), err
 }
