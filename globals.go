@@ -21,12 +21,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-const LatestImageBreackage = "2016-01-08T16:00:00WET"
+const LatestImageBreackage = "2016-01-28T18:45:00WET"
 
 type (
 	vmContext      struct{ vm *VMInfo }
 	sessionContext struct {
 		configDir, imageDir, runDir, pwd, uid, gid, homedir string
+		address, netmask, network                           string
 		hasPowers, debug, json                              bool
 		rawArgs                                             *viper.Viper
 		VMs                                                 []vmContext
@@ -272,11 +273,13 @@ block-until-url "${endpoint}"
 
 HOSTNAME="$(curl -Ls ${endpoint}/hostname)"
 HOMEDIR="$(curl -Ls ${endpoint}/homedir)"
+NFS="$(curl -Ls ${endpoint}/nfs)"
 
 ( echo endpoint=${endpoint}
   echo UUID=${UUID}
   echo HOSTNAME="${HOSTNAME}"
   echo HOMEDIR="${HOMEDIR}"
+  echo NFS="${NFS}"
 
   echo COREOS_PUBLIC_IPV4=${COREOS_PUBLIC_IPV4}
   echo COREOS_PRIVATE_IPV4=${COREOS_PRIVATE_IPV4}
@@ -284,6 +287,7 @@ HOMEDIR="$(curl -Ls ${endpoint}/homedir)"
 
 sed -i "s,@@hostname@@,${HOSTNAME},g" /usr/share/oem/xhyve.yml
 sed -i "s,@@homedir@@,${HOMEDIR},g" /usr/share/oem/xhyve.yml
+sed -i "s,@@nfsServer@@,${NFS},g" /usr/share/oem/xhyve.yml
 sed -i "s,Users\.mount,$(systemd-escape -p ${HOMEDIR})\.mount,g" /usr/share/oem/xhyve.yml
 
 echo "$(curl -Ls ${endpoint}/sshKey)" | update-ssh-keys -a proc-cmdline-ssh_internal
@@ -330,7 +334,7 @@ coreos:
       Requires=rpc-statd.service
       After=rpc-statd.service
       [Mount]
-        What=192.168.64.1:@@homedir@@
+        What=@@nfsServer@@:@@homedir@@
         Where=@@homedir@@
         Options=rw,async,nolock,noatime,rsize=32768,wsize=32768
         Type=nfs

@@ -323,9 +323,9 @@ func nfsSetup() (err error) {
 		shared    bool
 		oldSig    = "/Users -network 192.168.64.0 " +
 			"-mask 255.255.255.0 -alldirs -mapall="
-		suffix    = engine.uid + ":" + engine.gid
-		signature = engine.homedir + " -network 192.168.64.0 " +
-			"-mask 255.255.255.0 -alldirs -mapall=" + suffix
+		signature = fmt.Sprintf("%v -network %v -mask %v -alldirs "+
+			"-mapall=%v:%v", engine.homedir, engine.network, engine.netmask,
+			engine.uid, engine.gid)
 		exportSet = func() (ok bool) {
 			for _, line := range strings.Split(string(buf), "\n") {
 				if strings.HasPrefix(line, signature) {
@@ -371,8 +371,10 @@ func nfsSetup() (err error) {
 	}
 
 	if shared = exportSet(); !shared {
-		ioutil.WriteFile(exportsF, append(bufN, []byte(signature)...),
-			os.ModeAppend)
+		if err = ioutil.WriteFile(exportsF, append(bufN,
+			[]byte(signature+"\n")...), os.ModeAppend); err != nil {
+			return
+		}
 	}
 
 	if err = exportsCheck(buf); err != nil {
