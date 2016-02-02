@@ -8,16 +8,6 @@
 			"Rev": "5c4df71dfe9ac89ef6287afc05e4c1b16ae65a1e"
 		},
 		{
-			"ImportPath": "github.com/TheNewNormal/corectl/image",
-			"Comment": "v0.0.20-5-g91ea1cf",
-			"Rev": "91ea1cf4155c5670a1c5a23bf21445b392fd7f6b"
-		},
-		{
-			"ImportPath": "github.com/TheNewNormal/corectl/uuid2ip",
-			"Comment": "v0.0.20-5-g91ea1cf",
-			"Rev": "91ea1cf4155c5670a1c5a23bf21445b392fd7f6b"
-		},
-		{
 			"ImportPath": "github.com/TheNewNormal/libxhyve",
 			"Rev": "0c94d077c947d92c08edcc359e15d2498edb70a5"
 		},
@@ -76,12 +66,12 @@
 		},
 		{
 			"ImportPath": "github.com/rakyll/pb",
-			"Rev": "dc507ad06b7462501281bb4691ee43f0b1d1ec37"
+			"Rev": "8d46b8b097ef8c857426f4c50204e95100311a06"
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.4-19-gc8875c0",
-			"Rev": "c8875c0ed47e07b063c3628e2e4d4c9826721795"
+			"Comment": "v1.4-21-g006144a",
+			"Rev": "006144af03eeeff1037240a71865a9fd61f1c25f"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
@@ -117,19 +107,19 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
-			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh",
-			"Rev": "3760e016850398b85094c4c99e955b8c3dea5711"
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{
 			"ImportPath": "gopkg.in/fsnotify.v1",
