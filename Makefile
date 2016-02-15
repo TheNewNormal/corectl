@@ -27,6 +27,7 @@ all: $(PROG) docs
 	@git status
 
 $(PROG): clean Makefile
+	(cd ./vendor/github.com/TheNewNormal/libxhyve; make sync)
 	godep go build -o $(PROG) -gcflags "$(GO_GCFLAGS)" -ldflags "$(GO_LDFLAGS)"
 	@touch $@
 
