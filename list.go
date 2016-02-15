@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -106,7 +107,17 @@ func localImages() (local map[string]semver.Versions, err error) {
 		var v semver.Versions
 		for _, f = range files {
 			if f.IsDir() {
-				if f.ModTime().After(stamp) {
+				ok := true
+				var ff string
+				for _, ff = range []string{"coreos_production_pxe.vmlinuz",
+					"coreos_production_pxe_image.cpio.gz"} {
+					if _, err = os.Stat(path.Join(engine.imageDir,
+						channel, f.Name(), ff)); err != nil {
+						ok = false
+						break
+					}
+				}
+				if ok && f.ModTime().After(stamp) {
 					var s semver.Version
 					if s, err = semver.Make(f.Name()); err != nil {
 						return
@@ -114,9 +125,9 @@ func localImages() (local map[string]semver.Versions, err error) {
 					v = append(v, s)
 				} else {
 					// force rebuild if local image assembled before last time
-					// we changed its expcted format
-					if err = os.RemoveAll(filepath.Join(engine.imageDir,
-						channel, f.Name())); err != nil {
+					// we changed its expcted format or something got missing
+					if err = os.RemoveAll(path.Join(engine.imageDir, channel,
+						f.Name(), ff)); err != nil {
 						return
 					}
 				}
