@@ -9,8 +9,6 @@ PROG = corectl
 ORGANIZATION = github.com/TheNewNormal
 REPOSITORY = $(ORGANIZATION)/$(PROG)
 
-export GOPATH=$(shell echo $(PWD) | sed -e "s,src/$(REPOSITORY).*,,")
-
 VERSION := $(shell git describe --abbrev=6 --dirty=-unreleased --always --tags)
 BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
@@ -27,7 +25,7 @@ all: $(PROG) docs
 	@git status
 
 $(PROG): clean Makefile
-	(cd ./vendor/github.com/TheNewNormal/libxhyve; make sync)
+	(cd ./vendor/github.com/TheNewNormal/libxhyve; make clean sync)
 	godep go build -o $(PROG) -gcflags "$(GO_GCFLAGS)" -ldflags "$(GO_LDFLAGS)"
 	@touch $@
 
