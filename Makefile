@@ -3,8 +3,6 @@ export GOARCH=amd64
 export GOOS=darwin
 export CGO_ENABLED=1
 
-export GO15VENDOREXPERIMENT=1
-
 PROG = corectl
 ORGANIZATION = github.com/TheNewNormal
 REPOSITORY = $(ORGANIZATION)/$(PROG)
@@ -25,7 +23,6 @@ all: $(PROG) docs
 	@git status
 
 $(PROG): clean Makefile
-	(cd ./vendor/github.com/TheNewNormal/libxhyve; make clean sync)
 	godep go build -o $(PROG) -gcflags "$(GO_GCFLAGS)" -ldflags "$(GO_LDFLAGS)"
 	@touch $@
 
