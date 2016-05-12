@@ -15,8 +15,12 @@
 
 package main
 
-import "github.com/spf13/cobra"
-import "github.com/spf13/cobra/doc"
+import (
+	"fmt"
+	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
+	"os"
+)
 
 var (
 	utilsCmd = &cobra.Command{
@@ -47,10 +51,26 @@ func manCommand(cmd *cobra.Command, args []string) {
 	header := &doc.GenManHeader{
 		Title: "corectl", Source: " ",
 	}
-	doc.GenManTree(RootCmd, header, engine.pwd+"/documentation/man/")
+	manDir := "documentation/man/"
+	// check if target dir exists.if not create it
+	if _, err := os.Stat(manDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(manDir, 0644); err != nil {
+			fmt.Printf("failed to create %s. "+
+				"No manual pages generated\n", manDir)
+		}
+	}
+	doc.GenManTree(RootCmd, header, manDir)
 }
 
 func mkdownCommand(cmd *cobra.Command, args []string) {
+	markdownDir := "documentation/markdown/"
+	// check if target dir exists.if not create it
+	if _, err := os.Stat(markdownDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(markdownDir, 0644); err != nil {
+			fmt.Printf("failed to create %s. "+
+				"No markdown documentation generated\n", markdownDir)
+		}
+	}
 	doc.GenMarkdownTree(RootCmd,
 		engine.pwd+"/documentation/markdown/")
 }
