@@ -66,8 +66,8 @@
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.4-29-g43529be",
-			"Rev": "43529be3978d5a7b8e144f459e3f96491acc569c"
+			"Comment": "v1.4-31-g2004188",
+			"Rev": "2004188462c3946efefbdcd91aa83e49b4175bfb"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
@@ -104,23 +104,27 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "91ab96ae987aef3e74ab78b3aaf026109d206148"
+			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
-			"Rev": "91ab96ae987aef3e74ab78b3aaf026109d206148"
+			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ed25519",
+			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "91ab96ae987aef3e74ab78b3aaf026109d206148"
+			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh",
-			"Rev": "91ab96ae987aef3e74ab78b3aaf026109d206148"
+			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "b776ec39b3e54652e09028aaaaac9757f4f8211a"
+			"Rev": "e82cb4d7dffc35bcec7bc8bf9e402377e0ecf3f4"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

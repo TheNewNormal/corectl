@@ -26,11 +26,11 @@ const LatestImageBreackage = "2016-01-28T18:45:00WET"
 type (
 	vmContext      struct{ vm *VMInfo }
 	sessionContext struct {
-		configDir, imageDir, runDir, pwd, uid, gid, homedir string
-		address, netmask, network                           string
-		hasPowers, debug, json                              bool
-		rawArgs                                             *viper.Viper
-		VMs                                                 []vmContext
+		configDir, imageDir, runDir, tmpDir, pwd, uid, gid, homedir string
+		address, netmask, network                                   string
+		hasPowers, debug, json                                      bool
+		rawArgs                                                     *viper.Viper
+		VMs                                                         []vmContext
 	}
 	// VMInfo - per VM settings
 	VMInfo struct {

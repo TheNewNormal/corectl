@@ -105,7 +105,7 @@ func downloadAndVerify(channel,
 	for _, target := range files {
 		url := fmt.Sprintf("%s%s", root, target)
 
-		if tmpDir, err = ioutil.TempDir("", "coreos"); err != nil {
+		if tmpDir, err = ioutil.TempDir(engine.tmpDir, "coreos"); err != nil {
 			return
 		}
 		defer func() {
@@ -286,6 +286,7 @@ func (session *sessionContext) init() (err error) {
 	session.configDir = filepath.Join(caller.HomeDir, "/.coreos/")
 	session.imageDir = filepath.Join(session.configDir, "/images/")
 	session.runDir = filepath.Join(session.configDir, "/running/")
+	session.tmpDir = filepath.Join(session.configDir, "/tmp/")
 
 	session.uid, session.gid = caller.Uid, caller.Gid
 	session.homedir = caller.HomeDir
@@ -302,6 +303,9 @@ func (session *sessionContext) init() (err error) {
 	}
 
 	if err = os.MkdirAll(session.runDir, 0755); err != nil {
+		return
+	}
+	if err = os.MkdirAll(session.tmpDir, 0755); err != nil {
 		return
 	}
 	return normalizeOnDiskPermissions(session.configDir)

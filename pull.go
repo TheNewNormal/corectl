@@ -187,7 +187,7 @@ func localize(channel, version string) (a string, b string, err error) {
 			}
 			defer r.Close()
 
-			if temp, err = ioutil.TempFile("", "coreos"); err != nil {
+			if temp, err = ioutil.TempFile(engine.tmpDir, "coreos"); err != nil {
 				return
 			}
 			defer temp.Close()
