@@ -122,7 +122,7 @@ func vmBootstrap(args *viper.Viper) (vm *VMInfo, err error) {
 			original := args.GetString("uuid")
 			if original != "random" {
 				log.Printf("unable to guess the MAC Address from the provided "+
-					"UUID (%s). Using a randomly generated one one\n", original)
+					"UUID (%s). Using a randomly generated one\n", original)
 			}
 			vm.UUID = uuid.NewV4().String()
 		} else {
