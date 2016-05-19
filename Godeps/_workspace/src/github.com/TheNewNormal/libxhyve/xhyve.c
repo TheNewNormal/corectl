@@ -40,10 +40,13 @@
 #include <sysexits.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/param.h>
+
+#include <dispatch/dispatch.h>
 
 #include <xhyve/support/misc.h>
 #include <xhyve/support/atomic.h>
@@ -68,6 +71,12 @@
 
 #include <xhyve/firmware/kexec.h>
 #include <xhyve/firmware/fbsd.h>
+#include <xhyve/firmware/bootrom.h>
+
+#ifdef HAVE_OCAML
+#include <caml/callback.h>
+#include <caml/threads.h>
+#endif
 
 #define GUEST_NIO_PORT 0x488 /* guest upcalls via i/o port */
 
@@ -161,9 +170,7 @@ __attribute__ ((noreturn)) static void
 show_version()
 {
         fprintf(stderr, "%s: %s\n\n%s\n",progname, "VERSION",
-		"xhyve is a port of FreeBSD's bhyve hypervisor to OS X that\n"
-		"works entirely in userspace and has no other dependencies.\n\n"
-		"Homepage: http://www.xhyve.xyz\n"
+		"Homepage: https://github.com/docker/hyperkit\n"
 		"License: BSD\n");
 		exit(0);
 }
@@ -751,6 +758,8 @@ firmware_parse(const char *opt) {
 		fw_func = kexec;
 	} else if (strncmp(fw, "fbsd", strlen("fbsd")) == 0) {
 		fw_func = fbsd_load;
+	} else if (strncmp(fw, "bootrom", strlen("bootrom")) == 0) {
+		fw_func = bootrom_load;
 	} else {
 		goto fail;
 	}
@@ -784,6 +793,8 @@ firmware_parse(const char *opt) {
 	} else if (fw_func == fbsd_load) {
 		/* FIXME: let user set boot-loader serial device */
 		fbsd_init(opt1, opt2, opt3, NULL);
+	} else if (fw_func == bootrom_load) {
+		bootrom_init(opt1);
 	} else {
 		goto fail;
 	}
@@ -793,7 +804,8 @@ firmware_parse(const char *opt) {
 fail:
 	fprintf(stderr, "Invalid firmware argument\n"
 		"    -f kexec,'kernel','initrd','\"cmdline\"'\n"
-		"    -f fbsd,'userboot','boot volume','\"kernel env\"'\n");
+		"    -f fbsd,'userboot','boot volume','\"kernel env\"'\n"
+		"    -f bootrom,'ROM',,\n"); /* FIXME: trailing commas _required_! */
 
 	return -1;
 }
@@ -861,6 +873,7 @@ run_xhyve(int argc, char* argv[])
 	int rtc_localtime;
 	uint64_t rip;
 	size_t memsize;
+	struct sigaction sa_ign;
 
 	bvmcons = 0;
 	dump_guest_memory = 0;
@@ -958,6 +971,22 @@ run_xhyve(int argc, char* argv[])
 	if (fw != 1)
 		usage(1);
 
+	/*
+	 * We don't want SIGPIPEs ever, be sure to do this before any threads
+	 * are created.
+	 */
+	sa_ign.sa_handler = SIG_IGN;
+	sa_ign.sa_flags = 0;
+	error = sigaction(SIGPIPE, &sa_ign, NULL);
+	if (error) {
+		perror("sigaction(SIGPIPE)");
+		exit(1);
+	}
+
+#ifdef HAVE_OCAML
+	caml_startup(argv) ;
+	caml_release_runtime_system();
+#endif
 	error = xh_vm_create();
 	if (error) {
 		fprintf(stderr, "Unable to create VM (%d)\n", error);
@@ -1032,6 +1061,25 @@ run_xhyve(int argc, char* argv[])
 	}
 
 	rip = 0;
+
+	// Use GCD to register signal handlers. These are not reentrant, so can call xhyve directly
+	dispatch_source_t sigusr1_source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, SIGUSR1, 0, dispatch_get_global_queue(0, 0));
+	dispatch_source_t sigusr2_source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, SIGUSR2, 0, dispatch_get_global_queue(0, 0));
+
+	dispatch_source_set_event_handler(sigusr1_source, ^{
+			fprintf(stdout, "received sigusr1, pausing\n");
+			xh_hv_pause(1);
+		});
+	dispatch_source_set_event_handler(sigusr2_source, ^{
+			fprintf(stdout, "received sigusr2, unpausing\n");
+			xh_hv_pause(0);
+		});
+
+	signal(SIGUSR1, SIG_IGN);
+	signal(SIGUSR2, SIG_IGN);
+
+	dispatch_resume(sigusr1_source);
+	dispatch_resume(sigusr2_source);
 
 	vcpu_add(BSP, BSP, rip);
 

@@ -4,7 +4,8 @@ build:
 	go build -o xhyve cmd/xhyve/main.go
 
 clone-xhyve:
-	-git clone https://github.com/xhyve-xyz/xhyve.git vendor/xhyve
+	#-git clone https://github.com/xhyve-xyz/xhyve.git vendor/xhyve
+	-git clone https://github.com/docker/hyperkit.git vendor/xhyve
 	# cherry-picked from https://github.com/mist64/xhyve/pull/81
 	# Fix non-deterministic delays when accessing a vcpu in "running" or "sleeping" state.
 	-cd vendor/xhyve; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/81.patch | patch -N -p1
@@ -19,7 +20,7 @@ sync: clone-xhyve apply-patch
 	cp -r vendor/xhyve/include include
 
 apply-patch:
-	-cd vendor/xhyve; patch -N -p1 < ../../xhyve.patch
+	-cd vendor/xhyve; patch --verbose -Nl -p1 -F4 < ../../xhyve.patch
 
 generate-patch: apply-patch
 	cd vendor/xhyve; git diff > ../../xhyve.patch

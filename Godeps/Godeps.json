@@ -9,7 +9,7 @@
 		},
 		{
 			"ImportPath": "github.com/TheNewNormal/libxhyve",
-			"Rev": "486e219b5b9b59f8304fa38c721a5aca8f023286"
+			"Rev": "1c08a02325add1d16650e0bc01480a6fc30ecd0c"
 		},
 		{
 			"ImportPath": "github.com/blang/semver",
@@ -33,7 +33,7 @@
 		},
 		{
 			"ImportPath": "github.com/google/go-github/github",
-			"Rev": "a68a8707f3c18a3a47bb0975ca29a9239792dc01"
+			"Rev": "7ec4e45f77474b3a7b7d9b7ef233a0cc8339ddf3"
 		},
 		{
 			"ImportPath": "github.com/google/go-querystring/query",
@@ -84,7 +84,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "0f866a6211e33cde2091d9290c08f6afd6c9ebbc"
+			"Rev": "f368244301305f414206f889b1735a54cfc8bde8"
 		},
 		{
 			"ImportPath": "github.com/spf13/jwalterweatherman",
@@ -104,27 +104,27 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
+			"Rev": "b6789ab629056511030d652d851e7dc10c9e9c9e"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
-			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
+			"Rev": "b6789ab629056511030d652d851e7dc10c9e9c9e"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ed25519",
-			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
+			"Rev": "b6789ab629056511030d652d851e7dc10c9e9c9e"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
+			"Rev": "b6789ab629056511030d652d851e7dc10c9e9c9e"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh",
-			"Rev": "1e61df8d9ea476e2e1504cd9a32b40280c7c6c7e"
+			"Rev": "b6789ab629056511030d652d851e7dc10c9e9c9e"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "e82cb4d7dffc35bcec7bc8bf9e402377e0ecf3f4"
+			"Rev": "d4feaf1a7e61e1d9e79e6c4e76c6349e9cab0a03"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
