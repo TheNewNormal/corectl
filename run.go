@@ -321,17 +321,20 @@ func nfsSetup() (err error) {
 	var (
 		buf, bufN []byte
 		shared    bool
-		oldSig    = "/Users -network 192.168.64.0 " +
+		oldSigA   = "/Users -network 192.168.64.0 " +
 			"-mask 255.255.255.0 -alldirs -mapall="
+		oldSigB = fmt.Sprintf("%v -network %v -mask %v -alldirs -mapall=",
+			engine.homedir, engine.network, engine.netmask)
 		signature = fmt.Sprintf("%v -network %v -mask %v -alldirs "+
-			"-mapall=%v:%v", engine.homedir, engine.network, engine.netmask,
-			engine.uid, engine.gid)
+			"-maproot=root:wheel", engine.homedir,
+			engine.network, engine.netmask)
 		exportSet = func() (ok bool) {
 			for _, line := range strings.Split(string(buf), "\n") {
 				if strings.HasPrefix(line, signature) {
 					ok = true
 				}
-				if !strings.HasPrefix(line, oldSig) {
+				if !strings.HasPrefix(line, oldSigA) &&
+					!strings.HasPrefix(line, oldSigB) {
 					bufN = append(bufN, []byte(line+"\n")...)
 				} else {
 					bufN = append(bufN, []byte("\n")...)
