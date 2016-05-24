@@ -1,31 +1,33 @@
 include xhyve.mk
 
 build:
-	go build -o xhyve cmd/xhyve/main.go
+	go build -o blob cmd/xhyve/main.go
 
 clone-xhyve:
-	#-git clone https://github.com/xhyve-xyz/xhyve.git vendor/xhyve
-	-git clone https://github.com/docker/hyperkit.git vendor/xhyve
+	-git clone https://github.com/docker/hyperkit.git hyperkit
 	# cherry-picked from https://github.com/mist64/xhyve/pull/81
 	# Fix non-deterministic delays when accessing a vcpu in "running" or "sleeping" state.
-	-cd vendor/xhyve; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/81.patch | patch -N -p1
+	-cd hyperkit; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/81.patch | patch -N -p1
 	# experimental support for raw devices - https://github.com/mist64/xhyve/pull/80
-	-cd vendor/xhyve; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/80.patch | patch -N -p1
+	-cd hyperkit; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/80.patch | patch -N -p1
 
-sync: clone-xhyve apply-patch
+sync: clean clone-xhyve apply-patch
 	find . \( -name \*.orig -o -name \*.rej \) -delete
 	for file in $(SRC); do \
 		cp -f $$file $$(basename $$file) ; \
+		rm -rf $$file ; \
 	done
-	cp -r vendor/xhyve/include include
+	cp -r hyperkit/include include
+	cp hyperkit/README.md README.hyperkit.md
+	cp hyperkit/README.xhyve.md .
 
 apply-patch:
-	-cd vendor/xhyve; patch --verbose -Nl -p1 -F4 < ../../xhyve.patch
+	-cd hyperkit; patch -Nl -p1 -F4 < ../xhyve.patch
 
 generate-patch: apply-patch
-	cd vendor/xhyve; git diff > ../../xhyve.patch
+	cd hyperkit; git diff > ../xhyve.patch
 
 clean:
-	rm -rf *.c vendor include
+	rm -rf *.c hyperkit blob include
 
 .PHONY: build clone-xhyve sync apply-patch generate-patch clean

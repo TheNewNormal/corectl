@@ -1,4 +1,4 @@
-cmd/
-vendor/
-xhyve
-!include/*
+cmd/xhyve/images
+blob
+hyperkit/
+

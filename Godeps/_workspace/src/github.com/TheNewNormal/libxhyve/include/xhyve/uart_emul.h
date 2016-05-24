@@ -41,4 +41,4 @@ uint8_t uart_read(struct uart_softc *sc, int offset);
 void uart_write(struct uart_softc *sc, int offset, uint8_t value);
 int uart_set_backend(struct uart_softc *sc, const char *backend, const char *devname);
 
-extern void go_set_pty_name(char *name);
+extern void goSetPtyName(char *name);

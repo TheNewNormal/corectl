@@ -19,7 +19,7 @@ index a4851a1..0cf1b3c 100644
  void uart_write(struct uart_softc *sc, int offset, uint8_t value);
  int uart_set_backend(struct uart_softc *sc, const char *backend, const char *devname);
 +
-+extern void go_set_pty_name(char *name);
++extern void goSetPtyName(char *name);
 diff --git a/include/xhyve/xhyve.h b/include/xhyve/xhyve.h
 index 5464b2e..ac7f526 100644
 --- a/include/xhyve/xhyve.h
@@ -45,7 +45,7 @@ index 5464b2e..ac7f526 100644
  int fbsdrun_vmexit_on_pause(void);
  int fbsdrun_virtio_msix(void);
 +int run_xhyve(int argc, char *argv[]);
-+extern void go_callback_exit(int status);
++extern void goCallbackExit(int status);
 diff --git a/src/mevent.c b/src/mevent.c
 index 34a7d0e..977abcb 100644
 --- a/src/mevent.c
@@ -155,7 +155,7 @@ index d185f74..a8dcd7e 100644
  			}
 
 +            // Sends to Go land the device path name for the slave pseudo-terminal.
-+            go_set_pty_name(ptyname);
++            goSetPtyName(ptyname);
 +
  			sc->tty.fd = ptyfd;
  			sc->tty.name = ptyname;
@@ -195,24 +195,24 @@ index aaee5fb..7bc6e89 100644
  	switch ((int) (how)) {
  	case VM_SUSPEND_RESET:
 -		exit(0);
-+		go_callback_exit(0);
++		goCallbackExit(0);
 +		return 0;
  	case VM_SUSPEND_POWEROFF:
 -		exit(1);
-+		go_callback_exit(1);
++		goCallbackExit(1);
 +		return 1;
  	case VM_SUSPEND_HALT:
 -		exit(2);
-+		go_callback_exit(2);
++		goCallbackExit(2);
 +		return 2;
  	case VM_SUSPEND_TRIPLEFAULT:
 -		exit(3);
-+		go_callback_exit(3);
++		goCallbackExit(3);
 +		return 3;
  	default:
  		fprintf(stderr, "vmexit_suspend: invalid reason %d\n", how);
 -		exit(100);
-+		go_callback_exit(100);
++		goCallbackExit(100);
 +		return 100;
  	}
  }
@@ -261,3 +261,18 @@ index aaee5fb..7bc6e89 100644
 -	exit(1);
 +	return error;
  }
+diff --git a/src/pci_virtio_net_vpnkit.c b/src/pci_virtio_net_vpnkit.c
+index 2e3f18a..519931e 100644
+--- a/src/pci_virtio_net_vpnkit.c
++++ b/src/pci_virtio_net_vpnkit.c
+@@ -300,8 +300,8 @@ static int vpnkit_connect(int fd, const char uuid[36], struct vif_info *vif)
+ 	};
+
+ 	/* msg.commit is not NULL terminated */
+-	assert(sizeof(VERSION_SHA1) == sizeof(init_msg.commit) + 1);
+-	memcpy(&init_msg.commit, VERSION_SHA1, sizeof(init_msg.commit));
++	assert(sizeof("VERSION_SHA1") == sizeof(init_msg.commit) + 1);
++	memcpy(&init_msg.commit, "VERSION_SHA1", sizeof(init_msg.commit));
+
+ 	if (really_write(fd, (uint8_t *)&init_msg, sizeof(init_msg)) < 0) {
+ 		fprintf(stderr, "virtio-net-vpnkit: failed to write init msg\n");

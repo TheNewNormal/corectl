@@ -17,7 +17,7 @@ package main
 
 import (
 	"os"
-	"github.com/hooklift/xhyve"
+	"github.com/TheNewNormal/libxhyve"
 )
 
 func main() {

@@ -32,12 +32,12 @@ func setTermios(state syscall.Termios) {
 	syscall.Syscall6(syscall.SYS_IOCTL, uintptr(0), uintptr(syscall.TIOCSETA), uintptr(unsafe.Pointer(&state)), 0, 0, 0)
 }
 
-// go_callback_exit gets invoked from within xhyve.c whenever a trap
+// goCallbackExit gets invoked from within xhyve.c whenever a trap
 // suspending the VM is triggered. This is so we can clean up resources
 // in Go land, restore terminal settings and allow the goroutine to be scheduled
 // on multiple OS threads again by Go's scheduler.
-//export go_callback_exit
-func go_callback_exit(status C.int) {
+//export goCallbackExit
+func goCallbackExit(status C.int) {
 	exitStatus := map[int]string{
 		0:   "Reset",
 		1:   "PowerOFF",
@@ -69,10 +69,10 @@ func go_callback_exit(status C.int) {
 	runtime.UnlockOSThread()
 }
 
-// go_set_pty_name is called by xhyve whenever a master/slave pseudo-terminal is setup in
+// goSetPtyName is called by xhyve whenever a master/slave pseudo-terminal is setup in
 // COM1 or COM2.
-//export go_set_pty_name
-func go_set_pty_name(name *C.char) {
+//export goSetPtyName
+func goSetPtyName(name *C.char) {
 	if newPty == nil {
 		return
 	}

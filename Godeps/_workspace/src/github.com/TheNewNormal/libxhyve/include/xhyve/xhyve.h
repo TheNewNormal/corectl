@@ -82,4 +82,4 @@ int fbsdrun_vmexit_on_hlt(void);
 int fbsdrun_vmexit_on_pause(void);
 int fbsdrun_virtio_msix(void);
 int run_xhyve(int argc, char *argv[]);
-extern void go_callback_exit(int status);
+extern void goCallbackExit(int status);
