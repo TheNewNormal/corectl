@@ -112,7 +112,7 @@ For example, "--debug" => "COREOS_DEBUG"
   > `❯❯❯ brew install e2fsprogs`
 
   ```
-  ❯❯❯ /usr/local/Cellar/e2fsprogs/1.42.12/sbin/mke2fs  -t ext4 -m0 -F var_lib_docker.img
+  ❯❯❯ /usr/local/Cellar/e2fsprogs/1.42.12/sbin/mke2fs -b 1024 -i 1024 -t ext4 -m0 -F var_lib_docker.img
   ```
 
 - *label* it
