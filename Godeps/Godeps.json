@@ -9,7 +9,7 @@
 		},
 		{
 			"ImportPath": "github.com/TheNewNormal/libxhyve",
-			"Rev": "678e041370bc64881cf2c749f887ec45492d31d7"
+			"Rev": "908a0965697998a451fce7e3e96db4bb37a1833f"
 		},
 		{
 			"ImportPath": "github.com/blang/semver",
@@ -58,12 +58,12 @@
 		},
 		{
 			"ImportPath": "github.com/pkg/errors",
-			"Comment": "v0.5.1",
-			"Rev": "e8c21980b626a566acd580f91bc8f68921796ec5"
+			"Comment": "v0.5.1-2-g431554f",
+			"Rev": "431554f80b8ecf5058547f6c65b87fad81d90b03"
 		},
 		{
 			"ImportPath": "github.com/pkg/sftp",
-			"Rev": "dfb5f84e82365817319e43a24df2caab12ea0d10"
+			"Rev": "526cf9b2b38d2f3675e34e473f2cef38e1e0565b"
 		},
 		{
 			"ImportPath": "github.com/rakyll/pb",
@@ -71,8 +71,8 @@
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.4-31-g2004188",
-			"Rev": "2004188462c3946efefbdcd91aa83e49b4175bfb"
+			"Comment": "v1.4-33-g1d6b8e9",
+			"Rev": "1d6b8e9301e720b08a8938b8c25c018285885438"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
@@ -129,7 +129,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "d4feaf1a7e61e1d9e79e6c4e76c6349e9cab0a03"
+			"Rev": "076b546753157f758b316e59bcb51e6807c04057"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

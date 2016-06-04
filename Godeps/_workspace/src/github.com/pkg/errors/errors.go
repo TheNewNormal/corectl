@@ -102,34 +102,39 @@ func Errorf(format string, args ...interface{}) error {
 	}
 }
 
-// Wrap returns an error annotating the cause with message.
-// If cause is nil, Wrap returns nil.
-func Wrap(cause error, message string) error {
-	if cause == nil {
+// Wrap returns an error annotating err with message.
+// If err is nil, Wrap returns nil.
+func Wrap(err error, message string) error {
+	if err == nil {
 		return nil
 	}
-	return wrap(cause, message, callers())
-}
-
-// Wrapf returns an error annotating the cause with the format specifier.
-// If cause is nil, Wrapf returns nil.
-func Wrapf(cause error, format string, args ...interface{}) error {
-	if cause == nil {
-		return nil
-	}
-	return wrap(cause, fmt.Sprintf(format, args...), callers())
-}
-
-func wrap(err error, msg string, st *stack) error {
 	return struct {
 		cause
 		*stack
 	}{
 		cause{
 			cause:   err,
-			message: msg,
+			message: message,
 		},
-		st,
+		callers(),
+	}
+}
+
+// Wrapf returns an error annotating err with the format specifier.
+// If err is nil, Wrapf returns nil.
+func Wrapf(err error, format string, args ...interface{}) error {
+	if err == nil {
+		return nil
+	}
+	return struct {
+		cause
+		*stack
+	}{
+		cause{
+			cause:   err,
+			message: fmt.Sprintf(format, args...),
+		},
+		callers(),
 	}
 }
 
@@ -213,8 +218,6 @@ func location(pc uintptr) (string, int) {
 		return "unknown", 0
 	}
 
-	file, line := fn.FileLine(pc)
-
 	// Here we want to get the source file path relative to the compile time
 	// GOPATH. As of Go 1.6.x there is no direct way to know the compiled
 	// GOPATH at runtime, but we can infer the number of path segments in the
@@ -239,6 +242,7 @@ func location(pc uintptr) (string, int) {
 	// leading separator.
 	const sep = "/"
 	goal := strings.Count(fn.Name(), sep) + 2
+	file, line := fn.FileLine(pc)
 	i := len(file)
 	for n := 0; n < goal; n++ {
 		i = strings.LastIndex(file[:i], sep)
@@ -251,6 +255,5 @@ func location(pc uintptr) (string, int) {
 	}
 	// get back to 0 or trim the leading separator
 	file = file[i+len(sep):]
-
 	return file, line
 }
