@@ -44,6 +44,10 @@
 			"Rev": "9a905a34e6280ce905da1a32344b25e81011197a"
 		},
 		{
+			"ImportPath": "github.com/keybase/go-ps",
+			"Rev": "f5e5fd36a1028a67d0aa92f2700b284f881a656c"
+		},
+		{
 			"ImportPath": "github.com/kr/fs",
 			"Rev": "2788f0dbd16903de03cb8186e5c7d97b69ad387b"
 		},
@@ -102,10 +106,6 @@
 		{
 			"ImportPath": "github.com/spf13/viper",
 			"Rev": "d8a428b8a30606e1d0b355d91edf282609ade1a6"
-		},
-		{
-			"ImportPath": "github.com/yeonsh/go-ps",
-			"Rev": "99fd3fcb7c94bcff669b6535f98645f9ba01d09b"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",

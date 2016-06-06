@@ -35,8 +35,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	// until github.com/mitchellh/go-ps consumes it
-	"github.com/yeonsh/go-ps"
+	// looks to be the new upstream
+	"github.com/keybase/go-ps"
 )
 
 var (

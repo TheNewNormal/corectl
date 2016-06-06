@@ -42,8 +42,8 @@ import (
 	"github.com/blang/semver"
 	"github.com/rakyll/pb"
 	"github.com/spf13/viper"
-	// until github.com/mitchellh/go-ps consumes it
-	"github.com/yeonsh/go-ps"
+	// looks to be the new upstream
+	"github.com/keybase/go-ps"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/clearsign"
 	"golang.org/x/crypto/ssh"
