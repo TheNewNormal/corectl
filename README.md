@@ -203,7 +203,7 @@ is now using `corectl` underneath.
   - [kube-solo-osx](https://github.com/TheNewNormal/kube-solo-osx) -
  **Kubernetes Solo Cluster for OS X**
   - [kube-cluster-osx](https://github.com/TheNewNormal/kube-cluster-osx) -
- **Multi node Kubernetes Cluster for OS X (work in progress)**
+ **Multi node Kubernetes Cluster for OS X**
 
 ## acknowledgements
 -  [Michael Steil](https://github.com/mist64) for releasing in the wild his
