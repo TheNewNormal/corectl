@@ -435,6 +435,7 @@ func (vm *VMInfo) assembleBootPayload() (cmd *exec.Cmd, err error) {
 		instr = []string{
 			"libxhyve_bug",
 			"-s", "0:0,hostbridge",
+			"-s", "5,virtio-rnd",
 			"-l", "com1,stdio",
 			"-s", "31,lpc",
 			"-U", vm.UUID,
