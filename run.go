@@ -442,6 +442,7 @@ func (vm *VMInfo) assembleBootPayload() (cmd *exec.Cmd, err error) {
 			"-m", fmt.Sprintf("%vM", vm.Memory),
 			"-c", fmt.Sprintf("%v", vm.Cpus),
 			"-A",
+			"-u",
 		}
 		endpoint string
 	)
