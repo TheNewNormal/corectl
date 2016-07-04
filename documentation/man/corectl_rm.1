@@ -5,37 +5,37 @@
 
 .SH NAME
 .PP
-corectl\-rm \- Removes one or more CoreOS images from local fs
+corectl\-rm \- Remove(s) CoreOS image(s) from the local filesystem
 
 
 .SH SYNOPSIS
 .PP
-\fBcorectl rm\fP [OPTIONS]
+\fBcorectl rm\fP
 
 
 .SH DESCRIPTION
 .PP
-Removes one or more CoreOS images from local fs
+Remove(s) CoreOS image(s) from the local filesystem
 
 
 .SH OPTIONS
 .PP
-\fB\-\-channel\fP="alpha"
+\fB\-c\fP, \fB\-\-channel\fP="alpha"
     CoreOS channel
 
 .PP
-\fB\-\-old\fP[=false]
-    removes outdated images
+\fB\-p\fP, \fB\-\-purge\fP[=false]
+    purges outdated images
 
 .PP
-\fB\-\-version\fP="latest"
+\fB\-v\fP, \fB\-\-version\fP="latest"
     CoreOS version
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
-\fB\-\-debug\fP[=false]
-    adds extra verbosity, and options, for debugging purposes and/or power users
+\fB\-d\fP, \fB\-\-debug\fP[=false]
+    adds additional verbosity, and options, directed at debugging purposes and power users
 
 
 .SH SEE ALSO

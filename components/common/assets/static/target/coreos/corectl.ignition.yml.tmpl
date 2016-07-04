@@ -1,0 +1,111 @@
+#cloud-config
+
+---
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+       - __vm.InternalSSHkey__
+storage:
+  files:
+  - path: /home/core/bin/find-ip4.sh
+    mode: 0755
+    filesystem: root
+    user:
+      id: 500
+    group:
+      id: 500
+    contents:
+      inline: |
+        #!/bin/sh
+        IFACE="${1}"
+        FILE="${2}"
+        VARIABLE="${3}"
+        while [ -z "${ip}" ]; do
+          ip=$(ip -4 -o addr show dev "${IFACE}" scope global | \
+            gawk '{split ($4, out, "/"); print out[1]}')
+          sleep .1
+        done
+        echo "${ip}"
+        sed -i -e "/^${VARIABLE}=/d" "${FILE}"
+        echo "${VARIABLE}=${ip}" >> "${FILE}"
+  - path: /etc/oem-release
+    mode: 0644
+    filesystem: root
+    user:
+      id: 0
+    group:
+      id: 0
+    contents:
+      inline: |
+        ID=corectl
+        VERSION_ID=__corectl.Version__
+        NAME="CoreOS over macOS made simple"
+        HOME_URL="https://github.com/TheNewNormal/corectl"
+        BUG_REPORT_URL="https://github.com/TheNewNormal/corectl/issues/"
+
+systemd:
+  units:
+  - name: update-engine.service
+    enable: false
+  - name: locksmithd.service
+    enable: false
+  - name: corectl-set-hostname.service
+    enable: true
+    contents: |
+      [Unit]
+      Description=Sets Hostname
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      StandardOutput=journal+console
+      ExecStart=/bin/bash -c "/usr/bin/hostnamectl set-hostname __vm.Name__ "
+      [Install]
+      WantedBy=basic.target
+  - name: phone-home.service
+    enable: true
+    contents: |
+      [Unit]
+      Description=Tell corectld that this machine is online.
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      StandardOutput=journal+console
+      ExecStart=/bin/bash -c "\
+        /home/core/bin/find-ip4.sh eth0 /etc/environment COREOS_PRIVATE_IPV4 &&\
+        /home/core/bin/find-ip4.sh eth0 /etc/environment COREOS_PUBLIC_IPV4 &&\
+        [[ $$(</proc/cmdline) =~ corectl.endpoint=([^\\ ]+) ]] && \
+        curl -Ls $${BASH_REMATCH[1]}/ping "
+      [Install]
+      WantedBy=network.target
+  - name: corectl-host-homedir-sharing.service
+    enable: true
+    contents: |
+      [Unit]
+      Description=Mounts host's caller homedir via NFS
+      ConditionKernelCommandLine=corectl.sharedhomedir=true
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/bin/bash -c " [[ $$(</proc/cmdline) =~ \
+        corectl.endpoint=([^\\ ]+) ]]; \
+        /usr/bin/coreos-cloudinit -from-url $${BASH_REMATCH[1]}/homedir "
+      [Install]
+      WantedBy=remote-fs.target
+  - name: outter-connectivity-check.service
+    enable: true
+    contents: |
+      [Unit]
+      Description=Check that VM actually has a path the the outter world
+      Requires=phone-home.service
+      After=phone-home.service
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      StandardOutput=journal+console
+      ExecStart=/bin/bash -c "curl -Ls \
+        https://raw.githubusercontent.com/TheNewNormal/corectl/golang/MAINTAINERS && \
+        [[ $$(</proc/cmdline) =~ corectl.endpoint=([^\\ ]+) ]] && \
+        curl -Ls $${BASH_REMATCH[1]}/NotIsolated "
+      [Install]
+      RequiredBy=phone-home.service

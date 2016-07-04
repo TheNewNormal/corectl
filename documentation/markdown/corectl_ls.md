@@ -1,11 +1,11 @@
 ## corectl ls
 
-Lists locally available CoreOS images
+Lists the CoreOS images available locally
 
 ### Synopsis
 
 
-Lists locally available CoreOS images
+Lists the CoreOS images available locally
 
 ```
 corectl ls
@@ -15,16 +15,16 @@ corectl ls
 
 ```
   -a, --all              browses all channels
-      --channel string   CoreOS channel (default "alpha")
+  -c, --channel string   CoreOS channel (default "alpha")
   -j, --json             outputs in JSON for easy 3rd party integration
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --debug   adds extra verbosity, and options, for debugging purposes and/or power users
+  -d, --debug   adds additional verbosity, and options, directed at debugging purposes and power users
 ```
 
 ### SEE ALSO
-* [corectl](corectl.md)	 - CoreOS over OSX made simple.
+* [corectl](corectl.md)	 - CoreOS over macOS made simple.
 

@@ -1,7 +1,8 @@
 .imdone
 .imdoneignore
+.vscode
+hyperkit
 imgs
 *.img
-coreos
-corectl
 tmp.*
+bin/

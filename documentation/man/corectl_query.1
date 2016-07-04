@@ -10,7 +10,7 @@ corectl\-query \- Display information about the running CoreOS instances
 
 .SH SYNOPSIS
 .PP
-\fBcorectl query\fP [OPTIONS]
+\fBcorectl query [VMids]\fP
 
 
 .SH DESCRIPTION
@@ -21,7 +21,7 @@ Display information about the running CoreOS instances
 .SH OPTIONS
 .PP
 \fB\-a\fP, \fB\-\-all\fP[=false]
-    display extended information about a running CoreOS instance
+    display a table with extended information about running CoreOS instances
 
 .PP
 \fB\-i\fP, \fB\-\-ip\fP[=false]
@@ -31,11 +31,31 @@ Display information about the running CoreOS instances
 \fB\-j\fP, \fB\-\-json\fP[=false]
     outputs in JSON for easy 3rd party integration
 
+.PP
+\fB\-l\fP, \fB\-\-log\fP[=false]
+    displays given instance boot logs location
+
+.PP
+\fB\-o\fP, \fB\-\-online\fP[=false]
+    tells if at boot time VM had connectivity to outter world
+
+.PP
+\fB\-t\fP, \fB\-\-tty\fP[=false]
+    displays given instance tty's location
+
+.PP
+\fB\-u\fP, \fB\-\-up\fP[=false]
+    tells if a given VM is up or not
+
+.PP
+\fB\-U\fP, \fB\-\-uuid\fP[=false]
+    returns VM's UUID
+
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
-\fB\-\-debug\fP[=false]
-    adds extra verbosity, and options, for debugging purposes and/or power users
+\fB\-d\fP, \fB\-\-debug\fP[=false]
+    adds additional verbosity, and options, directed at debugging purposes and power users
 
 
 .SH SEE ALSO

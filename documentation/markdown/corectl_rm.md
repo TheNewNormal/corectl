@@ -1,11 +1,11 @@
 ## corectl rm
 
-Removes one or more CoreOS images from local fs
+Remove(s) CoreOS image(s) from the local filesystem
 
 ### Synopsis
 
 
-Removes one or more CoreOS images from local fs
+Remove(s) CoreOS image(s) from the local filesystem
 
 ```
 corectl rm
@@ -14,17 +14,17 @@ corectl rm
 ### Options
 
 ```
-      --channel string   CoreOS channel (default "alpha")
-      --old              removes outdated images
-      --version string   CoreOS version (default "latest")
+  -c, --channel string   CoreOS channel (default "alpha")
+  -p, --purge            purges outdated images
+  -v, --version string   CoreOS version (default "latest")
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --debug   adds extra verbosity, and options, for debugging purposes and/or power users
+  -d, --debug   adds additional verbosity, and options, directed at debugging purposes and power users
 ```
 
 ### SEE ALSO
-* [corectl](corectl.md)	 - CoreOS over OSX made simple.
+* [corectl](corectl.md)	 - CoreOS over macOS made simple.
 

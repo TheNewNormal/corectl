@@ -10,7 +10,7 @@ corectl\-ssh \- Attach to or run commands inside a running CoreOS instance
 
 .SH SYNOPSIS
 .PP
-\fBcorectl ssh\fP [OPTIONS]
+\fBcorectl ssh VMid ["command1;..."]\fP
 
 
 .SH DESCRIPTION
@@ -20,8 +20,8 @@ Attach to or run commands inside a running CoreOS instance
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
-\fB\-\-debug\fP[=false]
-    adds extra verbosity, and options, for debugging purposes and/or power users
+\fB\-d\fP, \fB\-\-debug\fP[=false]
+    adds additional verbosity, and options, directed at debugging purposes and power users
 
 
 .SH EXAMPLE
