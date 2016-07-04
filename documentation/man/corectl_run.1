@@ -5,81 +5,81 @@
 
 .SH NAME
 .PP
-corectl\-run \- Starts a new CoreOS instance
+corectl\-run \- Boots a new CoreOS instance
 
 
 .SH SYNOPSIS
 .PP
-\fBcorectl run\fP [OPTIONS]
+\fBcorectl run\fP
 
 
 .SH DESCRIPTION
 .PP
-Starts a new CoreOS instance
+Boots a new CoreOS instance
 
 
 .SH OPTIONS
 .PP
-\fB\-\-cdrom\fP=""
-    append an CDROM (.iso) to VM
+\fB\-b\fP, \fB\-\-boot\fP=""
+    additional arguments to the kernel boot
 
 .PP
-\fB\-\-channel\fP="alpha"
-    CoreOS channel
+\fB\-c\fP, \fB\-\-channel\fP="alpha"
+    CoreOS channel stream
 
 .PP
-\fB\-\-cloud\_config\fP=""
-    cloud\-config file location (either a remote URL or a local path)
+\fB\-L\fP, \fB\-\-cloud\_config\fP=""
+    cloud\-config file location (either an URL or a local path)
 
 .PP
-\fB\-\-cpus\fP=1
-    VM's vCPUS
+\fB\-N\fP, \fB\-\-cpus\fP=1
+    VM number of virtual CPUs
 
 .PP
-\fB\-d\fP, \fB\-\-detached\fP[=false]
-    starts the VM in detached (background) mode
+\fB\-x\fP, \fB\-\-extra\fP=""
+    additional arguments to the hypervisor
 
 .PP
-\fB\-l\fP, \fB\-\-local\fP[=false]
-    consumes whatever image is \fB\fClatest\fR locally instead of looking online unless there's nothing available.
-
-.PP
-\fB\-\-memory\fP=1024
+\fB\-m\fP, \fB\-\-memory\fP=1024
     VM's RAM, in MB, per instance (1024 < memory < 8192)
 
 .PP
 \fB\-n\fP, \fB\-\-name\fP=""
-    names the VM. (if absent defaults to VM's UUID)
+    names the VM (default is VM's UUID)
 
 .PP
-\fB\-\-root\fP=""
+\fB\-o\fP, \fB\-\-offline\fP[=false]
+    doesn't go online to check for newer images than the locally available ones unless there is none available.
+
+.PP
+\fB\-r\fP, \fB\-\-root\fP=""
     append a (persistent) root volume to VM
 
 .PP
-\fB\-\-sshkey\fP=""
+\fB\-H\fP, \fB\-\-shared\-homedir\fP[=false]
+    mounts (via NFS) host's homedir inside VM
+
+.PP
+\fB\-k\fP, \fB\-\-sshkey\fP=""
     VM's default ssh key
 
 .PP
-\fB\-\-tap\fP=""
-    append tap interface to VM
-
-.PP
-\fB\-\-uuid\fP="random"
+\fB\-u\fP, \fB\-\-uuid\fP="random"
     VM's UUID
 
 .PP
-\fB\-\-version\fP="latest"
+\fB\-v\fP, \fB\-\-version\fP="latest"
     CoreOS version
 
 .PP
-\fB\-\-volume\fP=[]
+\fB\-p\fP, \fB\-\-volume\fP=[]
     append disk volumes to VM
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
-\fB\-\-debug\fP[=false]
-    adds extra verbosity, and options, for debugging purposes and/or power users
+\fB\-d\fP, \fB\-\-debug\fP[=false]
+    adds additional verbosity, and options, directed at debugging purposes and power users
 
 
 .SH SEE ALSO

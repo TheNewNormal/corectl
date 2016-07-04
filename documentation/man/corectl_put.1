@@ -10,7 +10,7 @@ corectl\-put \- copy file to inside VM
 
 .SH SYNOPSIS
 .PP
-\fBcorectl put\fP [OPTIONS]
+\fBcorectl put path/to/file VMid:/file/path/on/destination\fP
 
 
 .SH DESCRIPTION
@@ -20,8 +20,8 @@ copy file to inside VM
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
-\fB\-\-debug\fP[=false]
-    adds extra verbosity, and options, for debugging purposes and/or power users
+\fB\-d\fP, \fB\-\-debug\fP[=false]
+    adds additional verbosity, and options, directed at debugging purposes and power users
 
 
 .SH EXAMPLE

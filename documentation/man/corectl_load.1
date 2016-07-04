@@ -10,7 +10,7 @@ corectl\-load \- Loads CoreOS instances defined in an instrumentation file.
 
 .SH SYNOPSIS
 .PP
-\fBcorectl load\fP [OPTIONS]
+\fBcorectl load path/to/yourProfile\fP
 
 
 .SH DESCRIPTION
@@ -21,8 +21,8 @@ VMs are always launched by alphabetical order relative to their names.
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
-\fB\-\-debug\fP[=false]
-    adds extra verbosity, and options, for debugging purposes and/or power users
+\fB\-d\fP, \fB\-\-debug\fP[=false]
+    adds additional verbosity, and options, directed at debugging purposes and power users
 
 
 .SH EXAMPLE

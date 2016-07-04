@@ -10,7 +10,7 @@ corectl\-pull \- Pulls a CoreOS image from upstream
 
 .SH SYNOPSIS
 .PP
-\fBcorectl pull\fP [OPTIONS]
+\fBcorectl pull\fP
 
 
 .SH DESCRIPTION
@@ -20,26 +20,26 @@ Pulls a CoreOS image from upstream
 
 .SH OPTIONS
 .PP
-\fB\-\-channel\fP="alpha"
+\fB\-c\fP, \fB\-\-channel\fP="alpha"
     CoreOS channel
 
 .PP
 \fB\-f\fP, \fB\-\-force\fP[=false]
-    forces rebuild of local image, if already present
+    forces the rebuild of an image, if already local
 
 .PP
-\fB\-\-version\fP="latest"
+\fB\-v\fP, \fB\-\-version\fP="latest"
     CoreOS version
 
 .PP
 \fB\-w\fP, \fB\-\-warmup\fP[=false]
-    ensures that all channels are on their latest versions
+    ensures that all (populated) channels are on their latest versions
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS
 .PP
-\fB\-\-debug\fP[=false]
-    adds extra verbosity, and options, for debugging purposes and/or power users
+\fB\-d\fP, \fB\-\-debug\fP[=false]
+    adds additional verbosity, and options, directed at debugging purposes and power users
 
 
 .SH SEE ALSO

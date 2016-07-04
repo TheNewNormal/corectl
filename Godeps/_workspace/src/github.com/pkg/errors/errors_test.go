@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -57,13 +56,6 @@ type nilError struct{}
 
 func (nilError) Error() string { return "nil error" }
 
-type causeError struct {
-	cause error
-}
-
-func (e *causeError) Error() string { return "cause error" }
-func (e *causeError) Cause() error  { return e.cause }
-
 func TestCause(t *testing.T) {
 	x := New("error")
 	tests := []struct {
@@ -87,7 +79,7 @@ func TestCause(t *testing.T) {
 		want: io.EOF,
 	}, {
 		// caused error returns cause
-		err:  &causeError{cause: io.EOF},
+		err:  Wrap(io.EOF, "ignored"),
 		want: io.EOF,
 	}, {
 		err:  x, // return from errors.New
@@ -98,49 +90,6 @@ func TestCause(t *testing.T) {
 		got := Cause(tt.err)
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("test %d: got %#v, want %#v", i+1, got, tt.want)
-		}
-	}
-}
-
-func TestFprint(t *testing.T) {
-	x := New("error")
-	tests := []struct {
-		err  error
-		want string
-	}{{
-		// nil error is nil
-		err: nil,
-	}, {
-		// explicit nil error is nil
-		err: (error)(nil),
-	}, {
-		// uncaused error is unaffected
-		err:  io.EOF,
-		want: "EOF\n",
-	}, {
-		// caused error returns cause
-		err:  &causeError{cause: io.EOF},
-		want: "cause error\nEOF\n",
-	}, {
-		err:  x, // return from errors.New
-		want: "github.com/pkg/errors/errors_test.go:106: error\n",
-	}, {
-		err:  Wrap(x, "message"),
-		want: "github.com/pkg/errors/errors_test.go:128: message\ngithub.com/pkg/errors/errors_test.go:106: error\n",
-	}, {
-		err:  Wrap(Wrap(x, "message"), "another message"),
-		want: "github.com/pkg/errors/errors_test.go:131: another message\ngithub.com/pkg/errors/errors_test.go:131: message\ngithub.com/pkg/errors/errors_test.go:106: error\n",
-	}, {
-		err:  Wrapf(x, "message"),
-		want: "github.com/pkg/errors/errors_test.go:134: message\ngithub.com/pkg/errors/errors_test.go:106: error\n",
-	}}
-
-	for i, tt := range tests {
-		var w bytes.Buffer
-		Fprint(&w, tt.err)
-		got := w.String()
-		if got != tt.want {
-			t.Errorf("test %d: Fprint(w, %q): got %q, want %q", i+1, tt.err, got, tt.want)
 		}
 	}
 }
@@ -184,60 +133,6 @@ func TestErrorf(t *testing.T) {
 		got := tt.err.Error()
 		if got != tt.want {
 			t.Errorf("Errorf(%v): got: %q, want %q", tt.err, got, tt.want)
-		}
-	}
-}
-
-func TestStack(t *testing.T) {
-	type fileline struct {
-		file string
-		line int
-	}
-	tests := []struct {
-		err  error
-		want []fileline
-	}{{
-		New("ooh"), []fileline{
-			{"github.com/pkg/errors/errors_test.go", 200},
-		},
-	}, {
-		Wrap(New("ooh"), "ahh"), []fileline{
-			{"github.com/pkg/errors/errors_test.go", 204}, // this is the stack of Wrap, not New
-		},
-	}, {
-		Cause(Wrap(New("ooh"), "ahh")), []fileline{
-			{"github.com/pkg/errors/errors_test.go", 208}, // this is the stack of New
-		},
-	}, {
-		func() error { return New("ooh") }(), []fileline{
-			{"github.com/pkg/errors/errors_test.go", 212}, // this is the stack of New
-			{"github.com/pkg/errors/errors_test.go", 212}, // this is the stack of New's caller
-		},
-	}, {
-		Cause(func() error {
-			return func() error {
-				return Errorf("hello %s", fmt.Sprintf("world"))
-			}()
-		}()), []fileline{
-			{"github.com/pkg/errors/errors_test.go", 219}, // this is the stack of Errorf
-			{"github.com/pkg/errors/errors_test.go", 220}, // this is the stack of Errorf's caller
-			{"github.com/pkg/errors/errors_test.go", 221}, // this is the stack of Errorf's caller's caller
-		},
-	}}
-	for _, tt := range tests {
-		x, ok := tt.err.(interface {
-			Stack() []uintptr
-		})
-		if !ok {
-			t.Errorf("expected %#v to implement Stack()", tt.err)
-			continue
-		}
-		st := x.Stack()
-		for i, want := range tt.want {
-			file, line := location(st[i] - 1)
-			if file != want.file || line != want.line {
-				t.Errorf("frame %d: expected %s:%d, got %s:%d", i, want.file, want.line, file, line)
-			}
 		}
 	}
 }
