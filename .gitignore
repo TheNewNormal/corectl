@@ -6,3 +6,4 @@ imgs
 *.img
 tmp.*
 bin/
+*.tar.gz

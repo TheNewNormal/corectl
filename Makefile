@@ -72,6 +72,12 @@ components/common/assets: force
 clean: components/common/assets
 	$(RM) $(BUILD_DIR)/*
 	$(RM) documentation/
+	$(RM) $(PROG)-$(VERSION).tar.gz
+
+tarball: $(PROG)-$(VERSION).tar.gz
+
+$(PROG)-$(VERSION).tar.gz: documentation hyperkit
+	cd bin; tar cvzf ../$@ *
 
 Godeps: force
 	$(RM) $@
