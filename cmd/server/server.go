@@ -73,15 +73,6 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 		if srv, err = server.Daemon.Running(); err != nil {
 			return err
 		}
-		if _, err = mack.AlertBox(mack.AlertOptions{
-			Title: fmt.Sprintf("corectld (%v) just started with Pid %v .",
-				srv.Version, srv.Pid),
-			Message:  "\n\n(this window will self destruct after 15s)",
-			Style:    "informational",
-			Duration: 15,
-			Buttons:  "OK"}); err != nil {
-			return
-		}
 		fmt.Println("Started corectld:")
 		srv.PrettyPrint(true)
 		return
