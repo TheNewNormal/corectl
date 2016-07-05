@@ -16,24 +16,26 @@
 package server
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"os"
 	"path"
 	"time"
 
-	"github.com/TheNewNormal/corectl/components/host/darwin/misc/uuid2ip"
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/release"
 	"github.com/blang/semver"
-	"github.com/helm/helm/log"
 	"github.com/gorilla/rpc"
 	"github.com/gorilla/rpc/json"
+	"github.com/helm/helm/log"
 	"github.com/satori/go.uuid"
 )
 
@@ -116,37 +118,71 @@ func (s *RPCservice) RemoveImage(r *http.Request,
 func (s *RPCservice) UUIDtoMACaddr(r *http.Request,
 	args *RPCquery, reply *RPCreply) (err error) {
 	var (
-		MAC            string
+		i              int
+		macAddr        string
+		stdout         io.ReadCloser
 		UUID, original = args.Input[0], args.Input[1]
 	)
-	log.Debug("vm:uuid2mac")
+	log.Debug("vm:uuid2mac (%v:%v)", args.Input[0], args.Input[1])
 
 	// handles UUIDs
 	if _, found := Daemon.Active[UUID]; found {
-		err = fmt.Errorf("Aborted: Another VM is "+
-			"already running with the exact same UUID (%s)", UUID)
+		err = fmt.Errorf("Aborted: Another VM is already running with the "+
+			"exact same UUID [%s]", UUID)
 	} else {
-		for {
-			// we keep the loop just in case as the check
-			// above is supposed to avoid most failures...
-			// XXX
-			if MAC, err =
-				uuid2ip.GuestMACfromUUID(UUID); err == nil {
-				// var ip string
-				// if ip, err = uuid2ip.GuestIPfromMAC(MAC); err == nil {
-				// 	log.Info("GUEST IP will be %v", ip)
-				break
-				// }
+		for i < 3 {
+			//
+			// we just can't call uuid2ip.GuestMACfromUUID(UUID) directly here.
+			//
+			// according to https://developer.apple.com/library/mac/documentation/DriversKernelHardware/Reference/vmnet/
+			// one "can create a maximum of 32 interfaces with a limit of
+			// 4 per guest operating system" which in practice means that a
+			// given Pid/corectld instance in aggregate can't create more than
+			// 128 VMs (interfaces).
+			// by doing the lookup as an external process that we "unrelate"
+			// from its parent we get around this limitation and so each
+			// corectld session stops having an 2ˆ7 upper bound on the number
+			//  the VMs it can create over its lifetime
+			//
+			cmd := exec.Command(session.Executable(), "uuid2mac", UUID)
+			cmd.SysProcAttr = &syscall.SysProcAttr{
+				Setpgid: true,
+				Setsid:  false,
+				Pgid:    0,
 			}
-			fmt.Println("=>", original, err)
+			if stdout, err = cmd.StdoutPipe(); err != nil {
+				break
+			}
+			rd := bufio.NewReader(stdout)
+			if err = cmd.Start(); err != nil {
+				break
+			}
+			macAddr, _ = rd.ReadString('\n')
+			macAddr = strings.TrimSuffix(macAddr, "\n")
+			if err = cmd.Wait(); err == nil {
+				if len(macAddr) > 0 {
+					if _, found := Daemon.Active[UUID]; !found {
+						// unlikely statistically but ...
+						break
+					}
+				}
+			}
+			log.Debug("=> %v:%v [%v]", original, err, i)
 			if original != "random" {
 				log.Warn("unable to guess the MAC Address from the provided "+
 					"UUID (%s). Using a randomly generated one\n", original)
 			}
 			UUID = uuid.NewV4().String()
+			i += 1
+		}
+		if i == 3 && err != nil {
+			err = fmt.Errorf("Something went very wrong, as we're unable to " +
+				"generate a MAC address from the provided UUID. Please fill " +
+				"a bug at https://github.com/TheNewNormal/corectl/issues with " +
+				"this error and wait there for our feedback...")
 		}
 	}
-	reply.Output = []string{MAC, strings.ToUpper(UUID)}
+	reply.Output = []string{macAddr, strings.ToUpper(UUID)}
 	return
 }
 

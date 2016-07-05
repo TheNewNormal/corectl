@@ -47,6 +47,8 @@ func init() {
 						return
 					}
 					session.Caller.User = usr
+				} else if cmd.Name() == "uuid2mac" {
+					return
 				} else {
 					return fmt.Errorf("too many privileges invoking corectl. " +
 						"running directly as root, or via 'sudo', only " +
