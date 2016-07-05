@@ -44,7 +44,7 @@ GO_LDFLAGS := $(GO_LDFLAGS) \
 default: documentation
 
 documentation: documentation/man documentation/markdown
-	$(GIT) status
+	-$(GIT) status
 
 all: clean Godeps hyperkit documentation
 
@@ -91,7 +91,7 @@ Godeps: force
 	$(CP) components/common/assets/assets.go.bak \
 		components/common/assets/assets.go
 	$(RM) components/common/assets/assets.go.bak
-	$(GIT) status
+	-$(GIT) status
 
 hyperkit: force
 	# - ocaml stack
