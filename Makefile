@@ -6,7 +6,7 @@ REPOSITORY = $(ORGANIZATION)/$(PROG)
 GOARCH ?= $(shell go env GOARCH)
 GOOS ?= $(shell go env GOOS)
 CGO_ENABLED = 1
-GO15VENDOREXPERIMENT = 0
+GO15VENDOREXPERIMENT = 1
 
 BUILD_DIR ?= $(shell pwd)/bin
 GOPATH := $(shell echo $(PWD) | \
@@ -81,6 +81,7 @@ $(PROG)-$(VERSION).tar.gz: documentation hyperkit
 
 Godeps: force
 	$(RM) $@
+	$(RM) vendor/
 	# XXX godep won't save this as a build dep run a runtime one so we cheat...
 	$(SED) -i.bak \
 		-e s"|github.com/helm/helm/log|github.com/shurcooL/vfsgen|" \
