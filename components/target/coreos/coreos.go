@@ -21,7 +21,7 @@ import (
 	"github.com/TheNewNormal/corectl/components/common/assets"
 )
 
-const latestImageBreackage = "2016-06-25T00:00:00WET"
+const latestImageBreackage = "2016-07-06T00:00:00WET"
 
 func LatestImageBreackage() (t time.Time) {
 	t, _ = time.Parse("2006-01-02T15:04:05MST", latestImageBreackage)
