@@ -66,7 +66,7 @@ unpack its' contents placing them somewhere in some directory in your
 In your terminal you will shortly after something along...
 
   ```
-  ❯❯❯  corectl run                                                                                                                                                                                                     ⏎ v0.7.x ✭ ✚ ✱
+  ❯❯❯  corectl run
   ---> 'B4AF19D1-DDEE-4A16-8058-1A7C3579F203' started successfuly with address 192.168.64.210 and PID 76202
   ---> 'B4AF19D1-DDEE-4A16-8058-1A7C3579F203' boot logs can be found at '/Users/am/.coreos/running/B4AF19D1-DDEE-4A16-8058-1A7C3579F203/log'
   ---> 'B4AF19D1-DDEE-4A16-8058-1A7C3579F203' console can be found at '/Users/am/.coreos/running/B4AF19D1-DDEE-4A16-8058-1A7C3579F203/tty'
@@ -190,37 +190,37 @@ Accessing the newly craeted CoreOS instance is just a few more clicks away...
   ```
   ❯❯❯ corectl ps
   Server:
-    Version:	0.7.0
-    Go Version:	go1.6.2
-    Built:		Mon Jul 04 10:05:51 WEST 2016
-    OS/Arch:	darwin/amd64
+    Version:      0.7.0
+    Go Version:   go1.6.2
+    Built:        Mon Jul 04 10:05:51 WEST 2016
+    OS/Arch:      darwin/amd64
 
-    Pid:		76155
-    Uptime:	37 minutes ago
+    Pid:          76155
+    Uptime:       37 minutes ago
 
   Activity:
-  Active VMs:	1
-  Total Memory:	2048
-  Total vCores:	2
+  Active VMs:     1
+  Total Memory:   2048
+  Total vCores:   2
 
-  UUID:		A163767A-78DC-41F9-AA66-E57B6C6CAB1A
-    Name:		containerland
-    Version:	1097.0.0
-    Channel:	alpha
-    vCPUs:	3
-    Memory (MB):	2048
-    Pid:		76807
-    Uptime:	25 minutes ago
-    Sees World:	true
-    cloud-config:	/Users/am/code/corectl/src/github.com/TheNewNormal/corectl/examples/cloud-init/docker-only-with-persistent-storage.txt
+  UUID:           A163767A-78DC-41F9-AA66-E57B6C6CAB1A
+    Name:         containerland
+    Version:      1097.0.0
+    Channel:      alpha
+    vCPUs:        3
+    Memory (MB):  2048
+    Pid:          76807
+    Uptime:       25 minutes ago
+    Sees World:   true
+    cloud-config: /Users/am/code/corectl/src/github.com/TheNewNormal/corectl/examples/cloud-init/docker-only-with-persistent-storage.txt
     Network:
-      eth0:	192.168.64.2
+      eth0:       192.168.64.2
     Volumes:
-    /dev/vda	/Users/am/code/corectl/persistentData/var_lib_docker.img
+    /dev/vda      /Users/am/code/corectl/persistentData/var_lib_docker.img
   ```
 
   ```
-  ❯❯❯ docker -H 192.168.64.220:2375 images -a
+  ❯❯❯ docker -H $(corectl q containerland --ip):2375 images -a
   REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
   centos              latest              05188b417f30        2 days ago          196.8 MB
   busybox             latest              2b8fd9751c4c        10 days ago         1.093 MB
