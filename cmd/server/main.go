@@ -18,6 +18,7 @@ package main
 import (
 	"fmt"
 	"os/user"
+	"strings"
 
 	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"
@@ -55,7 +56,14 @@ func init() {
 						"tolerated with 'corectld server start'")
 				}
 			}
-			return session.Caller.NormalizeOnDiskLayout()
+			if !(strings.HasPrefix(cmd.Name(), "genM") ||
+				cmd.Name() == "version") {
+				if err = session.Caller.SetNetworkContext(); err != nil {
+					return
+				}
+				err = session.Caller.NormalizeOnDiskLayout()
+			}
+			return
 		}
 	common.InitTmpl(rootCmd)
 }

@@ -86,14 +86,12 @@ func versionCommand(cmd *cobra.Command, args []string) {
 		err             error
 	)
 	if session.AppName() != "corectld" {
-		if srv, err := server.Daemon.Running(); err != nil {
-			fmt.Printf("\nServer:\n Not running\n")
-		} else {
+		if srv, err := server.Daemon.Running(); err == nil {
 			fmt.Println("\nServer:")
 			srv.PrettyPrint(false)
 			fmt.Println("\nClient:")
-			session.Caller.Meta.PrettyPrint(false)
 		}
+		session.Caller.Meta.PrettyPrint(false)
 	} else {
 		session.Caller.Meta.PrettyPrint(false)
 	}
@@ -136,7 +134,6 @@ func STARTup(r *cobra.Command) (err error) {
 		session.Caller.ServerAddress =
 			session.Caller.CmdLine.GetString("server") + ":2511"
 	}
-
 	return r.Execute()
 }
 

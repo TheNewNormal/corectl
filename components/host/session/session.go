@@ -65,10 +65,6 @@ func New() (ctx *Context, err error) {
 		usr                 *user.User
 		isSuperUser         bool
 		netMask, netAddress []byte
-		cmdL                = []string{
-			"defaults", "read",
-			"/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist",
-		}
 	)
 
 	// viper & cobra
@@ -81,20 +77,6 @@ func New() (ctx *Context, err error) {
 		usr = nil
 		isSuperUser = true
 	} else if usr, err = user.Current(); err != nil {
-		return
-	}
-
-	if netAddress, err = exec.Command(cmdL[0],
-		append(cmdL[1:], "Shared_Net_Address")...).Output(); err != nil {
-		log.Warn("%v \"%v %v %v\" %v",
-			"unable to run", cmdL[0], cmdL[1], cmdL[2], "Shared_Net_Address")
-		return
-	}
-
-	if netMask, err = exec.Command(cmdL[0],
-		append(cmdL[1:], "Shared_Net_Mask")...).Output(); err != nil {
-		log.Warn("%v \"%v %v %v\" %v",
-			"unable to run", cmdL[0], cmdL[1], cmdL[2], "Shared_Net_Mask")
 		return
 	}
 
@@ -188,6 +170,31 @@ func (ctx *Context) NormalizeOnDiskLayout() (err error) {
 	return filepath.Walk(ctx.ConfigDir(), do)
 }
 
+func (ctx *Context) SetNetworkContext() (err error) {
+	var (
+		netMask, netAddress []byte
+		cmdL                = []string{
+			"defaults", "read",
+			"/Library/Preferences/SystemConfiguration/com.apple.vmnet.plist",
+		}
+	)
+	if netAddress, err = exec.Command(cmdL[0],
+		append(cmdL[1:], "Shared_Net_Address")...).Output(); err != nil {
+		log.Warn("%v \"%v %v %v\" %v",
+			"unable to run", cmdL[0], cmdL[1], cmdL[2], "Shared_Net_Address")
+		return
+	}
+
+	if netMask, err = exec.Command(cmdL[0],
+		append(cmdL[1:], "Shared_Net_Mask")...).Output(); err != nil {
+		log.Warn("%v \"%v %v %v\" %v",
+			"unable to run", cmdL[0], cmdL[1], cmdL[2], "Shared_Net_Mask")
+		return
+	}
+	ctx.Network.Address = strings.TrimSpace(string(netAddress))
+	ctx.Network.Mask = strings.TrimSpace(string(netMask))
+	return
+}
 func Executable() string {
 	s, _ := osext.Executable()
 	return s
