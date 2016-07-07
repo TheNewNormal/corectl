@@ -39,13 +39,13 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/go-systemd/unit",
-			"Comment": "v10",
-			"Rev": "b32b8467dbea18858bfebf65c1a6a761090f2c31"
+			"Comment": "v10-7-g4fdcc47",
+			"Rev": "4fdcc47482107227bd1ed258e5b7bfbc82c9512a"
 		},
 		{
 			"ImportPath": "github.com/coreos/ignition/config/types",
-			"Comment": "v0.7.0-11-gb685083",
-			"Rev": "b6850837b3b9bd17b673e58b5c406b5e4192ddca"
+			"Comment": "v0.7.0-18-g3958d34",
+			"Rev": "3958d34e4afd48b532d6237d60083d83630ccfca"
 		},
 		{
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
@@ -81,7 +81,7 @@
 		},
 		{
 			"ImportPath": "github.com/google/go-github/github",
-			"Rev": "92234e567776832de23193278353150f1d9605a5"
+			"Rev": "07a1059646109986eb08a3f57126f59e1d19f049"
 		},
 		{
 			"ImportPath": "github.com/google/go-querystring/query",
@@ -120,8 +120,8 @@
 		},
 		{
 			"ImportPath": "github.com/magiconair/properties",
-			"Comment": "v1.7.0",
-			"Rev": "c265cfa48dda6474e208715ca93e987829f572f8"
+			"Comment": "v1.7.0-1-ge2f061e",
+			"Rev": "e2f061ecfdaca9f35b2e2c12346ffc526f138137"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
@@ -160,7 +160,7 @@
 		},
 		{
 			"ImportPath": "github.com/shurcooL/vfsgen",
-			"Rev": "a635f412327da74d30a9b81ee5bcf73856bc0947"
+			"Rev": "aa8e814d09e1087368beda89a83af9c924462f17"
 		},
 		{
 			"ImportPath": "github.com/spf13/cast",
@@ -188,31 +188,31 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "811831de4c4dd03a0b8737233af3b36852386373"
+			"Rev": "d81fdb778bf2c40a91b24519d60cdc5767318829"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
-			"Rev": "811831de4c4dd03a0b8737233af3b36852386373"
+			"Rev": "d81fdb778bf2c40a91b24519d60cdc5767318829"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ed25519",
-			"Rev": "811831de4c4dd03a0b8737233af3b36852386373"
+			"Rev": "d81fdb778bf2c40a91b24519d60cdc5767318829"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "811831de4c4dd03a0b8737233af3b36852386373"
+			"Rev": "d81fdb778bf2c40a91b24519d60cdc5767318829"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh",
-			"Rev": "811831de4c4dd03a0b8737233af3b36852386373"
+			"Rev": "d81fdb778bf2c40a91b24519d60cdc5767318829"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "62bee037599929a6e9146f29d10dd5208c43507d"
+			"Rev": "a408501be4d17ee978c04a618e7a1b22af058c0e"
 		},
 		{
 			"ImportPath": "golang.org/x/tools/godoc/vfs",
-			"Rev": "6c3528d5c186efa3a569b9bf311e3db54c825ff6"
+			"Rev": "527b253f588776e5f72a0a0d1e93195cd3f82707"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
