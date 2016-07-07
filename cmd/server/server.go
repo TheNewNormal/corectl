@@ -112,7 +112,5 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 func init() {
 	serverStartCmd.Flags().StringP("user", "u", "",
 		"sets the user that will 'own' the corectld instance")
-	serverStartCmd.Flags().BoolP("force", "f", false,
-		"rebuilds config drive iso even if a suitable one is already present")
 	rootCmd.AddCommand(shutdownCmd, statusCmd, serverStartCmd, uuidToMacCmd)
 }

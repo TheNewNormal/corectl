@@ -14,7 +14,6 @@ corectld start
 ### Options
 
 ```
-  -f, --force         rebuilds config drive iso even if a suitable one is already present
   -u, --user string   sets the user that will 'own' the corectld instance
 ```
 
