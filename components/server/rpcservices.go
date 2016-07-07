@@ -335,7 +335,7 @@ func RPCQuery(f string, args *RPCquery) (reply *RPCreply, err error) {
 	}
 	defer resp.Body.Close()
 	if err = json.DecodeClientResponse(resp.Body, &reply); err != nil {
-		err = fmt.Errorf("Couldn't decode response. %s", err)
+		err = fmt.Errorf("%s", err)
 	}
 	return
 }
