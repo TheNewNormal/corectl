@@ -109,7 +109,7 @@ func loadCommand(cmd *cobra.Command, args []string) (err error) {
 	for slot, name := range ordered {
 		var vm *server.VMInfo
 
-		fmt.Println("> booting", name, slot)
+		fmt.Printf("> booting %s (%v/%v)\n", name, slot+1, len(ordered))
 		if vm, err = vmBootstrap(vmDefs[name]); err != nil {
 			return
 		}
