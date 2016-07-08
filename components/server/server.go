@@ -106,10 +106,8 @@ func Start() (err error) {
 	}
 	Daemon.DataStore = client.NewKeysAPI(etcdc)
 
-	if _, err = Daemon.DataStore.Delete(context.Background(),
-		"/skydns", &client.DeleteOptions{Dir: true, Recursive: true}); err != nil {
-		return
-	}
+	Daemon.DataStore.Delete(context.Background(),
+		"/skydns", &client.DeleteOptions{Dir: true, Recursive: true})
 
 	dnsArgs := []string{"-nameservers=8.8.8.8:53,8.8.4.4:53",
 		"-domain=coreos.local",
