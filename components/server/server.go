@@ -172,6 +172,12 @@ func Start() (err error) {
 	Daemon.Unlock()
 	Daemon.Jobs.Wait()
 
+	if err = skydns.Process.Signal(syscall.SIGINT); err != nil {
+		log.Err(err.Error())
+	}
+	if err = etcd.Process.Signal(syscall.SIGINT); err != nil {
+		log.Err(err.Error())
+	}
 	log.Info("gone!")
 	return
 }
