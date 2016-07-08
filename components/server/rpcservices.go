@@ -26,6 +26,8 @@ import (
 	"strings"
 	"syscall"
 
+	"golang.org/x/net/context"
+
 	"os"
 	"path"
 	"time"
@@ -243,6 +245,10 @@ func (s *RPCservice) Run(r *http.Request,
 			vm.errCh <- err
 		}
 		vm.exec.Wait()
+		_, _ = Daemon.DataStore.Delete(context.Background(),
+			"/skydns/local/coreos/"+vm.Name, nil)
+		_, _ = Daemon.DataStore.Delete(context.Background(),
+			"/skydns/"+reverseDomain(vm.PublicIP), nil)
 		vm.deregister()
 		os.Remove(vm.TTY())
 		// give it time to flush logs
@@ -340,7 +346,7 @@ func RPCQuery(f string, args *RPCquery) (reply *RPCreply, err error) {
 	return
 }
 
-func (cfg *Config) Running() (i *release.Info, err error) {
+func (cfg *ServerContext) Running() (i *release.Info, err error) {
 	reply := &RPCreply{}
 	if reply, err = RPCQuery("Echo", &RPCquery{}); err != nil {
 		err = session.ErrServerUnreachable

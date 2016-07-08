@@ -38,6 +38,10 @@ func init() {
 				log.IsDebugging = true
 			}
 
+			if !session.Caller.Privileged && cmd.Name() == "uuid2mac" {
+				return fmt.Errorf("attempting a privileged operation without " +
+					"proper rights")
+			}
 			if session.Caller.Privileged {
 				if cmd.Name() == "start" {
 					var usr *user.User

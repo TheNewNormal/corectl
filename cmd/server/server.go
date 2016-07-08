@@ -106,11 +106,13 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 	}
 	server.Daemon = server.New()
 	server.Daemon.Active = make(map[string]*server.VMInfo)
+
 	return server.Start()
 }
 
 func init() {
 	serverStartCmd.Flags().StringP("user", "u", "",
 		"sets the user that will 'own' the corectld instance")
-	rootCmd.AddCommand(shutdownCmd, statusCmd, serverStartCmd, uuidToMacCmd)
+	rootCmd.AddCommand(shutdownCmd, statusCmd,
+		serverStartCmd, uuidToMacCmd)
 }

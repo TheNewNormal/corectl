@@ -20,7 +20,10 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"golang.org/x/net/context"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
@@ -88,12 +91,33 @@ func httpInstanceCloudConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func reverseDomain(ip string) string {
+	const IPv4prefix = "in-addr.arpa"
+	var d string
+	addr := net.ParseIP(ip)
+
+	ip4addr := addr.To4()
+	domain := make([]byte, 0, len(ip4addr)*4+len(IPv4prefix))
+	for x := len(ip4addr) - 1; x >= 0; x-- {
+		domain = strconv.AppendUint(domain, uint64(ip4addr[x]), 10)
+		domain = append(domain, '.')
+	}
+	domain = append(domain, IPv4prefix...)
+	y := strings.Split(string(domain), ".")
+	for x := len(y) - 1; x >= 0; x-- {
+		d += y[x] + "/"
+	}
+	d = strings.TrimSuffix(d, "/")
+	return string(d)
+}
+
 func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 	if acceptableRequest(r, w) {
 		vm := Daemon.Active[mux.Vars(r)["uuid"]]
 		mods := strings.NewReplacer(
 			"__vm.InternalSSHkey__", vm.InternalSSHkey,
 			"__vm.Name__", vm.Name,
+			"__vm.Gateway__", session.Caller.Network.Address,
 			"__corectl.Version__", Daemon.Meta.Version)
 		if cfgIn, err := config.ParseAsV2_0_0(
 			[]byte(mods.Replace(coreos.CoreOSIgnitionTmpl))); err != nil {
@@ -102,6 +126,14 @@ func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 			httpError(w, http.StatusInternalServerError)
 		} else {
 			w.Write([]byte(append(i, '\n')))
+			if !isLoopback(remoteIP(r.RemoteAddr)) {
+				_, _ = Daemon.DataStore.Set(context.Background(),
+					"/skydns/local/coreos/"+vm.Name,
+					"{\"host\":\""+remoteIP(r.RemoteAddr)+"\"}", nil)
+				_, _ = Daemon.DataStore.Set(context.Background(),
+					"/skydns/"+reverseDomain(remoteIP(r.RemoteAddr)),
+					"{\"host\":\""+vm.Name+".coreos.local\"}", nil)
+			}
 		}
 	}
 }
@@ -144,4 +176,3 @@ func httpInstanceCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-

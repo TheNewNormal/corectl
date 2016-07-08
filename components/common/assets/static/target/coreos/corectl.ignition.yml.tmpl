@@ -44,6 +44,19 @@ storage:
         HOME_URL="https://github.com/TheNewNormal/corectl"
         BUG_REPORT_URL="https://github.com/TheNewNormal/corectl/issues/"
 
+networkd:
+  units:
+  - name: 40-eth0.network
+    contents: |
+      [Match]
+        Name=eth0
+      [Network]
+        DHCP=yes
+        DNS=__vm.Gateway__
+        Domains=coreos.local
+      [DHCP]
+        UseDomains=true
+
 systemd:
   units:
   - name: update-engine.service

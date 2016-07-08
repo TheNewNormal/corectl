@@ -137,6 +137,11 @@ func (ctx *Context) TmpDir() string {
 	return path.Join(ctx.ConfigDir(), "/tmp/")
 }
 
+// EtcDir ...
+func (ctx *Context) EtcDir() string {
+	return path.Join(ctx.ConfigDir(), "/embedded.etcd/")
+}
+
 // NormalizeOnDiskLayout ...
 func (ctx *Context) NormalizeOnDiskLayout() (err error) {
 	// first run
@@ -147,7 +152,7 @@ func (ctx *Context) NormalizeOnDiskLayout() (err error) {
 			return
 		}
 	}
-	for _, i := range []string{ctx.RunDir(), ctx.TmpDir()} {
+	for _, i := range []string{ctx.RunDir(), ctx.TmpDir(), ctx.EtcDir()} {
 		if err = os.MkdirAll(i, 0644); err != nil {
 			return
 		}

@@ -348,6 +348,7 @@ func (vm *VMInfo) register() (err error) {
 	} else {
 		Daemon.Active[vm.UUID] = vm
 		log.Info("registered %s", str)
+
 	}
 	return
 }

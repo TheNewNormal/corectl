@@ -19,14 +19,20 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path"
 	"sync"
 	"syscall"
+	"time"
+
+	"golang.org/x/net/context"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/release"
 	"github.com/blang/semver"
 	"github.com/braintree/manners"
+	"github.com/coreos/etcd/client"
 	"github.com/helm/helm/log"
 )
 
@@ -35,8 +41,9 @@ type (
 	MediaAssets map[string]semver.Versions
 
 	// Config ...
-	Config struct {
+	ServerContext struct {
 		sync.Mutex
+		DataStore client.KeysAPI
 		Meta      *release.Info
 		Media     MediaAssets
 		Active    map[string]*VMInfo
@@ -45,11 +52,12 @@ type (
 	}
 )
 
-var Daemon *Config
+var Daemon *ServerContext
 
 // New ...
-func New() *Config {
-	return &Config{
+func New() (cfg *ServerContext) {
+	return &ServerContext{
+		DataStore: nil,
 		Meta:      session.Caller.Meta,
 		Media:     nil,
 		Active:    nil,
@@ -60,10 +68,62 @@ func New() *Config {
 
 // Start server...
 func Start() (err error) {
+	var (
+		hostname string
+		etcdc    client.Client
+	)
 	// var  closeVPNhooks func()
 	if !session.Caller.Privileged {
 		return fmt.Errorf("not enough previleges to start server. " +
 			"please use 'sudo'")
+	}
+
+	if hostname, err = os.Hostname(); err != nil {
+		return
+	}
+	etcd := exec.Command(path.Join(session.ExecutableFolder(), "corectld.store"),
+		"-data-dir="+session.Caller.EtcDir(),
+		"-name="+hostname,
+		"--listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001",
+		"--advertise-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001")
+	if log.IsDebugging {
+		etcd.Stdout = os.Stdout
+		etcd.Stderr = os.Stderr
+	}
+	etcd.Args[0] = "etcd"
+	log.Info("starting embedded etcd")
+	if err = etcd.Start(); err != nil {
+		return
+	}
+	etcdS := client.Config{
+		Endpoints: []string{"http://127.0.0.1:2379"},
+		Transport: client.DefaultTransport,
+		// set timeout per request to fail fast when the target endpoint is unavailable
+		HeaderTimeoutPerRequest: 500 * time.Millisecond,
+	}
+	if etcdc, err = client.New(etcdS); err != nil {
+		return
+	}
+	Daemon.DataStore = client.NewKeysAPI(etcdc)
+
+	if _, err = Daemon.DataStore.Delete(context.Background(),
+		"/skydns", &client.DeleteOptions{Dir: true, Recursive: true}); err != nil {
+		return
+	}
+
+	dnsArgs := []string{"-nameservers=8.8.8.8:53,8.8.4.4:53",
+		"-domain=coreos.local",
+		"-addr=0.0.0.0:53"}
+	if log.IsDebugging {
+		dnsArgs = append(dnsArgs, "-verbose")
+	}
+	skydns := exec.Command(path.
+		Join(session.ExecutableFolder(), "corectld.nameserver"),
+		dnsArgs...,
+	)
+	log.Info("starting embedded name server")
+	if err = skydns.Start(); err != nil {
+		return
 	}
 
 	log.Info("checking nfs host settings")
