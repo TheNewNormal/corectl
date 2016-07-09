@@ -39,32 +39,21 @@ echo ""
 
 for (( i=1; i<=${CLUSTER_SIZE}; i++ )); do
    ETCD_CLUSTER[$i]=${CLUSTER_PREFIX}-$i
-   ETCD_CLUSTER_UUID[$i]=$(/usr/bin/uuidgen)
-done
-for (( i=1; i<=${CLUSTER_SIZE}; i++ )); do
-   ../../bin/corectl run -m ${MEM}\
-		-n ${ETCD_CLUSTER[$i]} \
-			-u ${ETCD_CLUSTER_UUID[$i]}
-   ETCD_CLUSTER_IP[$i]=$(../../bin/corectl q -i ${ETCD_CLUSTER[$i]})
-   ETCD_CLUSTER_UUID[$i]=$(../../bin/corectl q -U ${ETCD_CLUSTER[$i]})
-   ../../bin/corectl halt ${ETCD_CLUSTER[$i]}
 done
 
 for (( i=1; i<=${CLUSTER_SIZE}; i++ )); do
 	ETCD_NODE_NAME=${ETCD_CLUSTER[$i]}
-	echo ${ETCD_NODE_NAME}
+	echo "booting ${ETCD_NODE_NAME}"
 	ETCD_INITIAL_CLUSTER=""
 	for (( j=1; j<=${CLUSTER_SIZE}; j++ ));	do
-		ETCD_INITIAL_CLUSTER=${ETCD_CLUSTER[$j]}=http://${ETCD_CLUSTER_IP[$j]}:2380,${ETCD_INITIAL_CLUSTER}
+		ETCD_INITIAL_CLUSTER=${ETCD_CLUSTER[$j]}=http://${ETCD_CLUSTER[$j]}:2380,${ETCD_INITIAL_CLUSTER}
 	done
 	ETCD_INITIAL_CLUSTER=$(echo ${ETCD_INITIAL_CLUSTER} | /usr/bin/sed -e "s#,\$##")
 	VM_CCONFIG=$(/usr/bin/mktemp)
 	/usr/bin/sed -e 's#__ETCD_NODE_NAME__#'"${ETCD_NODE_NAME}"'#g' \
 		-e 's#__ETCD_INITIAL_CLUSTER__#'"${ETCD_INITIAL_CLUSTER}"'#g' \
-		-e 's#__COREOS_PRIVATE_IPV4__#'"${ETCD_CLUSTER_IP[$i]}"'#g' \
 			etcd-cloud-config.yaml.tmpl > ${VM_CCONFIG}
-	 ../../bin/corectl run -m ${MEM} \
-	 	-n ${ETCD_CLUSTER[$i]} -u ${ETCD_CLUSTER_UUID[$i]} -L ${VM_CCONFIG}
+	../../bin/corectl run -m ${MEM} -n ${ETCD_CLUSTER[$i]} -L ${VM_CCONFIG}
 	rm -rf ${VM_CCONFIG}
 done
 sleep 2

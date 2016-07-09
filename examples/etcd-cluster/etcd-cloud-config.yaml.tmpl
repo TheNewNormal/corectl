@@ -7,10 +7,10 @@ coreos:
   etcd2:
     name: __ETCD_NODE_NAME__
     initial-cluster: __ETCD_INITIAL_CLUSTER__
-    advertise-client-urls: http://__COREOS_PRIVATE_IPV4__:2379
+    advertise-client-urls: http://__ETCD_NODE_NAME__:2379
     listen-client-urls: http://0.0.0.0:2379
-    initial-advertise-peer-urls: http://__COREOS_PRIVATE_IPV4__:2380
-    listen-peer-urls: http://__COREOS_PRIVATE_IPV4__:2380
+    initial-advertise-peer-urls: http://__ETCD_NODE_NAME__:2380
+    listen-peer-urls: http://__ETCD_NODE_NAME__:2380
 
   units:
 
