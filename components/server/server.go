@@ -68,46 +68,62 @@ func New() (cfg *ServerContext) {
 
 // Start server...
 func Start() (err error) {
-	var (
-		hostname string
-		etcdc    client.Client
-	)
+	var etcdc client.Client
+
 	// var  closeVPNhooks func()
 	if !session.Caller.Privileged {
 		return fmt.Errorf("not enough previleges to start server. " +
 			"please use 'sudo'")
 	}
 
-	if hostname, err = os.Hostname(); err != nil {
-		return
-	}
 	etcd := exec.Command(path.Join(session.ExecutableFolder(), "corectld.store"),
 		"-data-dir="+session.Caller.EtcDir(),
-		"-name="+hostname,
+		"-name=corectld.coreos.local",
 		"--listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001",
 		"--advertise-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001")
 	if log.IsDebugging {
 		etcd.Stdout = os.Stdout
 		etcd.Stderr = os.Stderr
 	}
-	etcd.Args[0] = "etcd"
-	log.Info("starting embedded etcd")
-	if err = etcd.Start(); err != nil {
-		return
-	}
+
 	etcdS := client.Config{
-		Endpoints: []string{"http://127.0.0.1:2379"},
-		Transport: client.DefaultTransport,
-		// set timeout per request to fail fast when the target endpoint is unavailable
-		HeaderTimeoutPerRequest: 500 * time.Millisecond,
+		Endpoints:               []string{"http://127.0.0.1:2379"},
+		Transport:               client.DefaultTransport,
+		HeaderTimeoutPerRequest: 1 * time.Second,
 	}
 	if etcdc, err = client.New(etcdS); err != nil {
 		return
 	}
 	Daemon.DataStore = client.NewKeysAPI(etcdc)
 
-	Daemon.DataStore.Delete(context.Background(),
-		"/skydns", &client.DeleteOptions{Dir: true, Recursive: true})
+	if isPortOpen("tcp", "127.0.0.1:2379") {
+		return fmt.Errorf("Unable to start embedded etcd, as another one " +
+			"seems to be already running")
+	}
+	log.Info("starting embedded etcd")
+	if err = etcd.Start(); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	defer func() {
+		if err = etcd.Process.Signal(syscall.SIGINT); err != nil {
+			log.Err(err.Error())
+		}
+	}()
+	select {
+	case <-time.After(3 * time.Second):
+		return fmt.Errorf("Unable to establish a meaningfull " +
+			"conversation with our embedded etcd after 3 seconds...")
+	case <-time.Tick(250 * time.Millisecond):
+		if !isPortOpen("tcp", "127.0.0.1:2379") {
+			break
+		}
+	}
+	log.Info("embedded etcd is ready")
+	// we don't want skydns' data to persist at all across sessions
+	Daemon.DataStore.Delete(context.Background(), "/skydns",
+		&client.DeleteOptions{Dir: true, Recursive: true})
 
 	dnsArgs := []string{"-nameservers=8.8.8.8:53,8.8.4.4:53",
 		"-domain=coreos.local",
@@ -123,6 +139,14 @@ func Start() (err error) {
 	if err = skydns.Start(); err != nil {
 		return
 	}
+	// register our host
+	skyWrite("corectld", session.Caller.Network.Address)
+	defer func() {
+		skyWipe("corectld", session.Caller.Network.Address)
+		if err = skydns.Process.Signal(syscall.SIGINT); err != nil {
+			log.Err(err.Error())
+		}
+	}()
 
 	log.Info("checking nfs host settings")
 	if err = nfsSetup(); err != nil {
@@ -172,12 +196,6 @@ func Start() (err error) {
 	Daemon.Unlock()
 	Daemon.Jobs.Wait()
 
-	if err = skydns.Process.Signal(syscall.SIGINT); err != nil {
-		log.Err(err.Error())
-	}
-	if err = etcd.Process.Signal(syscall.SIGINT); err != nil {
-		log.Err(err.Error())
-	}
 	log.Info("gone!")
 	return
 }

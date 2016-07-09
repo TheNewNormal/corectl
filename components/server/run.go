@@ -337,6 +337,11 @@ func (vm *VMInfo) lookup() bool {
 }
 
 func (vm *VMInfo) register() (err error) {
+	if vm.Name == "corectld" {
+		return fmt.Errorf("attempting to name a VM with the (only) " +
+			"reserved hostname ")
+	}
+
 	str := fmt.Sprintf("'%v'", vm.Name)
 	if vm.Name != vm.UUID {
 		str = fmt.Sprintf("'%v' (%v)", vm.Name, vm.UUID)
@@ -358,6 +363,7 @@ func (vm *VMInfo) deregister() {
 	if vm.Name != vm.UUID {
 		str = fmt.Sprintf("'%v' (%v)", vm.Name, vm.UUID)
 	}
+	skyWipe(vm.Name, vm.PublicIP)
 	Daemon.Lock()
 	defer Daemon.Unlock()
 	log.Info("unregistered %s as it's gone", str)

@@ -91,7 +91,7 @@ func httpInstanceCloudConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func reverseDomain(ip string) string {
+func reversedIPaddress(ip string) string {
 	const IPv4prefix = "in-addr.arpa"
 	var d string
 	addr := net.ParseIP(ip)
@@ -111,6 +111,42 @@ func reverseDomain(ip string) string {
 	return string(d)
 }
 
+func skyWrite(hostName string, ip string) (err error) {
+	path := "/skydns/local/coreos/" + strings.Replace(hostName, ".", "/", -1)
+
+	if _, err = Daemon.DataStore.Set(context.Background(), path,
+		"{\"host\":\""+ip+"\"}", nil); err != nil {
+		return
+	}
+	// reverse
+	hostName = hostName + ".coreos.local"
+	_, err = Daemon.DataStore.Set(context.Background(),
+		"/skydns/"+reversedIPaddress(ip), "{\"host\":\""+hostName+"\"}", nil)
+	return
+}
+
+func isPortOpen(t string, target string) bool {
+	server, err := net.Dial(t, target)
+	if err == nil {
+		server.Close()
+		return true
+	}
+	return false
+}
+
+func skyWipe(hostName string, ip string) (err error) {
+	path := "/skydns/local/coreos/" + strings.Replace(hostName, ".", "/", -1)
+	if _, err =
+		Daemon.DataStore.Delete(context.Background(), path, nil); err != nil {
+		return
+	}
+	// reverse
+	hostName = hostName + ".coreos.local"
+	_, err = Daemon.DataStore.Delete(context.Background(),
+		"/skydns/"+reversedIPaddress(ip), nil)
+	return
+}
+
 func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 	if acceptableRequest(r, w) {
 		vm := Daemon.Active[mux.Vars(r)["uuid"]]
@@ -127,12 +163,7 @@ func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Write([]byte(append(i, '\n')))
 			if !isLoopback(remoteIP(r.RemoteAddr)) {
-				_, _ = Daemon.DataStore.Set(context.Background(),
-					"/skydns/local/coreos/"+vm.Name,
-					"{\"host\":\""+remoteIP(r.RemoteAddr)+"\"}", nil)
-				_, _ = Daemon.DataStore.Set(context.Background(),
-					"/skydns/"+reverseDomain(remoteIP(r.RemoteAddr)),
-					"{\"host\":\""+vm.Name+".coreos.local\"}", nil)
+				skyWrite(vm.Name, remoteIP(r.RemoteAddr))
 			}
 		}
 	}

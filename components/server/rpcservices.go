@@ -26,8 +26,6 @@ import (
 	"strings"
 	"syscall"
 
-	"golang.org/x/net/context"
-
 	"os"
 	"path"
 	"time"
@@ -245,10 +243,6 @@ func (s *RPCservice) Run(r *http.Request,
 			vm.errCh <- err
 		}
 		vm.exec.Wait()
-		_, _ = Daemon.DataStore.Delete(context.Background(),
-			"/skydns/local/coreos/"+vm.Name, nil)
-		_, _ = Daemon.DataStore.Delete(context.Background(),
-			"/skydns/"+reverseDomain(vm.PublicIP), nil)
 		vm.deregister()
 		os.Remove(vm.TTY())
 		// give it time to flush logs
