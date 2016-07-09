@@ -105,7 +105,7 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 	vm.Root = -1
 	vm.Pid = -1
 
-	vm.Name = args.GetString("name")
+	vm.Name = strings.ToLower(args.GetString("name"))
 	vm.UUID = args.GetString("uuid")
 
 	vm.Memory = args.GetInt("memory")
