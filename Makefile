@@ -1,17 +1,18 @@
 PROG = corectl
 DAEMON = corectld
-ORGANIZATION = github.com/TheNewNormal
+TEAM = TheNewNormal
+ORGANIZATION = github.com/$(TEAM)
 REPOSITORY = $(ORGANIZATION)/$(PROG)
 
 GOARCH ?= $(shell go env GOARCH)
 GOOS ?= $(shell go env GOOS)
 CGO_ENABLED = 1
 GO15VENDOREXPERIMENT = 1
+MACOS = $(shell sw_vers -productVersion | /usr/bin/awk -F '.' '{print $$1 "." $$2}')
 
 BUILD_DIR ?= $(shell pwd)/bin
-GOPATH := $(shell echo $(PWD) | \
-        sed -e "s,src/$(REPOSITORY).*,,"):$(shell mkdir -p Godeps && \
-		godep go env | grep GOPATH | sed -e 's,",,g' -e "s,.*=,,")
+GOPATH := $(shell cd ../../../.. ; pwd):$(shell mkdir -p Godeps && \
+			godep go env GOPATH)
 GODEP = GOPATH=$(GOPATH) GO15VENDOREXPERIMENT=$(GO15VENDOREXPERIMENT) \
     GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=$(CGO_ENABLED) godep
 GOBUILD = $(GODEP) go build
@@ -93,6 +94,13 @@ tarball: $(PROG)-$(VERSION).tar.gz
 $(PROG)-$(VERSION).tar.gz: documentation \
 		hyperkit corectld.nameserver foo/src/github.com/coreos/etcd
 	cd bin; tar cvzf ../$@ *
+
+release: force
+	github-release release -u $(TEAM) -r $(PROG) --tag $(VERSION) --draft
+	github-release upload -u $(TEAM) -r $(PROG) \
+		--label "macOS unsigned blobs (built in $(MACOS))" \
+		--tag $(VERSION) --name "corectl-$(VERSION)-macOS-$(GOARCH).tar.gz" \
+		--file $(PROG)-$(VERSION).tar.gz
 
 Godeps: force
 	$(RM) $@
