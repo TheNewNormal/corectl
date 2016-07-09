@@ -67,12 +67,12 @@ In your terminal you will shortly after something along...
 
   ```
   ❯❯❯  corectl run
-  ---> 'B4AF19D1-DDEE-4A16-8058-1A7C3579F203' started successfuly with address 192.168.64.210 and PID 76202
+  ---> 'B4AF19D1-DDEE-4A16-8058-1A7C3579F203' started successfully with address 192.168.64.210 and PID 76202
   ---> 'B4AF19D1-DDEE-4A16-8058-1A7C3579F203' boot logs can be found at '/Users/am/.coreos/running/B4AF19D1-DDEE-4A16-8058-1A7C3579F203/log'
   ---> 'B4AF19D1-DDEE-4A16-8058-1A7C3579F203' console can be found at '/Users/am/.coreos/running/B4AF19D1-DDEE-4A16-8058-1A7C3579F203/tty'
 ```
 
-Accessing the newly craeted CoreOS instance is just a few more clicks away...
+Accessing the newly created CoreOS instance is just a few more clicks away...
   ```
   ❯❯❯  corectl ssh B4AF19D1-DDEE-4A16-8058-1A7C3579F203
   ```
