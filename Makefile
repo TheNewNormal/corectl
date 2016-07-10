@@ -27,8 +27,7 @@ SKYDNS_GIT = "https://github.com/skynetservices/skydns.git"
 SKYDNS_COMMIT = 00ade30
 
 ETCD_GIT = "https://github.com/coreos/etcd.git"
-# v3.0.1
-ETCD_COMMIT = a4a52cb
+ETCD_COMMIT = v3.0.2
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
@@ -36,6 +35,7 @@ MV = /bin/mv
 RM = /bin/rm -rf
 DATE = /bin/date
 SED = /usr/bin/sed
+GREP = /usr/bin/grep
 TOUCH = /usr/bin/touch
 GIT = /usr/bin/git
 
@@ -101,6 +101,10 @@ release: force
 		--label "macOS unsigned blobs (built in $(MACOS))" \
 		--tag $(VERSION) --name "corectl-$(VERSION)-macOS-$(GOARCH).tar.gz" \
 		--file $(PROG)-$(VERSION).tar.gz
+update-godeps:
+	for x in $$($(GREP) ImportPath Godeps/Godeps.json | $(GREP) -v \
+		$(ORGANIZATION) | $(SED) -e "s,.*:,," -e "s|,||" -e "s|\"||g" ) ; \
+			do echo "==$$x"; go get -u $$x; done
 
 Godeps: force
 	$(RM) $@
@@ -185,4 +189,4 @@ documentation/markdown: cmd force
 		$(RM) "$$p.bak" ;\
 	done
 
-.PHONY: clean all docs force assets cmd
+.PHONY: clean all docs force assets cmd update-godeps
