@@ -97,6 +97,8 @@ systemd:
       [Unit]
       Description=Mounts host's caller homedir via NFS
       ConditionKernelCommandLine=corectl.sharedhomedir=true
+      Requires=phone-home.service
+      After=phone-home.service
       [Service]
       Type=oneshot
       RemainAfterExit=yes

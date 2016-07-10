@@ -9,7 +9,7 @@ coreos:
       Requires=rpc-statd.service
       After=rpc-statd.service
       [Mount]
-        What=((server)):((path))
+        What=corectld.coreos.local:((path))
         Where=((path))
         Options=rw,async,nolock,noatime,rsize=32768,wsize=32768
         Type=nfs

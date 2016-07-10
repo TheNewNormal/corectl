@@ -171,8 +171,7 @@ func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 
 func httpInstanceHomedirMountConfig(w http.ResponseWriter, r *http.Request) {
 	if acceptableRequest(r, w) {
-		mods := strings.NewReplacer("((server))", session.Caller.Address,
-			"((path))", session.Caller.HomeDir,
+		mods := strings.NewReplacer("((path))", session.Caller.HomeDir,
 			"((path_escaped))", unit.UnitNamePathEscape(session.Caller.HomeDir))
 		w.Write([]byte(mods.Replace(coreos.CoreOEMsharedHomedir)))
 	}
