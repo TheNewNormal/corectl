@@ -139,8 +139,8 @@ foo/src/$(ETCD_REPO): force
 	cd $@/..; $(GIT) clone $(ETCD_GIT)
 	cd $@; $(GIT) checkout $(ETCD_COMMIT);
 	cd $@/cmd; \
-		GOPATH=$(shell echo $(PWD)/../../../..):$(shell echo \
-		$(PWD)/Godeps/_workspace) GO15VENDOREXPERIMENT=$(GO15VENDOREXPERIMENT) \
+		GOPATH=$(shell cd ../../../.. ; pwd):$(shell echo \
+			$$(pwd)/Godeps/_workspace) GO15VENDOREXPERIMENT=$(GO15VENDOREXPERIMENT) \
 			GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=$(CGO_ENABLED) \
 			godep go build -o $(BUILD_DIR)/$(DAEMON).store \
 			-ldflags "$(ETCD_GO_LDFLAGS)"
