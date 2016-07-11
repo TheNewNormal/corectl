@@ -21,22 +21,25 @@ import (
 	"github.com/TheNewNormal/corectl/components/common/assets"
 )
 
-const latestImageBreackage = "2016-07-06T00:00:00WET"
+const (
+	latestImageBreackage = "2016-07-06T00:00:00WET"
+	defaultChannel       = "alpha"
+	defaultVersion       = "latest"
+)
+
+var (
+	// CoreOS default Channels
+	Channels = []string{"alpha", "beta", "stable"}
+
+	GPGLongID            = "50E0885593D2DCB4"
+	GPGKey               = assets.Contents("target/coreos/CoreOSkey.public")
+	CoreOEMsharedHomedir = assets.Contents("target/coreos/homedir.yml.tmpl")
+	CoreOSIgnitionTmpl   = assets.Contents("target/coreos/corectl.ignition.yml.tmpl")
+
+	LocalDomainName = "coreos.local"
+)
 
 func LatestImageBreackage() (t time.Time) {
 	t, _ = time.Parse("2006-01-02T15:04:05MST", latestImageBreackage)
 	return
 }
-
-// CoreOS default Channels
-var Channels = []string{"alpha", "beta", "stable"}
-
-const defaultChannel = "alpha"
-const defaultVersion = "latest"
-
-var (
-	GPGLongID            = "50E0885593D2DCB4"
-	GPGKey               = assets.Contents("target/coreos/CoreOSkey.public")
-	CoreOEMsharedHomedir = assets.Contents("target/coreos/homedir.yml.tmpl")
-	CoreOSIgnitionTmpl   = assets.Contents("target/coreos/corectl.ignition.yml.tmpl")
-)

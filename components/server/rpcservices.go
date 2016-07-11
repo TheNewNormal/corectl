@@ -245,8 +245,6 @@ func (s *RPCservice) Run(r *http.Request,
 		vm.exec.Wait()
 		vm.deregister()
 		os.Remove(vm.TTY())
-		// give it time to flush logs
-		time.Sleep(3 * time.Second)
 	}()
 
 	select {
@@ -301,7 +299,7 @@ func (s *RPCservice) StopVMs(r *http.Request,
 		Daemon.Active[v].halt()
 		for {
 			Daemon.Lock()
-			_, stillAlive := Daemon.Active[v]
+			stillAlive := Daemon.Active[v].exec.ProcessState.Exited()
 			Daemon.Unlock()
 			if !stillAlive {
 				break

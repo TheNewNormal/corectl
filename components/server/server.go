@@ -29,6 +29,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
+	"github.com/TheNewNormal/corectl/components/target/coreos"
 	"github.com/TheNewNormal/corectl/release"
 	"github.com/blang/semver"
 	"github.com/braintree/manners"
@@ -78,7 +79,7 @@ func Start() (err error) {
 
 	etcd := exec.Command(path.Join(session.ExecutableFolder(), "corectld.store"),
 		"-data-dir="+session.Caller.EtcDir(),
-		"-name=corectld.coreos.local",
+		"-name=corectld."+coreos.LocalDomainName,
 		"--listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001",
 		"--advertise-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001")
 	if log.IsDebugging {
@@ -107,7 +108,7 @@ func Start() (err error) {
 	}
 
 	defer func() {
-		if err = etcd.Process.Signal(syscall.SIGINT); err != nil {
+		if err = etcd.Process.Signal(syscall.SIGTERM); err != nil {
 			log.Err(err.Error())
 		}
 	}()
@@ -126,7 +127,7 @@ func Start() (err error) {
 		&client.DeleteOptions{Dir: true, Recursive: true})
 
 	dnsArgs := []string{"-nameservers=8.8.8.8:53,8.8.4.4:53",
-		"-domain=coreos.local",
+		"-domain=" + coreos.LocalDomainName,
 		"-addr=0.0.0.0:53"}
 	if log.IsDebugging {
 		dnsArgs = append(dnsArgs, "-verbose")
@@ -143,7 +144,7 @@ func Start() (err error) {
 	skyWrite("corectld", session.Caller.Network.Address)
 	defer func() {
 		skyWipe("corectld", session.Caller.Network.Address)
-		if err = skydns.Process.Signal(syscall.SIGINT); err != nil {
+		if err = skydns.Process.Signal(syscall.SIGTERM); err != nil {
 			log.Err(err.Error())
 		}
 	}()

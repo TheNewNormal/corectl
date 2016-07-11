@@ -17,6 +17,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -93,33 +94,38 @@ func httpInstanceCloudConfig(w http.ResponseWriter, r *http.Request) {
 
 func reversedIPaddress(ip string) string {
 	const IPv4prefix = "in-addr.arpa"
-	var d string
-	addr := net.ParseIP(ip)
 
-	ip4addr := addr.To4()
+	ip4addr := net.ParseIP(ip).To4()
 	domain := make([]byte, 0, len(ip4addr)*4+len(IPv4prefix))
+
 	for x := len(ip4addr) - 1; x >= 0; x-- {
 		domain = strconv.AppendUint(domain, uint64(ip4addr[x]), 10)
 		domain = append(domain, '.')
 	}
 	domain = append(domain, IPv4prefix...)
-	y := strings.Split(string(domain), ".")
-	for x := len(y) - 1; x >= 0; x-- {
-		d += y[x] + "/"
+
+	return invertDomain(string(domain))
+}
+
+func invertDomain(in string) (out string) {
+	s := strings.Split(in, ".")
+	for x := len(s) - 1; x >= 0; x-- {
+		out += s[x] + "/"
 	}
-	d = strings.TrimSuffix(d, "/")
-	return string(d)
+	out = strings.TrimSuffix(out, "/")
+	return
 }
 
 func skyWrite(hostName string, ip string) (err error) {
-	path := "/skydns/local/coreos/" + strings.Replace(hostName, ".", "/", -1)
+	path := fmt.Sprintf("/skydns/%s/%s", invertDomain(coreos.LocalDomainName),
+		strings.Replace(hostName, ".", "/", -1))
 
 	if _, err = Daemon.DataStore.Set(context.Background(), path,
 		"{\"host\":\""+ip+"\"}", nil); err != nil {
 		return
 	}
 	// reverse
-	hostName = hostName + ".coreos.local"
+	hostName = hostName + "." + coreos.LocalDomainName
 	_, err = Daemon.DataStore.Set(context.Background(),
 		"/skydns/"+reversedIPaddress(ip), "{\"host\":\""+hostName+"\"}", nil)
 	return
@@ -135,13 +141,14 @@ func isPortOpen(t string, target string) bool {
 }
 
 func skyWipe(hostName string, ip string) (err error) {
-	path := "/skydns/local/coreos/" + strings.Replace(hostName, ".", "/", -1)
+	path := fmt.Sprintf("/skydns/%s/%s", invertDomain(coreos.LocalDomainName),
+		strings.Replace(hostName, ".", "/", -1))
 	if _, err =
 		Daemon.DataStore.Delete(context.Background(), path, nil); err != nil {
 		return
 	}
 	// reverse
-	hostName = hostName + ".coreos.local"
+	hostName = hostName + "." + coreos.LocalDomainName
 	_, err = Daemon.DataStore.Delete(context.Background(),
 		"/skydns/"+reversedIPaddress(ip), nil)
 	return
