@@ -299,7 +299,7 @@ func (s *RPCservice) StopVMs(r *http.Request,
 		Daemon.Active[v].halt()
 		for {
 			Daemon.Lock()
-			stillAlive := Daemon.Active[v].exec.ProcessState.Exited()
+			_, stillAlive := Daemon.Active[v]
 			Daemon.Unlock()
 			if !stillAlive {
 				break
