@@ -21,7 +21,7 @@ VERSION := $(shell git describe --abbrev=6 --dirty=+untagged --always --tags)
 BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
-HYPERKIT_COMMIT = c42f126
+HYPERKIT_COMMIT = 1e4b9b8d252c2fb5eee39830591a819c490eaf5e
 
 SKYDNS_GIT = "https://github.com/skynetservices/skydns.git"
 SKYDNS_COMMIT = 00ade30
@@ -169,6 +169,11 @@ hyperkit: force
 		$(MAKE) clean; \
 		$(shell opam config env) $(MAKE) all
 	$(CP) $@/build/com.docker.hyperkit $(BUILD_DIR)/corectld.runner
+	$(RM) examples/dtrace
+	cd $@; \
+		$(SED) -i.bak -e "s,com.docker.hyperkit,corectld.runner,g" dtrace/*.d; \
+		$(RM) dtrace/*.bak ; \
+		$(CP) -r dtrace ../examples
 
 documentation/man: cmd force
 	$(MKDIR) $@

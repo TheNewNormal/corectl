@@ -242,6 +242,18 @@ or ...
   ```
 ### have fun!
 
+## Tracing
+
+Thanks to [hyperkit](https://github.com/docker/hyperkit) (that we consume as
+`corectld.runner`) there are available a  number of static DTrace probes to
+simplify investigation of performance problems. To list the probes supported by
+your version of corectl, type the following command while `corectld` is running:
+
+ `$ sudo dtrace -l -P 'hyperkit$target' -p $(pgrep corectld.runner)`
+
+Refer to scripts in `examples/dtrace/` directory for examples of possible usage
+and available probes.
+
 # projects using **corectl**
 
 - [Rimas Mocevicius](https://github.com/rimusz) entire toolset of macOS GUI apps
