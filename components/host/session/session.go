@@ -148,12 +148,12 @@ func (ctx *Context) NormalizeOnDiskLayout() (err error) {
 	for _, i := range coreos.Channels {
 		if err =
 			os.MkdirAll(path.Join(ctx.ImageStore(), i),
-				0644); err != nil {
+				0755); err != nil {
 			return
 		}
 	}
 	for _, i := range []string{ctx.RunDir(), ctx.TmpDir(), ctx.EtcDir()} {
-		if err = os.MkdirAll(i, 0644); err != nil {
+		if err = os.MkdirAll(i, 0755); err != nil {
 			return
 		}
 	}
