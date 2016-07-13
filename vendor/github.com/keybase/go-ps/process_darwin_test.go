@@ -3,7 +3,6 @@
 package ps
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -21,12 +20,9 @@ func TestProcessesDarwin(t *testing.T) {
 }
 
 func TestProcessesDarwinError(t *testing.T) {
-	errFn := func() ([]Process, error) {
-		return nil, fmt.Errorf("oops")
-	}
-	proc, err := findProcessWithFn(errFn, os.Getpid())
+	proc, err := findProcess(-1)
 	assert.Nil(t, proc)
-	assert.EqualError(t, err, "Error listing processes: oops")
+	assert.Nil(t, err)
 }
 
 func TestProcessExecRemoved(t *testing.T) {

@@ -1,7 +1,9 @@
 package ps
 
 import (
+	"errors"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -21,6 +23,7 @@ func testFindProcess(t *testing.T, name string) Process {
 		require.NoError(t, err)
 		t.Logf("Path: %s", path)
 		assert.True(t, strings.HasSuffix(path, string(os.PathSeparator)+name))
+
 	}
 	return proc
 }
@@ -47,6 +50,23 @@ func TestFindProcess(t *testing.T) {
 	testFindProcess(t, "")
 }
 
+func TestFindProcessGo(t *testing.T) {
+	var exe = "go-ps.test"
+	if runtime.GOOS == "windows" {
+		exe += ".exe"
+	}
+	testFindProcess(t, exe)
+}
+
 func TestProcesses(t *testing.T) {
 	testProcesses(t, "")
+}
+
+func TestFindProcessesWithFnError(t *testing.T) {
+	ps, err := findProcessesWithFn(func() ([]Process, error) { return nil, errors.New("TestFindProcessesWithFn Error") }, nil, 0)
+	require.Nil(t, ps)
+	require.NotNil(t, err)
+	ps, err = findProcessesWithFn(func() ([]Process, error) { return nil, nil }, nil, 0)
+	require.Nil(t, ps)
+	require.Nil(t, err)
 }

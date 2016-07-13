@@ -245,10 +245,19 @@ func (s *Server) register(sd *ServiceDesc, ss interface{}) {
 	s.m[sd.ServiceName] = srv
 }
 
-// ServiceInfo contains method names and metadata for a service.
+// MethodInfo contains information about an RPC.
+type MethodInfo struct {
+	// Name is the method name only, without the service name or package name.
+	Name string
+	// IsClientStream indicates whether the RPC is a client streaming RPC.
+	IsClientStream bool
+	// IsServerStream indicates whether the RPC is a server streaming RPC.
+	IsServerStream bool
+}
+
+// ServiceInfo contains unary RPC method info, streaming RPC methid info and metadata for a service.
 type ServiceInfo struct {
-	// Methods are method names only, without the service name or package name.
-	Methods []string
+	Methods []MethodInfo
 	// Metadata is the metadata specified in ServiceDesc when registering service.
 	Metadata interface{}
 }
@@ -258,12 +267,20 @@ type ServiceInfo struct {
 func (s *Server) GetServiceInfo() map[string]*ServiceInfo {
 	ret := make(map[string]*ServiceInfo)
 	for n, srv := range s.m {
-		methods := make([]string, 0, len(srv.md)+len(srv.sd))
+		methods := make([]MethodInfo, 0, len(srv.md)+len(srv.sd))
 		for m := range srv.md {
-			methods = append(methods, m)
+			methods = append(methods, MethodInfo{
+				Name:           m,
+				IsClientStream: false,
+				IsServerStream: false,
+			})
 		}
-		for m := range srv.sd {
-			methods = append(methods, m)
+		for m, d := range srv.sd {
+			methods = append(methods, MethodInfo{
+				Name:           m,
+				IsClientStream: d.ClientStreams,
+				IsServerStream: d.ServerStreams,
+			})
 		}
 
 		ret[n] = &ServiceInfo{
@@ -560,7 +577,7 @@ func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.
 		}
 		reply, appErr := md.Handler(srv.server, stream.Context(), df, s.opts.unaryInt)
 		if appErr != nil {
-			if err, ok := appErr.(rpcError); ok {
+			if err, ok := appErr.(*rpcError); ok {
 				statusCode = err.code
 				statusDesc = err.desc
 			} else {
@@ -645,7 +662,7 @@ func (s *Server) processStreamingRPC(t transport.ServerTransport, stream *transp
 		appErr = s.opts.streamInt(srv.server, ss, info, sd.Handler)
 	}
 	if appErr != nil {
-		if err, ok := appErr.(rpcError); ok {
+		if err, ok := appErr.(*rpcError); ok {
 			ss.statusCode = err.code
 			ss.statusDesc = err.desc
 		} else if err, ok := appErr.(transport.StreamError); ok {
