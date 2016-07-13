@@ -185,6 +185,7 @@ func (ctx *Context) SetNetworkContext() (err error) {
 	)
 	if netAddress, err = exec.Command(cmdL[0],
 		append(cmdL[1:], "Shared_Net_Address")...).Output(); err != nil {
+		err = nil
 		log.Warn("%v \"%v %v %v\" %v ...",
 			"unable to run", cmdL[0], cmdL[1], cmdL[2], "Shared_Net_Address")
 		log.Warn("... assuming macOS default value (192.168.64.1)")
@@ -193,6 +194,7 @@ func (ctx *Context) SetNetworkContext() (err error) {
 
 	if netMask, err = exec.Command(cmdL[0],
 		append(cmdL[1:], "Shared_Net_Mask")...).Output(); err != nil {
+		err = nil
 		log.Warn("%v \"%v %v %v\" %v ...",
 			"unable to run", cmdL[0], cmdL[1], cmdL[2], "Shared_Net_Mask")
 		log.Warn("... assuming macOS default value (255.255.255.0)")
