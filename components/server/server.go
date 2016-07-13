@@ -43,13 +43,15 @@ type (
 
 	// Config ...
 	ServerContext struct {
+		DataStore         client.KeysAPI
+		Meta              *release.Info
+		Media             MediaAssets
+		Active            map[string]*VMInfo
+		APIserver         *manners.GracefulServer
+		Jobs              sync.WaitGroup
+		AcceptingRequests bool
+		Oops              chan error
 		sync.Mutex
-		DataStore client.KeysAPI
-		Meta      *release.Info
-		Media     MediaAssets
-		Active    map[string]*VMInfo
-		APIserver *manners.GracefulServer
-		Jobs      sync.WaitGroup
 	}
 )
 
@@ -58,26 +60,30 @@ var Daemon *ServerContext
 // New ...
 func New() (cfg *ServerContext) {
 	return &ServerContext{
-		DataStore: nil,
-		Meta:      session.Caller.Meta,
-		Media:     nil,
-		Active:    nil,
-		APIserver: nil,
-		Jobs:      sync.WaitGroup{},
+		DataStore:         nil,
+		Meta:              session.Caller.Meta,
+		Media:             nil,
+		Active:            nil,
+		APIserver:         nil,
+		Jobs:              sync.WaitGroup{},
+		AcceptingRequests: true,
+		Oops:              make(chan error, 1),
 	}
 }
 
 // Start server...
 func Start() (err error) {
-	var etcdc client.Client
-
+	var (
+		etcd, skydns *exec.Cmd
+		etcdc        client.Client
+	)
 	// var  closeVPNhooks func()
 	if !session.Caller.Privileged {
 		return fmt.Errorf("not enough previleges to start server. " +
 			"please use 'sudo'")
 	}
 
-	etcd := exec.Command(path.Join(session.ExecutableFolder(), "corectld.store"),
+	etcd = exec.Command(path.Join(session.ExecutableFolder(), "corectld.store"),
 		"-data-dir="+session.Caller.EtcDir(),
 		"-name=corectld."+coreos.LocalDomainName,
 		"--listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001",
@@ -103,14 +109,12 @@ func Start() (err error) {
 	}
 	log.Info("starting embedded etcd")
 	if err = etcd.Start(); err != nil {
-		fmt.Println(err.Error())
+		log.Err(err.Error())
 		return
 	}
 
 	defer func() {
-		if err = etcd.Process.Signal(syscall.SIGTERM); err != nil {
-			log.Err(err.Error())
-		}
+		etcd.Process.Signal(syscall.SIGTERM)
 	}()
 	select {
 	case <-time.After(3 * time.Second):
@@ -132,7 +136,7 @@ func Start() (err error) {
 	if log.IsDebugging {
 		dnsArgs = append(dnsArgs, "-verbose")
 	}
-	skydns := exec.Command(path.
+	skydns = exec.Command(path.
 		Join(session.ExecutableFolder(), "corectld.nameserver"),
 		dnsArgs...,
 	)
@@ -141,12 +145,12 @@ func Start() (err error) {
 		return
 	}
 	// register our host
-	skyWrite("corectld", session.Caller.Network.Address)
+	if err = skyWrite("corectld", session.Caller.Network.Address); err != nil {
+		return
+	}
 	defer func() {
 		skyWipe("corectld", session.Caller.Network.Address)
-		if err = skydns.Process.Signal(syscall.SIGTERM); err != nil {
-			log.Err(err.Error())
-		}
+		skydns.Process.Signal(syscall.SIGTERM)
 	}()
 
 	log.Info("checking nfs host settings")
@@ -172,9 +176,7 @@ func Start() (err error) {
 		s := <-hades
 		log.Info("Got '%v' signal, stopping server...", s)
 		signal.Stop(hades)
-		Daemon.Lock()
-		Daemon.APIserver.Close()
-		Daemon.Unlock()
+		Daemon.Oops <- nil
 	}()
 
 	log.Info("server starting...")
@@ -182,12 +184,49 @@ func Start() (err error) {
 	httpServiceSetup()
 	rpcServiceSetup()
 
-	Daemon.APIserver = manners.NewWithServer(&http.Server{
-		Addr:    ":2511",
-		Handler: httpServices})
+	go func() {
+		Daemon.Lock()
+		Daemon.APIserver = manners.NewWithServer(&http.Server{
+			Addr:    ":2511",
+			Handler: httpServices})
+		Daemon.Unlock()
+		if err := Daemon.APIserver.ListenAndServe(); err != nil {
+			Daemon.Oops <- err
+		}
+		Daemon.Oops <- nil
+	}()
 
-	if err = Daemon.APIserver.ListenAndServe(); err != nil {
-		return
+	go func() {
+		etcd.Wait()
+		Daemon.Lock()
+		v := Daemon.AcceptingRequests
+		Daemon.Unlock()
+		if v {
+			// ended too early
+			Daemon.Oops <- fmt.Errorf("corectld.store (etcd) ended " +
+				"abnormaly. Shutting down")
+		}
+	}()
+	go func() {
+		skydns.Wait()
+		Daemon.Lock()
+		v := Daemon.AcceptingRequests
+		Daemon.Unlock()
+		if v {
+			// ended too early
+			Daemon.Oops <- fmt.Errorf("corectld.nameserver (skydns) " +
+				"ended abnormaly. Shutting down")
+		}
+	}()
+	select {
+	case err = <-Daemon.Oops:
+		Daemon.Lock()
+		Daemon.AcceptingRequests = false
+		Daemon.Unlock()
+
+		if err != nil {
+			log.Err("OOPS %v", err.Error())
+		}
 	}
 
 	Daemon.Lock()
@@ -196,7 +235,7 @@ func Start() (err error) {
 	}
 	Daemon.Unlock()
 	Daemon.Jobs.Wait()
-
+	Daemon.APIserver.Close()
 	log.Info("gone!")
 	return
 }

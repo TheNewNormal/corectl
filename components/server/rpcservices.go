@@ -39,7 +39,10 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-var rpcServices = rpc.NewServer()
+var (
+	rpcServices           = rpc.NewServer()
+	ErrServerShuttingDown = fmt.Errorf("Request ignored as server shutting down")
+)
 
 type (
 	RPCservice struct{}
@@ -67,6 +70,10 @@ func rpcServiceSetup() {
 func (s *RPCservice) Echo(r *http.Request,
 	args *RPCquery, reply *RPCreply) (err error) {
 	log.Debug("ping")
+
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
 	reply.Meta = Daemon.Meta
 	return
 }
@@ -74,6 +81,10 @@ func (s *RPCservice) Echo(r *http.Request,
 func (s *RPCservice) AvailableImages(r *http.Request,
 	args *RPCquery, reply *RPCreply) (err error) {
 	log.Debug("images:list")
+
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
 	Daemon.Lock()
 	defer Daemon.Unlock()
 	reply.Images, err = localImages()
@@ -89,6 +100,11 @@ func (s *RPCservice) RemoveImage(r *http.Request,
 	)
 
 	log.Debug("images:remove")
+
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
+
 	Daemon.Lock()
 
 	for x, y = range Daemon.Media[channel] {
@@ -124,6 +140,10 @@ func (s *RPCservice) UUIDtoMACaddr(r *http.Request,
 		UUID, original = args.Input[0], args.Input[1]
 	)
 	log.Debug("vm:uuid2mac (%v:%v)", args.Input[0], args.Input[1])
+
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
 
 	// handles UUIDs
 	if _, found := Daemon.Active[UUID]; found {
@@ -190,6 +210,10 @@ func (s *RPCservice) Run(r *http.Request,
 	args *RPCquery, reply *RPCreply) (err error) {
 	log.Debug("vm:run")
 
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
+
 	var bootArgs []string
 	vm := args.VM
 
@@ -243,7 +267,9 @@ func (s *RPCservice) Run(r *http.Request,
 			vm.errCh <- err
 		}
 		vm.exec.Wait()
+		Daemon.Lock()
 		vm.deregister()
+		Daemon.Unlock()
 		os.Remove(vm.TTY())
 	}()
 
@@ -264,14 +290,24 @@ func (s *RPCservice) Run(r *http.Request,
 func (s *RPCservice) Stop(r *http.Request,
 	args *RPCquery, reply *RPCreply) (err error) {
 	log.Debug("server:stop")
-	log.Info("Sky must be falling. Shutting down...")
 
-	Daemon.APIserver.Close()
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
+
+	log.Info("Sky must be falling. Shutting down...")
+	Daemon.Oops <- nil
 	return
 }
+
 func (s *RPCservice) ActiveVMs(r *http.Request,
 	args *RPCquery, reply *RPCreply) (err error) {
 	log.Debug("vm:list")
+
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
+
 	reply.Running = Daemon.Active
 	return
 }
@@ -281,6 +317,10 @@ func (s *RPCservice) StopVMs(r *http.Request,
 	log.Debug("vm:stop")
 
 	var toHalt []string
+
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
 
 	if len(args.Input) == 0 {
 		for _, x := range Daemon.Active {

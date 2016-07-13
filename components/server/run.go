@@ -364,8 +364,6 @@ func (vm *VMInfo) deregister() {
 		str = fmt.Sprintf("'%v' (%v)", vm.Name, vm.UUID)
 	}
 	skyWipe(vm.Name, vm.PublicIP)
-	Daemon.Lock()
-	defer Daemon.Unlock()
 	log.Info("unregistered %s as it's gone", str)
 	delete(Daemon.Active, vm.UUID)
 
