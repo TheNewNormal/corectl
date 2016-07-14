@@ -87,7 +87,8 @@ func httpInstanceCloudConfig(w http.ResponseWriter, r *http.Request) {
 		} else if t, err := ioutil.ReadFile(vm.CloudConfig); err != nil {
 			httpError(w, http.StatusInternalServerError)
 		} else {
-			w.Write(t)
+			vars := strings.NewReplacer("__vm.Name__", vm.Name)
+			w.Write([]byte(vars.Replace(string(t))))
 		}
 	}
 }
