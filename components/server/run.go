@@ -378,7 +378,7 @@ func (vm *VMInfo) MkRunDir() error {
 		return nil
 	}
 	log.Info("creating %v", rundir)
-	return os.MkdirAll(rundir, 0644)
+	return os.MkdirAll(rundir, 0755)
 }
 func (vm *VMInfo) Log() string {
 	return filepath.Join(vm.RunDir(), "log")

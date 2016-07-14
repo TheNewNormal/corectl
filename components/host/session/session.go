@@ -170,6 +170,10 @@ func (ctx *Context) NormalizeOnDiskLayout() (err error) {
 		if tty == "tty" {
 			return os.Remove(p)
 		}
+		// to fix previous sins
+		if err := os.Chmod(p, 0755); err != nil {
+			return err
+		}
 		return os.Chown(p, u, g)
 	}
 	return filepath.Walk(ctx.ConfigDir(), do)
