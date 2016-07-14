@@ -4,6 +4,19 @@ CLUSTER_PREFIX=etcd
 CLUSTER_SIZE=1
 MEM=1024
 
+# prefer local build if in a git checkout
+if [[ -f ../../bin/corectl ]]; then
+	CORECTL=../../bin/corectl
+else
+	CORECTL=$(which corectl)
+	if ! [[ $? ]]; then
+		echo "${CORECTL} not found (neither in ../../bin/ nor in PATH)"
+		exit 1
+	fi
+fi
+echo "using ${CORECTL}"
+echo
+
 while [ "$1" != "" ]; do
     case $1 in
         -p | --prefix )
@@ -35,7 +48,7 @@ done
 
 echo "cluster size is ${CLUSTER_SIZE}"
 echo "cluster prefix is ${CLUSTER_PREFIX}"
-echo ""
+echo
 
 for (( i=1; i<=${CLUSTER_SIZE}; i++ )); do
    ETCD_CLUSTER[$i]=${CLUSTER_PREFIX}-$i
@@ -53,8 +66,8 @@ for (( i=1; i<=${CLUSTER_SIZE}; i++ )); do
 	/usr/bin/sed -e 's#__ETCD_NODE_NAME__#'"${ETCD_NODE_NAME}"'#g' \
 		-e 's#__ETCD_INITIAL_CLUSTER__#'"${ETCD_INITIAL_CLUSTER}"'#g' \
 			etcd-cloud-config.yaml.tmpl > ${VM_CCONFIG}
-	../../bin/corectl run -m ${MEM} -n ${ETCD_CLUSTER[$i]} -L ${VM_CCONFIG}
+	${CORECTL} run -m ${MEM} -n ${ETCD_CLUSTER[$i]} -L ${VM_CCONFIG}
 	rm -rf ${VM_CCONFIG}
 done
 sleep 2
-../../bin/corectl ssh  ${ETCD_CLUSTER["1"]} "etcdctl cluster-health"
+${CORECTL} ssh  ${ETCD_CLUSTER["1"]} "etcdctl cluster-health"
