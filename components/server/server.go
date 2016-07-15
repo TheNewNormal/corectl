@@ -22,6 +22,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -35,6 +36,7 @@ import (
 	"github.com/braintree/manners"
 	"github.com/coreos/etcd/client"
 	"github.com/helm/helm/log"
+	"github.com/keybase/go-ps"
 )
 
 type (
@@ -103,9 +105,12 @@ func Start() (err error) {
 	}
 	Daemon.DataStore = client.NewKeysAPI(etcdc)
 
+	if err = killIfRunning("corectld.store"); err != nil {
+		return
+	}
 	if isPortOpen("tcp", "127.0.0.1:2379") {
-		return fmt.Errorf("Unable to start embedded etcd, as another one " +
-			"seems to be already running")
+		return fmt.Errorf("Unable to start embedded etcd (corectld.store) " +
+			"as something else seems to be already binding port :2379")
 	}
 	log.Info("starting embedded etcd")
 	if err = etcd.Start(); err != nil {
@@ -140,6 +145,14 @@ func Start() (err error) {
 		Join(session.ExecutableFolder(), "corectld.nameserver"),
 		dnsArgs...,
 	)
+	if err = killIfRunning("corectld.nameserver"); err != nil {
+		return
+	}
+	if isPortOpen("tcp", "127.0.0.1:53") {
+		return fmt.Errorf("Unable to start embedded skydns " +
+			"(corectld.nameserver) as something else seems to be already " +
+			"binding port :53")
+	}
 	log.Info("starting embedded name server")
 	if err = skydns.Start(); err != nil {
 		return
@@ -236,5 +249,25 @@ func Start() (err error) {
 	Daemon.Jobs.Wait()
 	Daemon.APIserver.Close()
 	log.Info("gone!")
+	return
+}
+
+func killIfRunning(blob string) (err error) {
+	var p *os.Process
+	all, _ := ps.Processes()
+	for _, r := range all {
+		if strings.HasSuffix(r.Executable(), blob) {
+			if p, err = os.FindProcess(r.Pid()); err == nil {
+				log.Warn("A stalled copy of '%v' was "+
+					"found running. Killing it.", blob)
+				if err = p.Kill(); err != nil {
+					return
+				}
+				// so that binded port(s) gets actually freed
+				// XXX find a more idiomatic way
+				time.Sleep(150 * time.Millisecond)
+			}
+		}
+	}
 	return
 }
