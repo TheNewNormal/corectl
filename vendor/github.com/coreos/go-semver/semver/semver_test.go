@@ -18,6 +18,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"flag"
+	"fmt"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -84,8 +86,23 @@ func TestCompare(t *testing.T) {
 			t.Error(err)
 		}
 
-		if gt.LessThan(*lt) == true {
+		if gt.LessThan(*lt) {
 			t.Errorf("%s should not be less than %s", gt, lt)
+		}
+		if gt.Equal(*lt) {
+			t.Errorf("%s should not be equal to %s", gt, lt)
+		}
+		if gt.Compare(*lt) <= 0 {
+			t.Errorf("%s should be greater than %s", gt, lt)
+		}
+		if !lt.LessThan(*gt) {
+			t.Errorf("%s should be less than %s", lt, gt)
+		}
+		if !lt.Equal(*lt) {
+			t.Errorf("%s should be equal to %s", lt, lt)
+		}
+		if lt.Compare(*gt) > 0 {
+			t.Errorf("%s should not be greater than %s", lt, gt)
 		}
 	}
 }
@@ -327,4 +344,27 @@ func TestBadInput(t *testing.T) {
 			t.Error("Improperly accepted value: ", b)
 		}
 	}
+}
+
+func TestFlag(t *testing.T) {
+	v := Version{}
+	f := flag.NewFlagSet("version", flag.ContinueOnError)
+	f.Var(&v, "version", "set version")
+
+	if err := f.Set("version", "1.2.3"); err != nil {
+		t.Fatal(err)
+	}
+
+	if v.String() != "1.2.3" {
+		t.Errorf("Set wrong value %q", v)
+	}
+}
+
+func ExampleVersion_LessThan() {
+	vA := New("1.2.3")
+	vB := New("3.2.1")
+
+	fmt.Printf("%s < %s == %t\n", vA, vB, vA.LessThan(*vB))
+	// Output:
+	// 1.2.3 < 3.2.1 == true
 }
