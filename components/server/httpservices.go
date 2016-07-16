@@ -17,14 +17,10 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
-
-	"golang.org/x/net/context"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
@@ -93,45 +89,6 @@ func httpInstanceCloudConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func reversedIPaddress(ip string) string {
-	const IPv4prefix = "in-addr.arpa"
-
-	ip4addr := net.ParseIP(ip).To4()
-	domain := make([]byte, 0, len(ip4addr)*4+len(IPv4prefix))
-
-	for x := len(ip4addr) - 1; x >= 0; x-- {
-		domain = strconv.AppendUint(domain, uint64(ip4addr[x]), 10)
-		domain = append(domain, '.')
-	}
-	domain = append(domain, IPv4prefix...)
-
-	return invertDomain(string(domain))
-}
-
-func invertDomain(in string) (out string) {
-	s := strings.Split(in, ".")
-	for x := len(s) - 1; x >= 0; x-- {
-		out += s[x] + "/"
-	}
-	out = strings.TrimSuffix(out, "/")
-	return
-}
-
-func skyWrite(hostName string, ip string) (err error) {
-	path := fmt.Sprintf("/skydns/%s/%s", invertDomain(coreos.LocalDomainName),
-		strings.Replace(hostName, ".", "/", -1))
-
-	if _, err = Daemon.DataStore.Set(context.Background(), path,
-		"{\"host\":\""+ip+"\"}", nil); err != nil {
-		return
-	}
-	// reverse
-	hostName = hostName + "." + coreos.LocalDomainName
-	_, err = Daemon.DataStore.Set(context.Background(),
-		"/skydns/"+reversedIPaddress(ip), "{\"host\":\""+hostName+"\"}", nil)
-	return
-}
-
 func isPortOpen(t string, target string) bool {
 	server, err := net.Dial(t, target)
 	if err == nil {
@@ -141,26 +98,13 @@ func isPortOpen(t string, target string) bool {
 	return false
 }
 
-func skyWipe(hostName string, ip string) (err error) {
-	path := fmt.Sprintf("/skydns/%s/%s", invertDomain(coreos.LocalDomainName),
-		strings.Replace(hostName, ".", "/", -1))
-	if _, err =
-		Daemon.DataStore.Delete(context.Background(), path, nil); err != nil {
-		return
-	}
-	// reverse
-	hostName = hostName + "." + coreos.LocalDomainName
-	_, err = Daemon.DataStore.Delete(context.Background(),
-		"/skydns/"+reversedIPaddress(ip), nil)
-	return
-}
-
 func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 	if acceptableRequest(r, w) {
 		vm := Daemon.Active[mux.Vars(r)["uuid"]]
 		mods := strings.NewReplacer(
 			"__vm.InternalSSHkey__", vm.InternalSSHkey,
 			"__vm.Name__", vm.Name,
+			"__vm.DomainName__", LocalDomainName,
 			"__vm.Gateway__", session.Caller.Network.Address,
 			"__corectl.Version__", Daemon.Meta.Version)
 		if cfgIn, err := config.ParseAsV2_0_0(
@@ -171,7 +115,7 @@ func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Write([]byte(append(i, '\n')))
 			if !isLoopback(remoteIP(r.RemoteAddr)) {
-				skyWrite(vm.Name, remoteIP(r.RemoteAddr))
+				Daemon.DNSServer.addRecord(vm.Name, remoteIP(r.RemoteAddr))
 			}
 		}
 	}

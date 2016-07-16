@@ -36,7 +36,8 @@ var (
 	ErrGRPCMemberBadURLs  = grpc.Errorf(codes.InvalidArgument, "etcdserver: given member URLs are invalid")
 	ErrGRPCMemberNotFound = grpc.Errorf(codes.NotFound, "etcdserver: member not found")
 
-	ErrGRPCRequestTooLarge = grpc.Errorf(codes.InvalidArgument, "etcdserver: request is too large")
+	ErrGRPCRequestTooLarge        = grpc.Errorf(codes.InvalidArgument, "etcdserver: request is too large")
+	ErrGRPCRequestTooManyRequests = grpc.Errorf(codes.ResourceExhausted, "etcdserver: too many requests")
 
 	ErrGRPCRootUserNotExist     = grpc.Errorf(codes.FailedPrecondition, "etcdserver: root user does not exist")
 	ErrGRPCRootRoleNotExist     = grpc.Errorf(codes.FailedPrecondition, "etcdserver: root user does not have root role")
@@ -45,7 +46,7 @@ var (
 	ErrGRPCRoleAlreadyExist     = grpc.Errorf(codes.FailedPrecondition, "etcdserver: role name already exists")
 	ErrGRPCRoleNotFound         = grpc.Errorf(codes.FailedPrecondition, "etcdserver: role name not found")
 	ErrGRPCAuthFailed           = grpc.Errorf(codes.InvalidArgument, "etcdserver: authentication failed, invalid user ID or password")
-	ErrGRPCPermissionDenied     = grpc.Errorf(codes.FailedPrecondition, "etcdserver: permission denied")
+	ErrGRPCPermissionDenied     = grpc.Errorf(codes.PermissionDenied, "etcdserver: permission denied")
 	ErrGRPCRoleNotGranted       = grpc.Errorf(codes.FailedPrecondition, "etcdserver: role is not granted to the user")
 	ErrGRPCPermissionNotGranted = grpc.Errorf(codes.FailedPrecondition, "etcdserver: permission is not granted to the role")
 	ErrGRPCAuthNotEnabled       = grpc.Errorf(codes.FailedPrecondition, "etcdserver: authentication is not enabled")
@@ -69,7 +70,8 @@ var (
 		grpc.ErrorDesc(ErrGRPCMemberBadURLs):  ErrGRPCMemberBadURLs,
 		grpc.ErrorDesc(ErrGRPCMemberNotFound): ErrGRPCMemberNotFound,
 
-		grpc.ErrorDesc(ErrGRPCRequestTooLarge): ErrGRPCRequestTooLarge,
+		grpc.ErrorDesc(ErrGRPCRequestTooLarge):        ErrGRPCRequestTooLarge,
+		grpc.ErrorDesc(ErrGRPCRequestTooManyRequests): ErrGRPCRequestTooManyRequests,
 
 		grpc.ErrorDesc(ErrGRPCRootUserNotExist):     ErrGRPCRootUserNotExist,
 		grpc.ErrorDesc(ErrGRPCRootRoleNotExist):     ErrGRPCRootRoleNotExist,
@@ -104,6 +106,7 @@ var (
 	ErrMemberNotFound = Error(ErrGRPCMemberNotFound)
 
 	ErrRequestTooLarge = Error(ErrGRPCRequestTooLarge)
+	ErrTooManyRequests = Error(ErrGRPCRequestTooManyRequests)
 
 	ErrRootUserNotExist     = Error(ErrGRPCRootUserNotExist)
 	ErrRootRoleNotExist     = Error(ErrGRPCRootRoleNotExist)

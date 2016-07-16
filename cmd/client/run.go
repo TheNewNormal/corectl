@@ -21,6 +21,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
@@ -73,18 +74,6 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 	var (
 		reply           = &server.RPCreply{}
 		HostPhysicalMem uint64
-		pSlice          = func(plain []string) []string {
-			// getting around https://github.com/spf13/viper/issues/112
-			var sliced []string
-			for _, x := range plain {
-				strip := strings.Replace(
-					strings.Replace(x, "]", "", -1), "[", "", -1)
-				for _, y := range strings.Split(strip, ",") {
-					sliced = append(sliced, y)
-				}
-			}
-			return sliced
-		}
 		// only thing we need from github.com shirou/gopsutil
 		getHwMemsize = func() (v uint64, err error) {
 			var tStr string
@@ -177,7 +166,8 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 		true); err != nil {
 		return
 	}
-	if err = vm.ValidateVolumes(pSlice(args.GetStringSlice("volume")),
+	if err = vm.ValidateVolumes(common.
+		ViperStringSliceBugWorkaround(args.GetStringSlice("volume")),
 		false); err != nil {
 		return
 	}

@@ -2,11 +2,8 @@
 .imdoneignore
 .vscode
 hyperkit
-corectld.nameserver
-etcdmain
 imgs
 *.img
 tmp.*
 bin/
-foo/
 *.tar.gz

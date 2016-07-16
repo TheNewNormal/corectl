@@ -20,6 +20,14 @@ Starts corectld
 
 .SH OPTIONS
 .PP
+\fB\-D\fP, \fB\-\-domain\fP="coreos.local"
+    sets the dns domain under which the created VMs will operate
+
+.PP
+\fB\-r\fP, \fB\-\-recursive\-nameservers\fP=[8.8.8.8:53,8.8.4.4:53]
+    coma separated list of the recursive nameservers to be used by the embedded dns server
+
+.PP
 \fB\-u\fP, \fB\-\-user\fP=""
     sets the user that will 'own' the corectld instance
 

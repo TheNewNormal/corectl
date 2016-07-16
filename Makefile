@@ -23,12 +23,6 @@ BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
 HYPERKIT_COMMIT = 1e4b9b8d252c2fb5eee39830591a819c490eaf5e
 
-SKYDNS_GIT = "https://github.com/skynetservices/skydns.git"
-SKYDNS_COMMIT = 00ade30
-
-ETCD_GIT = "https://github.com/coreos/etcd.git"
-ETCD_COMMIT = v3.0.2
-
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
 MV = /bin/mv
@@ -46,10 +40,6 @@ else
     GO_LDFLAGS := $(GO_LDFLAGS) -w -s
 endif
 
-ETCD_REPO = github.com/coreos/etcd
-ETCD_GO_LDFLAGS := $(GO_LDFLAGS) -X \
-	$(ETCD_REPO)/cmd/vendor/$(ETCD_REPO)/version.GitSHA=$(ETCD_COMMIT).corectld-$(VERSION)
-
 GO_LDFLAGS := $(GO_LDFLAGS) \
 	-X $(REPOSITORY)/release.Version=$(VERSION) \
 	-X $(REPOSITORY)/release.BuildDate=$(BUILDDATE)
@@ -59,7 +49,7 @@ default: documentation
 documentation: documentation/man documentation/markdown
 	-$(GIT) status
 
-all: clean Godeps hyperkit corectld.nameserver foo/src/github.com/coreos/etcd documentation
+all: clean Godeps hyperkit documentation
 
 cmd: cmd/client cmd/server
 
@@ -85,14 +75,12 @@ components/common/assets: force
 clean: components/common/assets
 	$(RM) $(BUILD_DIR)/*
 	$(RM) hyperkit
-	$(RM) foo
 	$(RM) documentation/
 	$(RM) $(PROG)-$(VERSION).tar.gz
 
 tarball: $(PROG)-$(VERSION).tar.gz
 
-$(PROG)-$(VERSION).tar.gz: documentation \
-		hyperkit corectld.nameserver foo/src/github.com/coreos/etcd
+$(PROG)-$(VERSION).tar.gz: documentation hyperkit
 	cd bin; tar cvzf ../$@ *
 
 release: force
@@ -101,6 +89,7 @@ release: force
 		--label "macOS unsigned blobs (built in $(MACOS))" \
 		--tag $(VERSION) --name "corectl-$(VERSION)-macOS-$(GOARCH).tar.gz" \
 		--file $(PROG)-$(VERSION).tar.gz
+
 update-godeps:
 	for x in $$($(GREP) ImportPath Godeps/Godeps.json | $(GREP) -v \
 		$(ORGANIZATION) | $(SED) -e "s,.*:,," -e "s|,||" -e "s|\"||g" ) ; \
@@ -109,11 +98,6 @@ update-godeps:
 Godeps: force
 	$(RM) $@
 	$(RM) vendor/
-	# XXX unlike as with etcd we cheat with skydns as upstream doesn't do any
-	# kind of vendoring
-	$(RM) corectld.nameserver
-	$(GIT) clone $(SKYDNS_GIT) corectld.nameserver
-	cd corectld.nameserver; $(GIT) checkout $(SKYDNS_COMMIT)
 	# XXX godep won't save this as a build dep run a runtime one so we cheat...
 	$(SED) -i.bak \
 		-e s"|github.com/helm/helm/log|github.com/shurcooL/vfsgen|" \
@@ -124,26 +108,7 @@ Godeps: force
 	$(CP) components/common/assets/assets.go.bak \
 		components/common/assets/assets.go
 	$(RM) components/common/assets/assets.go.bak
-	$(RM) corectld.nameserver
 	-$(GIT) status
-
-corectld.nameserver: force
-	$(RM) corectld.nameserver
-	$(GIT) clone $(SKYDNS_GIT) corectld.nameserver
-	cd $@; $(GIT) checkout $(SKYDNS_COMMIT) ;\
-		$(GOBUILD) -o $(BUILD_DIR)/$@
-
-foo/src/$(ETCD_REPO): force
-	$(RM) $@
-	$(MKDIR) $@/..
-	cd $@/..; $(GIT) clone $(ETCD_GIT)
-	cd $@; $(GIT) checkout $(ETCD_COMMIT);
-	cd $@/cmd; \
-		GOPATH=$(shell cd ../../../.. ; pwd):$(shell echo \
-			$$(pwd)/Godeps/_workspace) GO15VENDOREXPERIMENT=$(GO15VENDOREXPERIMENT) \
-			GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=$(CGO_ENABLED) \
-			godep go build -o $(BUILD_DIR)/$(DAEMON).store \
-			-ldflags "$(ETCD_GO_LDFLAGS)"
 
 hyperkit: force
 	# - ocaml stack

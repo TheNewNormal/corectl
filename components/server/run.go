@@ -363,7 +363,7 @@ func (vm *VMInfo) deregister() {
 	if vm.Name != vm.UUID {
 		str = fmt.Sprintf("'%v' (%v)", vm.Name, vm.UUID)
 	}
-	skyWipe(vm.Name, vm.PublicIP)
+	Daemon.DNSServer.rmRecord(vm.Name, vm.PublicIP)
 	log.Info("unregistered %s as it's gone", str)
 	delete(Daemon.Active, vm.UUID)
 
@@ -371,6 +371,7 @@ func (vm *VMInfo) deregister() {
 func (vm *VMInfo) RunDir() string {
 	return filepath.Join(session.Caller.RunDir(), vm.UUID)
 }
+
 func (vm *VMInfo) MkRunDir() error {
 	rundir := vm.RunDir()
 	if _, e := os.Stat(rundir); e == nil {
@@ -380,9 +381,11 @@ func (vm *VMInfo) MkRunDir() error {
 	log.Info("creating %v", rundir)
 	return os.MkdirAll(rundir, 0755)
 }
+
 func (vm *VMInfo) Log() string {
 	return filepath.Join(vm.RunDir(), "log")
 }
+
 func (vm *VMInfo) TTY() string {
 	return filepath.Join(vm.RunDir(), "tty")
 }

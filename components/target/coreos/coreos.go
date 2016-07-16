@@ -34,9 +34,8 @@ var (
 	GPGLongID            = "50E0885593D2DCB4"
 	GPGKey               = assets.Contents("target/coreos/CoreOSkey.public")
 	CoreOEMsharedHomedir = assets.Contents("target/coreos/homedir.yml.tmpl")
-	CoreOSIgnitionTmpl   = assets.Contents("target/coreos/corectl.ignition.yml.tmpl")
-
-	LocalDomainName = "coreos.local"
+	CoreOSIgnitionTmpl   = assets.
+				Contents("target/coreos/corectl.ignition.yml.tmpl")
 )
 
 func LatestImageBreackage() (t time.Time) {

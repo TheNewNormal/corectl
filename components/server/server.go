@@ -19,24 +19,18 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
-	"path"
-	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/components/target/coreos"
 	"github.com/TheNewNormal/corectl/release"
 	"github.com/blang/semver"
 	"github.com/braintree/manners"
 	"github.com/coreos/etcd/client"
 	"github.com/helm/helm/log"
-	"github.com/keybase/go-ps"
 )
 
 type (
@@ -45,11 +39,13 @@ type (
 
 	// Config ...
 	ServerContext struct {
-		DataStore         client.KeysAPI
 		Meta              *release.Info
 		Media             MediaAssets
 		Active            map[string]*VMInfo
 		APIserver         *manners.GracefulServer
+		EtcdServer        *EtcdServer
+		EtcdClient        client.KeysAPI
+		DNSServer         *DNSServer
 		Jobs              sync.WaitGroup
 		AcceptingRequests bool
 		Oops              chan error
@@ -62,109 +58,42 @@ var Daemon *ServerContext
 // New ...
 func New() (cfg *ServerContext) {
 	return &ServerContext{
-		DataStore:         nil,
 		Meta:              session.Caller.Meta,
-		Media:             nil,
-		Active:            nil,
-		APIserver:         nil,
 		Jobs:              sync.WaitGroup{},
 		AcceptingRequests: true,
 		Oops:              make(chan error, 1),
+		Active:            make(map[string]*VMInfo),
 	}
 }
 
 // Start server...
 func Start() (err error) {
-	var (
-		etcd, skydns *exec.Cmd
-		etcdc        client.Client
-	)
 	// var  closeVPNhooks func()
 	if !session.Caller.Privileged {
 		return fmt.Errorf("not enough previleges to start server. " +
 			"please use 'sudo'")
 	}
 
-	etcd = exec.Command(path.Join(session.ExecutableFolder(), "corectld.store"),
-		"-data-dir="+session.Caller.EtcDir(),
-		"-name=corectld."+coreos.LocalDomainName,
-		"--listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001",
-		"--advertise-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001")
-	if log.IsDebugging {
-		etcd.Stdout = os.Stdout
-		etcd.Stderr = os.Stderr
-	}
-
-	etcdS := client.Config{
-		Endpoints:               []string{"http://127.0.0.1:2379"},
-		Transport:               client.DefaultTransport,
-		HeaderTimeoutPerRequest: 1 * time.Second,
-	}
-	if etcdc, err = client.New(etcdS); err != nil {
+	if err = Daemon.NewEtcd(EtcdClientURLs, EtcdPeerURLs,
+		"corectld."+LocalDomainName, session.Caller.EtcDir()); err != nil {
 		return
 	}
-	Daemon.DataStore = client.NewKeysAPI(etcdc)
+	defer Daemon.EtcdServer.Stop()
 
-	if err = killIfRunning("corectld.store"); err != nil {
-		return
-	}
-	if isPortOpen("tcp", "127.0.0.1:2379") {
-		return fmt.Errorf("Unable to start embedded etcd (corectld.store) " +
-			"as something else seems to be already binding port :2379")
-	}
-	log.Info("starting embedded etcd")
-	if err = etcd.Start(); err != nil {
-		log.Err(err.Error())
-		return
-	}
-
-	defer func() {
-		etcd.Process.Signal(syscall.SIGTERM)
-	}()
-	select {
-	case <-time.After(3 * time.Second):
-		return fmt.Errorf("Unable to establish a meaningfull " +
-			"conversation with our embedded etcd after 3 seconds...")
-	case <-time.Tick(250 * time.Millisecond):
-		if !isPortOpen("tcp", "127.0.0.1:2379") {
-			break
-		}
-	}
-	log.Info("embedded etcd is ready")
 	// we don't want skydns' data to persist at all across sessions
-	Daemon.DataStore.Delete(context.Background(), "/skydns",
+	Daemon.EtcdClient.Delete(context.Background(), "/skydns",
 		&client.DeleteOptions{Dir: true, Recursive: true})
 
-	dnsArgs := []string{"-nameservers=8.8.8.8:53,8.8.4.4:53",
-		"-domain=" + coreos.LocalDomainName,
-		"-addr=0.0.0.0:53"}
-	if log.IsDebugging {
-		dnsArgs = append(dnsArgs, "-verbose")
-	}
-	skydns = exec.Command(path.
-		Join(session.ExecutableFolder(), "corectld.nameserver"),
-		dnsArgs...,
-	)
-	if err = killIfRunning("corectld.nameserver"); err != nil {
-		return
-	}
-	if isPortOpen("tcp", "127.0.0.1:53") {
+	if isPortOpen("tcp", ":53") {
 		return fmt.Errorf("Unable to start embedded skydns " +
-			"(corectld.nameserver) as something else seems to be already " +
-			"binding port :53")
+			"as something else seems to be already binding hosts' port :53")
 	}
 	log.Info("starting embedded name server")
-	if err = skydns.Start(); err != nil {
+	if err = Daemon.NewDNSServer(LocalDomainName, ":53",
+		RecursiveNameServers); err != nil {
 		return
 	}
-	// register our host
-	if err = skyWrite("corectld", session.Caller.Network.Address); err != nil {
-		return
-	}
-	defer func() {
-		skyWipe("corectld", session.Caller.Network.Address)
-		skydns.Process.Signal(syscall.SIGTERM)
-	}()
+	defer Daemon.DNSServer.Stop()
 
 	log.Info("checking nfs host settings")
 	if err = nfsSetup(); err != nil {
@@ -208,28 +137,6 @@ func Start() (err error) {
 		Daemon.Oops <- nil
 	}()
 
-	go func() {
-		etcd.Wait()
-		Daemon.Lock()
-		v := Daemon.AcceptingRequests
-		Daemon.Unlock()
-		if v {
-			// ended too early
-			Daemon.Oops <- fmt.Errorf("corectld.store (etcd) ended " +
-				"abnormaly. Shutting down")
-		}
-	}()
-	go func() {
-		skydns.Wait()
-		Daemon.Lock()
-		v := Daemon.AcceptingRequests
-		Daemon.Unlock()
-		if v {
-			// ended too early
-			Daemon.Oops <- fmt.Errorf("corectld.nameserver (skydns) " +
-				"ended abnormaly. Shutting down")
-		}
-	}()
 	select {
 	case err = <-Daemon.Oops:
 		Daemon.Lock()
@@ -249,25 +156,5 @@ func Start() (err error) {
 	Daemon.Jobs.Wait()
 	Daemon.APIserver.Close()
 	log.Info("gone!")
-	return
-}
-
-func killIfRunning(blob string) (err error) {
-	var p *os.Process
-	all, _ := ps.Processes()
-	for _, r := range all {
-		if strings.HasSuffix(r.Executable(), blob) {
-			if p, err = os.FindProcess(r.Pid()); err == nil {
-				log.Warn("A stalled copy of '%v' was "+
-					"found running. Killing it.", blob)
-				if err = p.Kill(); err != nil {
-					return
-				}
-				// so that binded port(s) gets actually freed
-				// XXX find a more idiomatic way
-				time.Sleep(150 * time.Millisecond)
-			}
-		}
-	}
 	return
 }

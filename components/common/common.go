@@ -137,6 +137,19 @@ func STARTup(r *cobra.Command) (err error) {
 	return r.Execute()
 }
 
+func ViperStringSliceBugWorkaround(plain []string) []string {
+	// getting around https://github.com/spf13/viper/issues/112
+	var sliced []string
+	for _, x := range plain {
+		strip := strings.Replace(
+			strings.Replace(x, "]", "", -1), "[", "", -1)
+		for _, y := range strings.Split(strip, ",") {
+			sliced = append(sliced, y)
+		}
+	}
+	return sliced
+}
+
 func InitTmpl(rootCmd *cobra.Command) {
 	rootCmd.SetUsageTemplate(assets.Contents("cli/helpTemplate.tmpl"))
 	rootCmd.PersistentFlags().BoolP("debug", "d", false,

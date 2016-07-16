@@ -14,7 +14,9 @@ corectld start
 ### Options
 
 ```
-  -u, --user string   sets the user that will 'own' the corectld instance
+  -D, --domain string                 sets the dns domain under which the created VMs will operate (default "coreos.local")
+  -r, --recursive-nameservers value   coma separated list of the recursive nameservers to be used by the embedded dns server (default [8.8.8.8:53,8.8.4.4:53])
+  -u, --user string                   sets the user that will 'own' the corectld instance
 ```
 
 ### Options inherited from parent commands

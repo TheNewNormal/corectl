@@ -17,6 +17,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/darwin/misc/uuid2ip"
@@ -82,7 +83,11 @@ func shutdownCommand(cmd *cobra.Command, args []string) (err error) {
 }
 
 func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
-	var srv *release.Info
+	var (
+		srv    *release.Info
+		cli    = session.Caller.CmdLine
+		bugfix = common.ViperStringSliceBugWorkaround
+	)
 
 	if srv, err = server.Daemon.Running(); err == nil {
 		return fmt.Errorf("corectld already started (with pid %v)",
@@ -91,8 +96,11 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 
 	if !session.Caller.Privileged {
 		if err = mack.Tell("System Events",
-			"do shell script \""+
-				session.Executable()+" start --user "+session.Caller.Username+
+			"do shell script \""+session.Executable()+" start "+
+				" -u "+session.Caller.Username+
+				" -D "+cli.GetString("domain")+
+				" -r "+strings.Join(bugfix(
+				cli.GetStringSlice("recursive-nameservers")), ",")+
 				" > /dev/null 2>&1 & \" with administrator privileges",
 			"delay 3"); err != nil {
 			return
@@ -104,8 +112,10 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 		srv.PrettyPrint(true)
 		return
 	}
+	server.LocalDomainName = cli.GetString("domain")
+	server.RecursiveNameServers =
+		bugfix(cli.GetStringSlice("recursive-nameservers"))
 	server.Daemon = server.New()
-	server.Daemon.Active = make(map[string]*server.VMInfo)
 
 	return server.Start()
 }
@@ -113,6 +123,11 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 func init() {
 	serverStartCmd.Flags().StringP("user", "u", "",
 		"sets the user that will 'own' the corectld instance")
+	serverStartCmd.Flags().StringP("domain", "D", server.LocalDomainName,
+		"sets the dns domain under which the created VMs will operate")
+	serverStartCmd.Flags().StringSliceP("recursive-nameservers", "r",
+		server.RecursiveNameServers, "coma separated list of the recursive "+
+			"nameservers to be used by the embedded dns server")
 	rootCmd.AddCommand(shutdownCmd, statusCmd,
 		serverStartCmd, uuidToMacCmd)
 }
