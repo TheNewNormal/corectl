@@ -2,6 +2,7 @@
 .imdoneignore
 .vscode
 hyperkit
+qcow-tool
 imgs
 *.img
 tmp.*

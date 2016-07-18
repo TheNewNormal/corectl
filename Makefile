@@ -22,6 +22,8 @@ BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
 HYPERKIT_COMMIT = 1e4b9b8d252c2fb5eee39830591a819c490eaf5e
+QCOWTOOL_GIT = "https://github.com/mirage/ocaml-qcow.git"
+QCOWTOOL_COMMIT = 96db516
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
@@ -74,13 +76,13 @@ components/common/assets: force
 
 clean: components/common/assets
 	$(RM) $(BUILD_DIR)/*
-	$(RM) hyperkit
+	$(RM) hyperkit qcow-tool
 	$(RM) documentation/
 	$(RM) $(PROG)-$(VERSION).tar.gz
 
 tarball: $(PROG)-$(VERSION).tar.gz
 
-$(PROG)-$(VERSION).tar.gz: documentation hyperkit
+$(PROG)-$(VERSION).tar.gz: documentation hyperkit qcow-tool
 	cd bin; tar cvzf ../$@ *
 
 release: force
@@ -139,6 +141,17 @@ hyperkit: force
 		$(SED) -i.bak -e "s,com.docker.hyperkit,corectld.runner,g" dtrace/*.d; \
 		$(RM) dtrace/*.bak ; \
 		$(CP) -r dtrace ../examples
+
+qcow-tool: force
+	$(RM) $@
+	$(GIT) clone $(QCOWTOOL_GIT) qcow-tool;
+	cd $@; \
+		$(GIT) checkout $(QCOWTOOL_COMMIT); \
+		$(MKDIR) bin; \
+		$(shell opam config env) PREFIX=$$(pwd) NAME=$@ $(MAKE);\
+		$(shell opam config env) PREFIX=$$(pwd) NAME=$@ \
+			$(MAKE) reinstall
+	$(CP) $@/bin/$@ $(BUILD_DIR)/$@
 
 documentation/man: cmd force
 	$(MKDIR) $@

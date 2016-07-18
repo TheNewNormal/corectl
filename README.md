@@ -138,19 +138,21 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
 ## simple usage recipe: a **docker** and **rkt** playground
 
 ### create a volume to store your persistent data
-  > the step bellow requires `qemu-img`to be present in you macOS host
-  > one way to achieve that is having it installed through
-  > [homebrew's](http://brew.sh) by issuing `❯❯❯ brew install qemu`
+  > [`qcow-tool`](https://github.com/mirage/ocaml-qcow), that we use bellow, is
+  > shipped together with **corectl** and creates qcow2 images.
+  >
+  > Please do note that the `--size` argument
+  > **must** to be suffixed the _right_ way - `KiB`/`MiB`/`GiB`/`TiB`/`PiB`
+
   ```
-  ❯❯❯ qemu-img create -f qcow2 var_lib_docker.img.qcow2 16G
+  ❯❯❯ qcow-tool create --size=16GiB var_lib_docker.img.qcow2
   ```
-  > will become `/var/lib/{docker|rkt}`. in this example case we created a
+  > will become `/var/lib/{docker|rkt}`. In this example case we created a
   > **QCow2** volume with 16GB.
 
-  **Raw** volumes were the default until version
-  **[0.7.12](https://github.com/TheNewNormal/corectl/releases/tag/v0.7.12)**.
-  They are still supported but become a deprecated feature that may disappear
-  some point in the future.
+| a quick note regarding Raw volumes  |
+| -- |
+| **Raw** volumes were the default until version **[0.7.12](https://github.com/TheNewNormal/corectl/releases/tag/v0.7.12)**. <br> They are still supported but become a deprecated feature that may disappear some point in the future. |
 
 ### *format* and label it
   > we'll format and label the newly create volume from within a transient VM
