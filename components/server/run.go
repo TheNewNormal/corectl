@@ -66,8 +66,8 @@ type (
 	}
 	// StorageDevice ...
 	StorageDevice struct {
-		Slot       int
-		Type, Path string
+		Slot, Format int
+		Type, Path   string
 	}
 	// StorageAssets ...
 	StorageAssets struct {
@@ -78,13 +78,12 @@ type (
 const (
 	_ = iota
 	Raw
+	Qcow2
 	Tap
-	HDD      = "HDD"
-	CDROM    = "CDROM"
-	Local    = "localfs"
-	Remote   = "URL"
-	Attached = true
-	Detached = false
+	HDD    = "HDD"
+	CDROM  = "CDROM"
+	Local  = "localfs"
+	Remote = "URL"
 )
 
 var ServerTimeout = 25 * time.Second
@@ -114,7 +113,11 @@ func (vm *VMInfo) ValidateCDROM(path string) (err error) {
 
 // ValidateVolumes ...
 func (vm *VMInfo) ValidateVolumes(volumes []string, root bool) (err error) {
-	var abs string
+	var (
+		abs    string
+		fh     *os.File
+		format = Qcow2
+	)
 
 	for _, j := range volumes {
 		if j != "" {
@@ -124,9 +127,26 @@ func (vm *VMInfo) ValidateVolumes(volumes []string, root bool) (err error) {
 			if abs, err = filepath.Abs(j); err != nil {
 				return
 			}
-			if !strings.HasSuffix(j, ".img") {
-				return fmt.Errorf("Aborting: --volume payload MUST end"+
-					" in '.img' ('%s' doesn't)", j)
+			if fh, err = os.Open(j); err != nil {
+				return
+			}
+			defer fh.Close()
+			if err = ValidateQcow2(fh); err != nil {
+				if err != ErrFileIsNotQCOW2 {
+					return
+				}
+				log.Warn("using Raw formated volumes is a deprecated feature " +
+					"that may become unsupported in the future. Please " +
+					"consider moving to QCOW2 ones")
+				format = Raw
+				err = nil
+			}
+			if format == Raw {
+				// to be consistent with previous behaviour
+				if !strings.HasSuffix(j, ".img") {
+					return fmt.Errorf("Aborting: --volume payload MUST end"+
+						" in '.img' ('%s' doesn't)", j)
+				}
 			}
 			// check atomicity
 			reply := &RPCreply{}
@@ -157,7 +177,7 @@ func (vm *VMInfo) ValidateVolumes(volumes []string, root bool) (err error) {
 				}
 			}
 			vm.Storage.HardDrives[strconv.Itoa(slot)] =
-				StorageDevice{Type: HDD, Slot: slot, Path: abs}
+				StorageDevice{Type: HDD, Format: format, Slot: slot, Path: abs}
 			if root {
 				vm.Root = slot
 			}
@@ -295,8 +315,15 @@ func (vm *VMInfo) assembleBootPayload() (xArgs []string, err error) {
 	}
 
 	for _, v := range vm.Storage.HardDrives {
-		instr = append(instr, "-s", fmt.Sprintf("4:%d,virtio-blk,%s",
-			v.Slot, v.Path))
+		switch v.Format {
+		case Raw:
+			instr = append(instr, "-s", fmt.Sprintf("4:%d,virtio-blk,%s",
+				v.Slot, v.Path))
+		case Qcow2:
+			instr = append(instr, "-s",
+				fmt.Sprintf("4:%d,virtio-blk,file://%s,format=qcow",
+					v.Slot, v.Path))
+		}
 	}
 
 	return []string{strings.Join(instr, " "),
@@ -412,11 +439,17 @@ func (volumes *StorageAssets) PrettyPrint(root int) {
 			fmt.Printf("   /dev/cdrom%v\t%s\n", a, b.Path)
 		}
 		for a, b := range volumes.HardDrives {
+			format := "raw"
 			i, _ := strconv.Atoi(a)
+			if b.Format == Qcow2 {
+				format = "qcow2"
+			}
 			if i != root {
-				fmt.Printf("   /dev/vd%v\t%s\n", string(i+'a'), b.Path)
+				fmt.Printf("   /dev/vd%v\t%s,format=%s\n", string(i+'a'),
+					b.Path, format)
 			} else {
-				fmt.Printf("   /,/dev/vd%v\t%s\n", string(i+'a'), b.Path)
+				fmt.Printf("   /,/dev/vd%v\t%s,format=%s\n", string(i+'a'),
+					b.Path, format)
 			}
 		}
 	}

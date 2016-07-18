@@ -138,28 +138,33 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
 ## simple usage recipe: a **docker** and **rkt** playground
 
 ### create a volume to store your persistent data
+  > the step bellow requires `qemu-img`to be present in you macOS host
+  > one way to achieve that is having it installed through
+  > [homebrew's](http://brew.sh) by issuing `❯❯❯ brew install qemu`
+  ```
+  ❯❯❯ qemu-img create -f qcow2 var_lib_docker.img.qcow2 16G
+  ```
+  > will become `/var/lib/{docker|rkt}`. in this example case we created a
+  > **QCow2** volume with 16GB.
+
+  **Raw** volumes were the default until version
+  **[0.7.12](https://github.com/TheNewNormal/corectl/releases/tag/v0.7.12)**.
+  They are still supported but become a deprecated feature that may disappear
+  some point in the future.
+
+### *format* and label it
+  > we'll format and label the newly create volume from within a transient VM
+  > as it's the simplest way. We're formatting it with `ext4` but you can choose
+  > any filesystem you like assuming it is a CoreOS supported one.
 
   ```
-  ❯❯❯ dd if=/dev/zero of=var_lib_docker.img  bs=1G count=16
+  ❯❯❯ corectl run  --name foo --volume=var_lib_docker.img.qcow2
+  ❯❯❯ corectl ssh foo "sudo mke2fs -b 1024 -i 1024 -t ext4 -m0 /dev/vda && \
+        sudo e2label /dev/vda rkthdd "
+  ❯❯❯ corectl halt foo
   ```
-> will become  `/var/lib/{docker|rkt}`. in this example case we created a volume
-> with 16GB.
 
-### *format* it
-
-  ```
-  ❯❯❯ /usr/local/Cellar/e2fsprogs/1.42.12/sbin/mke2fs -b 1024 -i 1024 -t ext4 -m0 -F var_lib_docker.img
-  ```
-  > requires [homebrew's](http://brew.sh) e2fsprogs package installed.
-  >
-  > `❯❯❯ brew install e2fsprogs`
-
-### *label* it
-
-  ```
-  ❯❯❯ /usr/local/Cellar/e2fsprogs/1.42.12/sbin/e2label var_lib_docker.img rkthdd
-  ```
-  here, we labeled our volume `rkthdd` which is the *signature* that our
+  above, we labeled our volume `rkthdd` which is the *signature* that our
   [*recipe*](cloud-init/docker-only-with-persistent-storage.txt) expects.
 
   >by relying in *labels* for volume identification we get around the issues we'd
