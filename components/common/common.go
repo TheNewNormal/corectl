@@ -35,8 +35,8 @@ var RootCmdTmpl = &cobra.Command{
 	Use:   session.AppName(),
 	Short: release.ShortBanner,
 	Long:  release.Banner,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Help()
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.UsageFunc()(cmd)
 	},
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -160,7 +160,7 @@ func InitTmpl(rootCmd *cobra.Command) {
 			Use:   "utils",
 			Short: "Some developer focused utilies",
 			Run: func(cmd *cobra.Command, args []string) {
-				cmd.Help()
+				cmd.UsageFunc()(cmd)
 			},
 			Hidden: true,
 		}
