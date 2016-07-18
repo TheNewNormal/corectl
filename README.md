@@ -1,18 +1,9 @@
 # CoreOS _over_ macOS made simple
 
-**read this first**
------------
- > - You **must** be running macOS Yosemite, 10.10.3, or later on a 2010,
- >   or later, Macintosh (i.e. one with a CPU that supports EPT) for everything
- >   to work.
- > - if you are still using **any** version of VirtualBox older than
- >   4.3.30 then **corectl** will **crash** your system either if VirtualBox is
- >   running, or had been run previously after the last reboot (see **xhyve**'s
- >   issues [#5](https://github.com/mist64/xhyve/issues/5) and
- >   [#9](https://github.com/mist64/xhyve/issues/9) for the full context). So,
- >   if for some reason, you are unable to update VirtualBox to the latest,
- >   either of the 4.x or 5.x streams, and were using it in your current session
- >   please make sure to restart your Mac before attempting to run **corectl**.
+| read this first | 
+| :----------- | 
+|  - You **must** be running macOS Yosemite, 10.10.3, or later on a 2010, or later, Macintosh (i.e. one with a CPU that supports EPT) for everything to work. | 
+|  - if you are still using **any** version of VirtualBox older tham 4.3.30 then **corectl** will **crash** your system either if VirtualBox is running, or had been run previously after the last reboot (see **xhyve**'s issues [#5](https://github.com/mist64/xhyve/issues/5) and [#9](https://github.com/mist64/xhyve/issues/9) for the full context). So, if for some reason, you are unable to update VirtualBox to the latest, either of the 4.x or 5.x streams, and were using it in your current session please make sure to restart your Mac before attempting to run **corectl**. | 
 
 
 # step by step instructions
@@ -150,9 +141,9 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
   > will become `/var/lib/{docker|rkt}`. In this example case we created a
   > **QCow2** volume with 16GB.
 
-| a quick note regarding Raw volumes  |
-| -- |
-| **Raw** volumes were the default until version **[0.7.12](https://github.com/TheNewNormal/corectl/releases/tag/v0.7.12)**. <br> They are still supported but become a deprecated feature that may disappear some point in the future. |
+| a quick note regarding Raw volumes | 
+| :--------- | 
+| **Raw** volumes were the default until version **[0.7.12](https://github.com/TheNewNormal/corectl/releases/tag/v0.7.12)**. <br> They are still supported but become a deprecated feature that may disappear some point in the future. | 
 
 ### *format* and label it
   > we'll format and label the newly create volume from within a transient VM
