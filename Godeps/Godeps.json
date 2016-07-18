@@ -468,6 +468,10 @@
 			"Rev": "b94837a2404ab90efe9289e77a70694c355739cb"
 		},
 		{
+			"ImportPath": "github.com/vbatts/qcow2",
+			"Rev": "cbec6a0f73bd869d047ef2fdf6afa464df574d23"
+		},
+		{
 			"ImportPath": "github.com/vincent-petithory/dataurl",
 			"Rev": "9a301d65acbb728fcc3ace14f45f511a4cfeea9c"
 		},
