@@ -20,10 +20,9 @@ GOBUILD = $(GODEP) go build
 VERSION := $(shell git describe --abbrev=6 --dirty=+untagged --always --tags)
 BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
+OPAMROOT ?= ~/.opam
 HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
 HYPERKIT_COMMIT = 1e4b9b8d252c2fb5eee39830591a819c490eaf5e
-QCOWTOOL_GIT = "https://github.com/mirage/ocaml-qcow.git"
-QCOWTOOL_COMMIT = 96db516
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
@@ -143,15 +142,8 @@ hyperkit: force
 		$(CP) -r dtrace ../examples
 
 qcow-tool: force
-	$(RM) $@
-	$(GIT) clone $(QCOWTOOL_GIT) qcow-tool;
-	cd $@; \
-		$(GIT) checkout $(QCOWTOOL_COMMIT); \
-		$(MKDIR) bin; \
-		$(shell opam config env) PREFIX=$$(pwd) NAME=$@ $(MAKE);\
-		$(shell opam config env) PREFIX=$$(pwd) NAME=$@ \
-			$(MAKE) reinstall
-	$(CP) $@/bin/$@ $(BUILD_DIR)/$@
+	$(RM) $(BUILD_DIR)/$@
+	$(CP) $(OPAMROOT)/system/bin/$@ $(BUILD_DIR)/$@
 
 documentation/man: cmd force
 	$(MKDIR) $@
