@@ -57,6 +57,7 @@ type (
 		done                     chan struct{}
 		exec                     *exec.Cmd
 		isolationCheck, callBack sync.Once
+		cloudConfigContents      []byte
 	}
 	// NetworkInterface ...
 	NetworkInterface struct {

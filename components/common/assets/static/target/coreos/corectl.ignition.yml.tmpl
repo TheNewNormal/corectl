@@ -75,30 +75,46 @@ systemd:
       ExecStart=/bin/bash -c "/usr/bin/hostnamectl set-hostname __vm.Name__ "
       [Install]
       WantedBy=basic.target
-  - name: phone-home.service
+  - name: setEnv.service
     enable: true
     contents: |
       [Unit]
-      Description=Tell corectld that this machine is online.
+      Description=Setups /etc/environment
+      Requires=system-config.target
+      Before=system-config.target
       [Service]
       Type=oneshot
       RemainAfterExit=yes
       StandardOutput=journal+console
       ExecStart=/bin/bash -c "\
         /home/core/bin/find-ip4.sh eth0 /etc/environment COREOS_PRIVATE_IPV4 &&\
-        /home/core/bin/find-ip4.sh eth0 /etc/environment COREOS_PUBLIC_IPV4 &&\
+        /home/core/bin/find-ip4.sh eth0 /etc/environment COREOS_PUBLIC_IPV4"
+      [Install]
+      RequiredBy=system-config.target
+  - name: phone-home.service
+    enable: true
+    contents: |
+      [Unit]
+      Description=Tells corectld that machine got up
+      Requires=setEnv.service
+      After=setEnv.service
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      StandardOutput=journal+console
+      ExecStart=/bin/bash -c " \
         [[ $$(</proc/cmdline) =~ corectl.endpoint=([^\\ ]+) ]] && \
         curl -Ls $${BASH_REMATCH[1]}/ping "
       [Install]
-      WantedBy=network.target
+      RequiredBy=setEnv.service
   - name: corectl-host-homedir-sharing.service
     enable: true
     contents: |
       [Unit]
       Description=Mounts host's caller homedir via NFS
       ConditionKernelCommandLine=corectl.sharedhomedir=true
-      Requires=phone-home.service
-      After=phone-home.service
+      Requires=setEnv.service
+      After=setEnv.service
       [Service]
       Type=oneshot
       RemainAfterExit=yes
@@ -112,8 +128,8 @@ systemd:
     contents: |
       [Unit]
       Description=Check that VM actually has a path the the outter world
-      Requires=phone-home.service
-      After=phone-home.service
+      Requires=system-config.target
+      After=system-config.target
       [Service]
       Type=oneshot
       RemainAfterExit=yes
@@ -123,4 +139,4 @@ systemd:
         [[ $$(</proc/cmdline) =~ corectl.endpoint=([^\\ ]+) ]] && \
         curl -Ls $${BASH_REMATCH[1]}/NotIsolated "
       [Install]
-      RequiredBy=phone-home.service
+      RequiredBy=system-config.target

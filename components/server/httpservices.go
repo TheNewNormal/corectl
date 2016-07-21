@@ -80,11 +80,11 @@ func httpInstanceCloudConfig(w http.ResponseWriter, r *http.Request) {
 		vm := Daemon.Active[mux.Vars(r)["uuid"]]
 		if vm.CloudConfig == "" || vm.CClocation != Local {
 			httpError(w, http.StatusPreconditionFailed)
-		} else if t, err := ioutil.ReadFile(vm.CloudConfig); err != nil {
+		} else if vm.cloudConfigContents == nil {
 			httpError(w, http.StatusInternalServerError)
 		} else {
 			vars := strings.NewReplacer("__vm.Name__", vm.Name)
-			w.Write([]byte(vars.Replace(string(t))))
+			w.Write([]byte(vars.Replace(string(vm.cloudConfigContents))))
 		}
 	}
 }
@@ -107,6 +107,9 @@ func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 			"__vm.DomainName__", LocalDomainName,
 			"__vm.Gateway__", session.Caller.Network.Address,
 			"__corectl.Version__", Daemon.Meta.Version)
+		if vm.CloudConfig != "" && vm.CClocation == Local {
+			vm.cloudConfigContents, _ = ioutil.ReadFile(vm.CloudConfig)
+		}
 		if cfgIn, err := config.ParseAsV2_0_0(
 			[]byte(mods.Replace(coreos.CoreOSIgnitionTmpl))); err != nil {
 			httpError(w, http.StatusInternalServerError)
