@@ -172,16 +172,7 @@ func (sws *serverWatchStream) recvLoop() error {
 				// support  >= key queries
 				creq.RangeEnd = []byte{}
 			}
-			filters := make([]mvcc.FilterFunc, 0, len(creq.Filters))
-			for _, ft := range creq.Filters {
-				switch ft {
-				case pb.WatchCreateRequest_NOPUT:
-					filters = append(filters, filterNoPut)
-				case pb.WatchCreateRequest_NODELETE:
-					filters = append(filters, filterNoDelete)
-				default:
-				}
-			}
+			filters := FiltersFromRequest(creq)
 
 			wsrev := sws.watchStream.Rev()
 			rev := creq.StartRevision
@@ -304,7 +295,8 @@ func (sws *serverWatchStream) sendLoop() {
 			}
 
 			sws.mu.Lock()
-			if _, ok := sws.progress[wresp.WatchID]; ok {
+			if len(evs) > 0 && sws.progress[wresp.WatchID] {
+				// elide next progress update if sent a key update
 				sws.progress[wresp.WatchID] = false
 			}
 			sws.mu.Unlock()
@@ -371,4 +363,18 @@ func filterNoDelete(e mvccpb.Event) bool {
 
 func filterNoPut(e mvccpb.Event) bool {
 	return e.Type == mvccpb.PUT
+}
+
+func FiltersFromRequest(creq *pb.WatchCreateRequest) []mvcc.FilterFunc {
+	filters := make([]mvcc.FilterFunc, 0, len(creq.Filters))
+	for _, ft := range creq.Filters {
+		switch ft {
+		case pb.WatchCreateRequest_NOPUT:
+			filters = append(filters, filterNoPut)
+		case pb.WatchCreateRequest_NODELETE:
+			filters = append(filters, filterNoDelete)
+		default:
+		}
+	}
+	return filters
 }
