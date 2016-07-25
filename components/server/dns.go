@@ -28,7 +28,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/miekg/dns"
 	backendetcd "github.com/skynetservices/skydns/backends/etcd"
 	skymetrics "github.com/skynetservices/skydns/metrics"
 	skydns "github.com/skynetservices/skydns/server"
@@ -128,37 +127,31 @@ func invertDomain(in string) (out string) {
 }
 
 func (d *DNSServer) addRecord(hostName string, ip string) (err error) {
-	var r string
-	path := fmt.Sprintf("/skydns/%s/%s", invertDomain(LocalDomainName),
-		strings.Replace(hostName, ".", "/", -1))
+	fqdn := fmt.Sprintf("%s.%s", hostName, LocalDomainName)
+	path := fmt.Sprintf("/skydns/%s",
+		strings.Replace(invertDomain(fqdn), ".", "/", -1))
 
 	if _, err = Daemon.EtcdClient.Set(context.Background(), path,
 		"{\"host\":\""+ip+"\"}", nil); err != nil {
 		return
 	}
 	// reverse
-	hostName = hostName + "." + LocalDomainName
-	if r, err = dns.ReverseAddr(ip); err != nil {
-		return
-	}
 	_, err = Daemon.EtcdClient.Set(context.Background(),
-		"/skydns/"+r, "{\"host\":\""+hostName+"\"}", nil)
+		"/skydns/arpa/in-addr/"+strings.Replace(ip, ".", "/", -1),
+		"{\"host\":\""+fqdn+"\"}", nil)
 	return
 }
+
 func (d *DNSServer) rmRecord(hostName string, ip string) (err error) {
-	var r string
-	path := fmt.Sprintf("/skydns/%s/%s", invertDomain(LocalDomainName),
-		strings.Replace(hostName, ".", "/", -1))
+	fqdn := fmt.Sprintf("%s.%s", hostName, LocalDomainName)
+	path := fmt.Sprintf("/skydns/%s",
+		strings.Replace(invertDomain(fqdn), ".", "/", -1))
 	if _, err =
 		Daemon.EtcdClient.Delete(context.Background(), path, nil); err != nil {
 		return
 	}
 	// reverse
-	hostName = hostName + "." + LocalDomainName
-	if r, err = dns.ReverseAddr(ip); err != nil {
-		return
-	}
 	_, err = Daemon.EtcdClient.Delete(context.Background(),
-		"/skydns/"+r, nil)
+		"/skydns/arpa/in-addr/"+strings.Replace(ip, ".", "/", -1), nil)
 	return
 }
