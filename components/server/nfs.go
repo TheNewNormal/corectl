@@ -70,7 +70,8 @@ func nfsSetup() (err error) {
 			if out, err = exec.Command("nfsd", "-F",
 				exportsF, "checkexports").Output(); err != nil {
 				err = fmt.Errorf("unable to validate %s ('%v')\n"+
-					"keeping original contents ('%v')", exportsF, out, previous)
+					"keeping original contents ('%v')",
+					exportsF, string(out), string(previous))
 				// getting back to where we were
 				ioutil.WriteFile(exportsF, previous, os.ModeAppend)
 			}

@@ -52,11 +52,12 @@ type (
 		VM    *VMInfo
 	}
 	RPCreply struct {
-		Output  []string
-		Meta    *release.Info
-		VM      *VMInfo
-		Images  map[string]semver.Versions
-		Running map[string]*VMInfo
+		Output     []string
+		Meta       *release.Info
+		VM         *VMInfo
+		Images     map[string]semver.Versions
+		Running    map[string]*VMInfo
+		WorkingNFS bool
 	}
 )
 
@@ -75,6 +76,16 @@ func (s *RPCservice) Echo(r *http.Request,
 		return ErrServerShuttingDown
 	}
 	reply.Meta = Daemon.Meta
+	return
+}
+func (s *RPCservice) HandlesNFS(r *http.Request,
+	args *RPCquery, reply *RPCreply) (err error) {
+	log.Debug("NFS?")
+
+	if !Daemon.AcceptingRequests {
+		return ErrServerShuttingDown
+	}
+	reply.WorkingNFS = Daemon.WorkingNFS
 	return
 }
 

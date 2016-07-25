@@ -48,6 +48,7 @@ type (
 		DNSServer         *DNSServer
 		Jobs              sync.WaitGroup
 		AcceptingRequests bool
+		WorkingNFS        bool
 		Oops              chan error
 		sync.Mutex
 	}
@@ -61,6 +62,7 @@ func New() (cfg *ServerContext) {
 		Meta:              session.Caller.Meta,
 		Jobs:              sync.WaitGroup{},
 		AcceptingRequests: true,
+		WorkingNFS:        false,
 		Oops:              make(chan error, 1),
 		Active:            make(map[string]*VMInfo),
 	}
@@ -97,7 +99,11 @@ func Start() (err error) {
 
 	log.Info("checking nfs host settings")
 	if err = nfsSetup(); err != nil {
-		return
+		log.Warn("Unable to setup NFS. " +
+			"No NFS facilities will be exposed to the VMs")
+	} else {
+		Daemon.WorkingNFS = true
+		log.Info("VMs will be able to have host's homedir shared via NFS")
 	}
 	// log.Info("checking for VPN setups")
 	// if closeVPNhooks, err = HandleVPNtunnels(); err != nil {

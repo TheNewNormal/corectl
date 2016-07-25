@@ -90,7 +90,6 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 	vm.AddToHypervisor = args.GetString("extra")
 	vm.AddToKernel = args.GetString("boot")
 	vm.SSHkey = args.GetString("sshkey")
-	vm.SharedHomedir = args.GetBool("shared-homedir")
 	vm.Root = -1
 	vm.Pid = -1
 
@@ -146,6 +145,18 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 		return
 	}
 	vm.MacAddress, vm.UUID = reply.Output[0], reply.Output[1]
+
+	vm.SharedHomedir = args.GetBool("shared-homedir")
+	if vm.SharedHomedir == true {
+		if reply, err = server.RPCQuery("HandlesNFS",
+			&server.RPCquery{}); err != nil {
+			return
+		}
+		if reply.WorkingNFS == false {
+			log.Warn("NFS is qnot supported by running 'corectld'")
+			vm.SharedHomedir = false
+		}
+	}
 
 	if vm.Name == "" {
 		vm.Name = vm.UUID
