@@ -257,6 +257,7 @@ and available probes.
 - [Rimas Mocevicius](https://github.com/rimusz) entire toolset of macOS GUI apps
 is now using **corectl** underneath, and has become part of the
 [TheNewNormal](http://github.com/TheNewNormal) project
+  - **[Corectl.app controlling app of correctld server daemon](https://github.com/TheNewNormal/corectl.app)**
   - **[CoreOS VM for macOS](https://github.com/TheNewNormal/coreos-osx)**
   - **[Kubernetes Solo Cluster for macOS](https://github.com/TheNewNormal/kube-solo-osx)**
   - **[Multi node Kubernetes Cluster for macOS](https://github.com/TheNewNormal/kube-cluster-osx)**
