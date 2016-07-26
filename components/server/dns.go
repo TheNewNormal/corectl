@@ -56,6 +56,7 @@ func (d *ServerContext) NewDNSServer(root,
 			DnsAddr:     serverAddress,
 			Domain:      root,
 			Nameservers: ns,
+			MinTtl:      30,
 		}
 	)
 	if dnsAddress, err = net.ResolveUDPAddr("udp", serverAddress); err != nil {
@@ -80,6 +81,11 @@ func (d *ServerContext) NewDNSServer(root,
 	}
 	// make host visible to the VMs by Name
 	if err = d.DNSServer.addRecord("corectld",
+		session.Caller.Network.Address); err != nil {
+		return
+	}
+	// ...
+	if err = d.DNSServer.addRecord("corectld.ns.dns",
 		session.Caller.Network.Address); err != nil {
 		return
 	}
@@ -132,13 +138,13 @@ func (d *DNSServer) addRecord(hostName string, ip string) (err error) {
 		strings.Replace(invertDomain(fqdn), ".", "/", -1))
 
 	if _, err = Daemon.EtcdClient.Set(context.Background(), path,
-		"{\"host\":\""+ip+"\"}", nil); err != nil {
+		"{\"host\":\""+ip+"\", \"TTL\": 20 }", nil); err != nil {
 		return
 	}
 	// reverse
 	_, err = Daemon.EtcdClient.Set(context.Background(),
 		"/skydns/arpa/in-addr/"+strings.Replace(ip, ".", "/", -1),
-		"{\"host\":\""+fqdn+"\"}", nil)
+		"{\"host\":\""+fqdn+"\", \"TTL\": 20 }", nil)
 	return
 }
 
