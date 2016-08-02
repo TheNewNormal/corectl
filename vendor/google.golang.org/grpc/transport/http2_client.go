@@ -107,30 +107,26 @@ type http2Client struct {
 	prevGoAwayID uint32
 }
 
+func dial(fn func(context.Context, string) (net.Conn, error), ctx context.Context, addr string) (net.Conn, error) {
+	if fn != nil {
+		return fn(ctx, addr)
+	}
+	return dialContext(ctx, "tcp", addr)
+}
+
 // newHTTP2Client constructs a connected ClientTransport to addr based on HTTP2
 // and starts to receive messages on it. Non-nil error returns if construction
 // fails.
-func newHTTP2Client(addr string, opts *ConnectOptions) (_ ClientTransport, err error) {
-	if opts.Dialer == nil {
-		// Set the default Dialer.
-		opts.Dialer = func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("tcp", addr, timeout)
-		}
-	}
+func newHTTP2Client(ctx context.Context, addr string, opts ConnectOptions) (_ ClientTransport, err error) {
 	scheme := "http"
-	startT := time.Now()
-	timeout := opts.Timeout
-	conn, connErr := opts.Dialer(addr, timeout)
+	conn, connErr := dial(opts.Dialer, ctx, addr)
 	if connErr != nil {
 		return nil, ConnectionErrorf("transport: %v", connErr)
 	}
 	var authInfo credentials.AuthInfo
-	if opts.TransportCredentials != nil {
+	if creds := opts.TransportCredentials; creds != nil {
 		scheme = "https"
-		if timeout > 0 {
-			timeout -= time.Since(startT)
-		}
-		conn, authInfo, connErr = opts.TransportCredentials.ClientHandshake(addr, conn, timeout)
+		conn, authInfo, connErr = creds.ClientHandshake(ctx, addr, conn)
 	}
 	if connErr != nil {
 		return nil, ConnectionErrorf("transport: %v", connErr)
@@ -283,6 +279,10 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 		t.mu.Unlock()
 		return nil, ErrConnClosing
 	}
+	if t.state == draining {
+		t.mu.Unlock()
+		return nil, ErrStreamDrain
+	}
 	if t.state != reachable {
 		t.mu.Unlock()
 		return nil, ErrConnClosing
@@ -307,6 +307,15 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 		return nil, err
 	}
 	t.mu.Lock()
+	if t.state == draining {
+		t.mu.Unlock()
+		if checkStreamsQuota {
+			t.streamsQuota.add(1)
+		}
+		// Need to make t writable again so that the rpc in flight can still proceed.
+		t.writableChan <- 0
+		return nil, ErrStreamDrain
+	}
 	if t.state != reachable {
 		t.mu.Unlock()
 		return nil, ErrConnClosing
@@ -456,7 +465,7 @@ func (t *http2Client) Close() (err error) {
 		t.mu.Unlock()
 		return
 	}
-	if t.state == reachable {
+	if t.state == reachable || t.state == draining {
 		close(t.errorChan)
 	}
 	t.state = closing
@@ -482,7 +491,14 @@ func (t *http2Client) Close() (err error) {
 
 func (t *http2Client) GracefulClose() error {
 	t.mu.Lock()
-	if t.state == closing {
+	switch t.state {
+	case unreachable:
+		// The server may close the connection concurrently. t is not available for
+		// any streams. Close it now.
+		t.mu.Unlock()
+		t.Close()
+		return nil
+	case closing:
 		t.mu.Unlock()
 		return nil
 	}
@@ -993,11 +1009,16 @@ func (t *http2Client) GoAway() <-chan struct{} {
 
 func (t *http2Client) notifyError(err error) {
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	// make sure t.errorChan is closed only once.
+	if t.state == draining {
+		t.mu.Unlock()
+		t.Close()
+		return
+	}
 	if t.state == reachable {
 		t.state = unreachable
 		close(t.errorChan)
 		grpclog.Printf("transport: http2Client.notifyError got notified that the client transport was broken %v.", err)
 	}
+	t.mu.Unlock()
 }

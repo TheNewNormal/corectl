@@ -44,7 +44,6 @@ import (
 	"io"
 	"net"
 	"sync"
-	"time"
 
 	"golang.org/x/net/context"
 	"golang.org/x/net/trace"
@@ -240,6 +239,8 @@ func (s *Stream) Header() (metadata.MD, error) {
 	select {
 	case <-s.ctx.Done():
 		return nil, ContextErr(s.ctx.Err())
+	case <-s.goAway:
+		return nil, ErrStreamDrain
 	case <-s.headerChan:
 		return s.header.Copy(), nil
 	}
@@ -354,19 +355,17 @@ type ConnectOptions struct {
 	// UserAgent is the application user agent.
 	UserAgent string
 	// Dialer specifies how to dial a network address.
-	Dialer func(string, time.Duration) (net.Conn, error)
+	Dialer func(context.Context, string) (net.Conn, error)
 	// PerRPCCredentials stores the PerRPCCredentials required to issue RPCs.
 	PerRPCCredentials []credentials.PerRPCCredentials
 	// TransportCredentials stores the Authenticator required to setup a client connection.
 	TransportCredentials credentials.TransportCredentials
-	// Timeout specifies the timeout for dialing a ClientTransport.
-	Timeout time.Duration
 }
 
 // NewClientTransport establishes the transport with the required ConnectOptions
 // and returns it to the caller.
-func NewClientTransport(target string, opts *ConnectOptions) (ClientTransport, error) {
-	return newHTTP2Client(target, opts)
+func NewClientTransport(ctx context.Context, target string, opts ConnectOptions) (ClientTransport, error) {
+	return newHTTP2Client(ctx, target, opts)
 }
 
 // Options provides additional hints and information for message

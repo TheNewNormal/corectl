@@ -300,39 +300,29 @@ func (s *testServer) HalfDuplexCall(stream testpb.TestService_HalfDuplexCallServ
 
 const tlsDir = "testdata/"
 
-func unixDialer(addr string, timeout time.Duration) (net.Conn, error) {
-	return net.DialTimeout("unix", addr, timeout)
-}
-
 type env struct {
 	name        string
 	network     string // The type of network such as tcp, unix, etc.
-	dialer      func(addr string, timeout time.Duration) (net.Conn, error)
 	security    string // The security protocol such as TLS, SSH, etc.
 	httpHandler bool   // whether to use the http.Handler ServerTransport; requires TLS
 }
 
 func (e env) runnable() bool {
-	if runtime.GOOS == "windows" && strings.HasPrefix(e.name, "unix-") {
+	if runtime.GOOS == "windows" && e.network == "unix" {
 		return false
 	}
 	return true
 }
 
-func (e env) getDialer() func(addr string, timeout time.Duration) (net.Conn, error) {
-	if e.dialer != nil {
-		return e.dialer
-	}
-	return func(addr string, timeout time.Duration) (net.Conn, error) {
-		return net.DialTimeout("tcp", addr, timeout)
-	}
+func (e env) dialer(addr string, timeout time.Duration) (net.Conn, error) {
+	return net.DialTimeout(e.network, addr, timeout)
 }
 
 var (
 	tcpClearEnv  = env{name: "tcp-clear", network: "tcp"}
 	tcpTLSEnv    = env{name: "tcp-tls", network: "tcp", security: "tls"}
-	unixClearEnv = env{name: "unix-clear", network: "unix", dialer: unixDialer}
-	unixTLSEnv   = env{name: "unix-tls", network: "unix", dialer: unixDialer, security: "tls"}
+	unixClearEnv = env{name: "unix-clear", network: "unix"}
+	unixTLSEnv   = env{name: "unix-tls", network: "unix", security: "tls"}
 	handlerEnv   = env{name: "handler-tls", network: "tcp", security: "tls", httpHandler: true}
 	allEnv       = []env{tcpClearEnv, tcpTLSEnv, unixClearEnv, unixTLSEnv, handlerEnv}
 )
@@ -371,8 +361,9 @@ type test struct {
 
 	// Configurable knobs, after newTest returns:
 	testServer        testpb.TestServiceServer // nil means none
-	healthServer      *health.HealthServer     // nil means disabled
+	healthServer      *health.Server           // nil means disabled
 	maxStream         uint32
+	maxMsgSize        int
 	userAgent         string
 	clientCompression bool
 	serverCompression bool
@@ -423,6 +414,9 @@ func (te *test) startServer(ts testpb.TestServiceServer) {
 	e := te.e
 	te.t.Logf("Running test in %s environment...", e.name)
 	sopts := []grpc.ServerOption{grpc.MaxConcurrentStreams(te.maxStream)}
+	if te.maxMsgSize > 0 {
+		sopts = append(sopts, grpc.MaxMsgSize(te.maxMsgSize))
+	}
 	if te.serverCompression {
 		sopts = append(sopts,
 			grpc.RPCCompressor(grpc.NewGZIPCompressor()),
@@ -515,9 +509,7 @@ func (te *test) declareLogNoise(phrases ...string) {
 }
 
 func (te *test) withServerTester(fn func(st *serverTester)) {
-	var c net.Conn
-	var err error
-	c, err = te.e.getDialer()(te.srvAddr, 10*time.Second)
+	c, err := te.e.dialer(te.srvAddr, 10*time.Second)
 	if err != nil {
 		te.t.Fatal(err)
 	}
@@ -545,9 +537,8 @@ func testTimeoutOnDeadServer(t *testing.T, e env) {
 	te.userAgent = testAppUA
 	te.declareLogNoise(
 		"transport: http2Client.notifyError got notified that the client transport was broken EOF",
-		"grpc: Conn.transportMonitor exits due to: grpc: the client connection is closing",
-		"grpc: Conn.resetTransport failed to create client transport: connection error",
-		"grpc: Conn.resetTransport failed to create client transport: connection error: desc = \"transport: dial unix",
+		"grpc: addrConn.transportMonitor exits due to: grpc: the connection is closing",
+		"grpc: addrConn.resetTransport failed to create client transport: connection error",
 	)
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
@@ -565,6 +556,27 @@ func testTimeoutOnDeadServer(t *testing.T, e env) {
 	awaitNewConnLogOutput()
 }
 
+func TestServerGracefulStopIdempotent(t *testing.T) {
+	defer leakCheck(t)()
+	for _, e := range listTestEnv() {
+		if e.name == "handler-tls" {
+			continue
+		}
+		testServerGracefulStopIdempotent(t, e)
+	}
+}
+
+func testServerGracefulStopIdempotent(t *testing.T, e env) {
+	te := newTest(t, e)
+	te.userAgent = testAppUA
+	te.startServer(&testServer{security: e.security})
+	defer te.tearDown()
+
+	for i := 0; i < 3; i++ {
+		te.srv.GracefulStop()
+	}
+}
+
 func TestServerGoAway(t *testing.T) {
 	defer leakCheck(t)()
 	for _, e := range listTestEnv() {
@@ -578,12 +590,6 @@ func TestServerGoAway(t *testing.T) {
 func testServerGoAway(t *testing.T, e env) {
 	te := newTest(t, e)
 	te.userAgent = testAppUA
-	te.declareLogNoise(
-		"transport: http2Client.notifyError got notified that the client transport was broken EOF",
-		"grpc: Conn.transportMonitor exits due to: grpc: the client connection is closing",
-		"grpc: Conn.resetTransport failed to create client transport: connection error",
-		"grpc: Conn.resetTransport failed to create client transport: connection error: desc = \"transport: dial unix",
-	)
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
 
@@ -606,9 +612,9 @@ func testServerGoAway(t *testing.T, e env) {
 		}
 		break
 	}
-	// A new RPC should fail with Unavailable error.
-	if _, err := tc.EmptyCall(context.Background(), &testpb.Empty{}); err == nil || grpc.Code(err) != codes.Unavailable {
-		t.Fatalf("TestService/EmptyCall(_, _) = _, %v, want _, error code: %d", err, codes.Unavailable)
+	// A new RPC should fail.
+	if _, err := tc.EmptyCall(context.Background(), &testpb.Empty{}); grpc.Code(err) != codes.Unavailable && grpc.Code(err) != codes.Internal {
+		t.Fatalf("TestService/EmptyCall(_, _) = _, %v, want _, %s or %s", err, codes.Unavailable, codes.Internal)
 	}
 	<-ch
 	awaitNewConnLogOutput()
@@ -629,9 +635,8 @@ func testServerGoAwayPendingRPC(t *testing.T, e env) {
 	te.userAgent = testAppUA
 	te.declareLogNoise(
 		"transport: http2Client.notifyError got notified that the client transport was broken EOF",
-		"grpc: Conn.transportMonitor exits due to: grpc: the client connection is closing",
-		"grpc: Conn.resetTransport failed to create client transport: connection error",
-		"grpc: Conn.resetTransport failed to create client transport: connection error: desc = \"transport: dial unix",
+		"grpc: addrConn.transportMonitor exits due to: grpc: the connection is closing",
+		"grpc: addrConn.resetTransport failed to create client transport: connection error",
 	)
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
@@ -686,6 +691,113 @@ func testServerGoAwayPendingRPC(t *testing.T, e env) {
 	awaitNewConnLogOutput()
 }
 
+func TestConcurrentClientConnCloseAndServerGoAway(t *testing.T) {
+	defer leakCheck(t)()
+	for _, e := range listTestEnv() {
+		if e.name == "handler-tls" {
+			continue
+		}
+		testConcurrentClientConnCloseAndServerGoAway(t, e)
+	}
+}
+
+func testConcurrentClientConnCloseAndServerGoAway(t *testing.T, e env) {
+	te := newTest(t, e)
+	te.userAgent = testAppUA
+	te.declareLogNoise(
+		"transport: http2Client.notifyError got notified that the client transport was broken EOF",
+		"grpc: addrConn.transportMonitor exits due to: grpc: the connection is closing",
+		"grpc: addrConn.resetTransport failed to create client transport: connection error",
+	)
+	te.startServer(&testServer{security: e.security})
+	defer te.tearDown()
+
+	cc := te.clientConn()
+	tc := testpb.NewTestServiceClient(cc)
+	if _, err := tc.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false)); err != nil {
+		t.Fatalf("%v.EmptyCall(_, _, _) = _, %v, want _, <nil>", tc, err)
+	}
+	ch := make(chan struct{})
+	// Close ClientConn and Server concurrently.
+	go func() {
+		te.srv.GracefulStop()
+		close(ch)
+	}()
+	go func() {
+		cc.Close()
+	}()
+	<-ch
+}
+
+func TestConcurrentServerStopAndGoAway(t *testing.T) {
+	defer leakCheck(t)()
+	for _, e := range listTestEnv() {
+		if e.name == "handler-tls" {
+			continue
+		}
+		testConcurrentServerStopAndGoAway(t, e)
+	}
+}
+
+func testConcurrentServerStopAndGoAway(t *testing.T, e env) {
+	te := newTest(t, e)
+	te.userAgent = testAppUA
+	te.declareLogNoise(
+		"transport: http2Client.notifyError got notified that the client transport was broken EOF",
+		"grpc: addrConn.transportMonitor exits due to: grpc: the connection is closing",
+		"grpc: addrConn.resetTransport failed to create client transport: connection error",
+	)
+	te.startServer(&testServer{security: e.security})
+	defer te.tearDown()
+
+	cc := te.clientConn()
+	tc := testpb.NewTestServiceClient(cc)
+	stream, err := tc.FullDuplexCall(context.Background(), grpc.FailFast(false))
+	if err != nil {
+		t.Fatalf("%v.FullDuplexCall(_) = _, %v, want <nil>", tc, err)
+	}
+	// Finish an RPC to make sure the connection is good.
+	if _, err := tc.EmptyCall(context.Background(), &testpb.Empty{}, grpc.FailFast(false)); err != nil {
+		t.Fatalf("%v.EmptyCall(_, _, _) = _, %v, want _, <nil>", tc, err)
+	}
+	ch := make(chan struct{})
+	go func() {
+		te.srv.GracefulStop()
+		close(ch)
+	}()
+	// Loop until the server side GoAway signal is propagated to the client.
+	for {
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		if _, err := tc.EmptyCall(ctx, &testpb.Empty{}, grpc.FailFast(false)); err == nil {
+			continue
+		}
+		break
+	}
+	// Stop the server and close all the connections.
+	te.srv.Stop()
+	respParam := []*testpb.ResponseParameters{
+		{
+			Size: proto.Int32(1),
+		},
+	}
+	payload, err := newPayload(testpb.PayloadType_COMPRESSABLE, int32(100))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := &testpb.StreamingOutputCallRequest{
+		ResponseType:       testpb.PayloadType_COMPRESSABLE.Enum(),
+		ResponseParameters: respParam,
+		Payload:            payload,
+	}
+	if err := stream.Send(req); err == nil {
+		if _, err := stream.Recv(); err == nil {
+			t.Fatalf("%v.Recv() = _, %v, want _, <nil>", stream, err)
+		}
+	}
+	<-ch
+	awaitNewConnLogOutput()
+}
+
 func TestFailFast(t *testing.T) {
 	defer leakCheck(t)()
 	for _, e := range listTestEnv() {
@@ -698,9 +810,8 @@ func testFailFast(t *testing.T, e env) {
 	te.userAgent = testAppUA
 	te.declareLogNoise(
 		"transport: http2Client.notifyError got notified that the client transport was broken EOF",
-		"grpc: Conn.transportMonitor exits due to: grpc: the client connection is closing",
-		"grpc: Conn.resetTransport failed to create client transport: connection error",
-		"grpc: Conn.resetTransport failed to create client transport: connection error: desc = \"transport: dial unix",
+		"grpc: addrConn.transportMonitor exits due to: grpc: the connection is closing",
+		"grpc: addrConn.resetTransport failed to create client transport: connection error",
 	)
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
@@ -748,7 +859,7 @@ func TestHealthCheckOnSuccess(t *testing.T) {
 
 func testHealthCheckOnSuccess(t *testing.T, e env) {
 	te := newTest(t, e)
-	hs := health.NewHealthServer()
+	hs := health.NewServer()
 	hs.SetServingStatus("grpc.health.v1.Health", 1)
 	te.healthServer = hs
 	te.startServer(&testServer{security: e.security})
@@ -774,7 +885,7 @@ func testHealthCheckOnFailure(t *testing.T, e env) {
 		"Failed to dial ",
 		"grpc: the client connection is closing; please retry",
 	)
-	hs := health.NewHealthServer()
+	hs := health.NewServer()
 	hs.SetServingStatus("grpc.health.v1.HealthCheck", 1)
 	te.healthServer = hs
 	te.startServer(&testServer{security: e.security})
@@ -818,7 +929,7 @@ func TestHealthCheckServingStatus(t *testing.T) {
 
 func testHealthCheckServingStatus(t *testing.T, e env) {
 	te := newTest(t, e)
-	hs := health.NewHealthServer()
+	hs := health.NewServer()
 	te.healthServer = hs
 	te.startServer(&testServer{security: e.security})
 	defer te.tearDown()
@@ -953,6 +1064,65 @@ func testLargeUnary(t *testing.T, e env) {
 	ps := len(reply.GetPayload().GetBody())
 	if pt != testpb.PayloadType_COMPRESSABLE || ps != respSize {
 		t.Fatalf("Got the reply with type %d len %d; want %d, %d", pt, ps, testpb.PayloadType_COMPRESSABLE, respSize)
+	}
+}
+
+func TestExceedMsgLimit(t *testing.T) {
+	defer leakCheck(t)()
+	for _, e := range listTestEnv() {
+		testExceedMsgLimit(t, e)
+	}
+}
+
+func testExceedMsgLimit(t *testing.T, e env) {
+	te := newTest(t, e)
+	te.maxMsgSize = 1024
+	te.startServer(&testServer{security: e.security})
+	defer te.tearDown()
+	tc := testpb.NewTestServiceClient(te.clientConn())
+
+	argSize := int32(te.maxMsgSize + 1)
+	const respSize = 1
+
+	payload, err := newPayload(testpb.PayloadType_COMPRESSABLE, argSize)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := &testpb.SimpleRequest{
+		ResponseType: testpb.PayloadType_COMPRESSABLE.Enum(),
+		ResponseSize: proto.Int32(respSize),
+		Payload:      payload,
+	}
+	if _, err := tc.UnaryCall(context.Background(), req); err == nil || grpc.Code(err) != codes.Internal {
+		t.Fatalf("TestService/UnaryCall(_, _) = _, %v, want _, error code: %d", err, codes.Internal)
+	}
+
+	stream, err := tc.FullDuplexCall(te.ctx)
+	if err != nil {
+		t.Fatalf("%v.FullDuplexCall(_) = _, %v, want <nil>", tc, err)
+	}
+	respParam := []*testpb.ResponseParameters{
+		{
+			Size: proto.Int32(1),
+		},
+	}
+
+	spayload, err := newPayload(testpb.PayloadType_COMPRESSABLE, int32(te.maxMsgSize+1))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sreq := &testpb.StreamingOutputCallRequest{
+		ResponseType:       testpb.PayloadType_COMPRESSABLE.Enum(),
+		ResponseParameters: respParam,
+		Payload:            spayload,
+	}
+	if err := stream.Send(sreq); err != nil {
+		t.Fatalf("%v.Send(%v) = %v, want <nil>", stream, sreq, err)
+	}
+	if _, err := stream.Recv(); err == nil || grpc.Code(err) != codes.Internal {
+		t.Fatalf("%v.Recv() = _, %v, want _, error code: %d", stream, err, codes.Internal)
 	}
 }
 
@@ -1676,7 +1846,7 @@ func testExceedMaxStreamsLimit(t *testing.T, e env) {
 	te.declareLogNoise(
 		"http2Client.notifyError got notified that the client transport was broken",
 		"Conn.resetTransport failed to create client transport",
-		"grpc: the client connection is closing",
+		"grpc: the connection is closing",
 	)
 	te.maxStream = 1 // Only allows 1 live stream per server transport.
 	te.startServer(&testServer{security: e.security})
@@ -1717,7 +1887,7 @@ func testStreamsQuotaRecovery(t *testing.T, e env) {
 	te.declareLogNoise(
 		"http2Client.notifyError got notified that the client transport was broken",
 		"Conn.resetTransport failed to create client transport",
-		"grpc: the client connection is closing",
+		"grpc: the connection is closing",
 	)
 	te.maxStream = 1 // Allows 1 live stream.
 	te.startServer(&testServer{security: e.security})
@@ -2044,8 +2214,8 @@ func testClientRequestBodyError_Cancel(t *testing.T, e env) {
 	te.withServerTester(func(st *serverTester) {
 		st.writeHeadersGRPC(1, "/grpc.testing.TestService/UnaryCall")
 		// Say we have 5 bytes coming, but cancel it instead.
-		st.writeData(1, false, []byte{0, 0, 0, 0, 5})
 		st.writeRSTStream(1, http2.ErrCodeCancel)
+		st.writeData(1, false, []byte{0, 0, 0, 0, 5})
 
 		// Verify we didn't a call yet.
 		select {
@@ -2142,8 +2312,8 @@ func leakCheck(t testing.TB) func() {
 	}
 	return func() {
 		// Loop, waiting for goroutines to shut down.
-		// Wait up to 5 seconds, but finish as quickly as possible.
-		deadline := time.Now().Add(5 * time.Second)
+		// Wait up to 10 seconds, but finish as quickly as possible.
+		deadline := time.Now().Add(10 * time.Second)
 		for {
 			var leaked []string
 			for _, g := range interestingGoroutines() {
