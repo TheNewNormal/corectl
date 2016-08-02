@@ -20,6 +20,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -31,7 +32,6 @@ import (
 	backendetcd "github.com/skynetservices/skydns/backends/etcd"
 	skymetrics "github.com/skynetservices/skydns/metrics"
 	skydns "github.com/skynetservices/skydns/server"
-	"k8s.io/minikube/pkg/util"
 )
 
 var (
@@ -95,13 +95,13 @@ func (d *ServerContext) NewDNSServer(root,
 
 func (dns *DNSServer) Start() {
 	if dns.done != nil {
-		fmt.Fprint(os.Stderr, util.Pad("DNS server already started"))
+		fmt.Fprint(os.Stderr, pad("DNS server already started"))
 		return
 	}
 
 	dns.done = make(chan struct{})
 
-	go util.Until(dns.sky.Run, os.Stderr, "skydns", 1*time.Second, dns.done)
+	go until(dns.sky.Run, os.Stderr, "skydns", 1*time.Second, dns.done)
 
 }
 
@@ -160,4 +160,35 @@ func (d *DNSServer) rmRecord(hostName string, ip string) (err error) {
 	_, err = Daemon.EtcdClient.Delete(context.Background(),
 		"/skydns/arpa/in-addr/"+strings.Replace(ip, ".", "/", -1), nil)
 	return
+}
+
+// helpers bellow loaned from kubernetes/minikube/blob/master/pkg/util/utils.go
+// we don't want to consume them straight as recent changes there bring a
+// XXL dep tail
+
+// Until endlessly loops the provided function until a message is received on
+// the done channel. The function will wait the duration provided in sleep
+// between function calls. Errors will be sent on provider Writer.
+func until(fn func() error, w io.Writer,
+	name string, sleep time.Duration, done <-chan struct{}) {
+	var exitErr error
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			exitErr = fn()
+			if exitErr == nil {
+				fmt.Fprintf(w, pad("%s: Exited with no errors.\n"), name)
+			} else {
+				fmt.Fprintf(w, pad("%s: Exit with error: %v"), name, exitErr)
+			}
+
+			// wait provided duration before trying again
+			time.Sleep(sleep)
+		}
+	}
+}
+func pad(str string) string {
+	return fmt.Sprint("\n%s\n", str)
 }
