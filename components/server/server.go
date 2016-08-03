@@ -41,7 +41,7 @@ type (
 	ServerContext struct {
 		Meta              *release.Info
 		Media             MediaAssets
-		Active            map[string]*VMInfo
+		Active            VMmap
 		APIserver         *manners.GracefulServer
 		EtcdServer        *EtcdServer
 		EtcdClient        client.KeysAPI
@@ -64,7 +64,7 @@ func New() (cfg *ServerContext) {
 		AcceptingRequests: true,
 		WorkingNFS:        false,
 		Oops:              make(chan error, 1),
-		Active:            make(map[string]*VMInfo),
+		Active:            make(VMmap),
 	}
 }
 
@@ -124,6 +124,7 @@ func Start() (err error) {
 		log.Info("Got '%v' signal, stopping server...", s)
 		signal.Stop(hades)
 		Daemon.Oops <- nil
+		Daemon.Active.array().halt()
 	}()
 
 	log.Info("server starting...")
@@ -154,11 +155,6 @@ func Start() (err error) {
 		}
 	}
 
-	Daemon.Lock()
-	for _, r := range Daemon.Active {
-		r.halt()
-	}
-	Daemon.Unlock()
 	Daemon.Jobs.Wait()
 	Daemon.APIserver.Close()
 	log.Info("gone!")

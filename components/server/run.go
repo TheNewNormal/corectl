@@ -22,6 +22,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os/exec"
+	"sort"
 	"syscall"
 
 	"net/http"
@@ -59,6 +60,10 @@ type (
 		isolationCheck, callBack sync.Once
 		cloudConfigContents      []byte
 	}
+	//
+	VMmap map[string]*VMInfo
+	// Config ...
+	VMs []*VMInfo
 	// NetworkInterface ...
 	NetworkInterface struct {
 		Type int
@@ -333,6 +338,25 @@ func (vm *VMInfo) assembleBootPayload() (xArgs []string, err error) {
 		err
 }
 
+func (list VMs) halt() {
+	sort.Sort(sort.Reverse(VMs(list)))
+
+	for _, v := range list {
+		log.Info("shutting down %v...", v.Name)
+		Daemon.Active[v.UUID].halt()
+		for {
+			Daemon.Lock()
+			_, stillAlive := Daemon.Active[v.UUID]
+			Daemon.Unlock()
+			if !stillAlive {
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	return
+}
+
 func (vm *VMInfo) halt() {
 	// Try to gracefully terminate the process.
 	if err := vm.exec.Process.Signal(syscall.SIGTERM); err != nil {
@@ -454,4 +478,21 @@ func (volumes *StorageAssets) PrettyPrint(root int) {
 			}
 		}
 	}
+}
+
+func (run VMs) Len() int {
+	return len(run)
+}
+func (run VMs) Swap(i, j int) {
+	run[i], run[j] = run[j], run[i]
+}
+func (run VMs) Less(i, j int) bool {
+	return run[i].CreationTime.Before(run[j].CreationTime)
+}
+
+func (in VMmap) array() (out VMs) {
+	for _, r := range in {
+		out = append(out, r)
+	}
+	return
 }

@@ -56,7 +56,7 @@ type (
 		Meta       *release.Info
 		VM         *VMInfo
 		Images     map[string]semver.Versions
-		Running    map[string]*VMInfo
+		Running    VMmap
 		WorkingNFS bool
 	}
 )
@@ -272,6 +272,11 @@ func (s *RPCservice) Run(r *http.Request,
 		Daemon.Jobs.Add(1)
 		defer Daemon.Jobs.Done()
 		Daemon.Lock()
+		vm.exec.SysProcAttr = &syscall.SysProcAttr{
+			Setpgid: true,
+			Setsid:  false,
+			Pgid:    0,
+		}
 		err := vm.exec.Start()
 		Daemon.Unlock()
 		if err != nil {
@@ -307,6 +312,11 @@ func (s *RPCservice) Stop(r *http.Request,
 	}
 
 	log.Info("Sky must be falling. Shutting down...")
+	Daemon.Lock()
+	Daemon.AcceptingRequests = false
+	Daemon.Unlock()
+
+	Daemon.Active.array().halt()
 	Daemon.Oops <- nil
 	return
 }
@@ -327,37 +337,24 @@ func (s *RPCservice) StopVMs(r *http.Request,
 	args *RPCquery, reply *RPCreply) (err error) {
 	log.Debug("vm:stop")
 
-	var toHalt []string
+	var targets VMs
 
 	if !Daemon.AcceptingRequests {
 		return ErrServerShuttingDown
 	}
 
 	if len(args.Input) == 0 {
-		for _, x := range Daemon.Active {
-			toHalt = append(toHalt, x.UUID)
-		}
+		targets = Daemon.Active.array()
 	} else {
 		for _, t := range args.Input {
 			for _, v := range Daemon.Active {
 				if v.Name == t || v.UUID == t {
-					toHalt = append(toHalt, v.UUID)
+					targets = append(targets, v)
 				}
 			}
 		}
 	}
-	for _, v := range toHalt {
-		Daemon.Active[v].halt()
-		for {
-			Daemon.Lock()
-			_, stillAlive := Daemon.Active[v]
-			Daemon.Unlock()
-			if !stillAlive {
-				break
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
+	targets.halt()
 	return
 }
 
