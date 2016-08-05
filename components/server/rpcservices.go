@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os/exec"
 	"path/filepath"
@@ -41,15 +42,18 @@ import (
 
 var (
 	rpcServices           = rpc.NewServer()
-	ErrServerShuttingDown = fmt.Errorf("Request ignored as server shutting down")
+	ErrServerShuttingDown = fmt.Errorf("Request ignored as server is shutting down")
+	ErrNothingToShutdown  = fmt.Errorf("Request ignored as no VMs were found running")
+	ErrUnknownVM          = fmt.Errorf("Request ignored as no VM with requested name or UUID was found")
 )
 
 type (
 	RPCservice struct{}
 
 	RPCquery struct {
-		Input []string
-		VM    *VMInfo
+		Input  []string
+		Forced bool
+		VM     *VMInfo
 	}
 	RPCreply struct {
 		Output     []string
@@ -254,7 +258,7 @@ func (s *RPCservice) Run(r *http.Request,
 		select {
 		case <-timeout:
 			vm.Pid = vm.exec.Process.Pid
-			vm.halt()
+			vm.gracefullyShutdown()
 			vm.errCh <- fmt.Errorf("Unable to grab VM's IP after " +
 				"30s (!)... Aborted")
 		case ip := <-vm.publicIPCh:
@@ -316,7 +320,7 @@ func (s *RPCservice) Stop(r *http.Request,
 	Daemon.AcceptingRequests = false
 	Daemon.Unlock()
 
-	Daemon.Active.array().halt()
+	Daemon.Active.array().gracefullyShutdown()
 	Daemon.Oops <- nil
 	return
 }
@@ -344,7 +348,17 @@ func (s *RPCservice) StopVMs(r *http.Request,
 	}
 
 	if len(args.Input) == 0 {
-		targets = Daemon.Active.array()
+		active := Daemon.Active.array()
+		if len(active) == 0 {
+			return ErrNothingToShutdown
+		}
+		if !args.Forced {
+			targets = active
+		} else {
+			// random pick
+			targets = append(targets, active[rand.Intn(len(active))])
+			reply.Output = append(reply.Output, targets[0].Name)
+		}
 	} else {
 		for _, t := range args.Input {
 			for _, v := range Daemon.Active {
@@ -353,8 +367,16 @@ func (s *RPCservice) StopVMs(r *http.Request,
 				}
 			}
 		}
+		if len(targets) != len(args.Input) {
+			return ErrUnknownVM
+		}
 	}
-	targets.halt()
+	if !args.Forced {
+		targets.gracefullyShutdown()
+	} else {
+		targets[0].kill()
+	}
+
 	return
 }
 

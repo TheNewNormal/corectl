@@ -124,7 +124,7 @@ func Start() (err error) {
 		log.Info("Got '%v' signal, stopping server...", s)
 		signal.Stop(hades)
 		Daemon.Oops <- nil
-		Daemon.Active.array().halt()
+		Daemon.Active.array().gracefullyShutdown()
 	}()
 
 	log.Info("server starting...")

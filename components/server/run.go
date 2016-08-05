@@ -338,12 +338,12 @@ func (vm *VMInfo) assembleBootPayload() (xArgs []string, err error) {
 		err
 }
 
-func (list VMs) halt() {
+func (list VMs) gracefullyShutdown() {
 	sort.Sort(sort.Reverse(VMs(list)))
 
 	for _, v := range list {
 		log.Info("shutting down %v...", v.Name)
-		Daemon.Active[v.UUID].halt()
+		Daemon.Active[v.UUID].gracefullyShutdown()
 		for {
 			Daemon.Lock()
 			_, stillAlive := Daemon.Active[v.UUID]
@@ -357,7 +357,14 @@ func (list VMs) halt() {
 	return
 }
 
-func (vm *VMInfo) halt() {
+func (vm *VMInfo) kill() {
+	log.Debug("hard killing %v", vm.Name)
+	if err := vm.exec.Process.Kill(); err != nil {
+		log.Err(err.Error())
+	}
+}
+
+func (vm *VMInfo) gracefullyShutdown() {
 	// Try to gracefully terminate the process.
 	if err := vm.exec.Process.Signal(syscall.SIGTERM); err != nil {
 		log.Err(err.Error())
@@ -366,9 +373,7 @@ func (vm *VMInfo) halt() {
 	case <-time.After(ServerTimeout):
 		log.Err("Attempting to halt %v (%v) with SIGTERM timed out, "+
 			"SIGKILLing it now.", vm.UUID, vm.exec.Process.Pid)
-		if err := vm.exec.Process.Kill(); err != nil {
-			log.Err(err.Error())
-		}
+		vm.kill()
 	case <-vm.done:
 	}
 }

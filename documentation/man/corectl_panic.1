@@ -1,0 +1,40 @@
+.TH "corectl" "1" "" " " "" 
+.nh
+.ad l
+
+
+.SH NAME
+.PP
+corectl\-panic \- Hard kills a running CoreOS instance
+
+
+.SH SYNOPSIS
+.PP
+\fBcorectl panic [VMids]\fP
+
+
+.SH DESCRIPTION
+.PP
+Hard kills a running CoreOS instance.
+This feature is intended as a practical way to test and reproduce both cluster failure scenarios and layouts resilient to them
+
+
+.SH OPTIONS
+.PP
+\fB\-r\fP, \fB\-\-random\fP[=false]
+    hard kill a randomly choosen running instance
+
+
+.SH OPTIONS INHERITED FROM PARENT COMMANDS
+.PP
+\fB\-d\fP, \fB\-\-debug\fP[=false]
+    adds additional verbosity, and options, directed at debugging purposes and power users
+
+
+.SH SEE ALSO
+.PP
+\fBcorectl(1)\fP
+
+
+.SH HISTORY
+.PP

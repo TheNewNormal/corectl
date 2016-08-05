@@ -20,19 +20,23 @@ import (
 
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
+	"github.com/deis/pkg/log"
 	"github.com/spf13/cobra"
 )
 
 var (
-	killCmd = &cobra.Command{
-		Use:     "kill [VMids]",
-		Aliases: []string{"stop", "halt"},
-		Short:   "Halts one or more running CoreOS instances",
+	panicCmd = &cobra.Command{
+		Use:     "panic [VMids]",
+		Aliases: []string{"oops", "wtf"},
+		Short:   "Hard kills a running CoreOS instance",
+		Long: "Hard kills a running CoreOS instance.\nThis feature is " +
+			"intended as a practical way to test and reproduce both cluster " +
+			"failure scenarios and layouts resilient to them",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
 			session.Caller.CmdLine.BindPFlags(cmd.Flags())
 			errMsg := fmt.Errorf("This command requires either " +
-				"one argument to work or just '--all'.")
-			if session.Caller.CmdLine.GetBool("all") {
+				"one argument to work or just '--random'.")
+			if session.Caller.CmdLine.GetBool("random") {
 				if len(args) != 0 {
 					err = errMsg
 				}
@@ -41,25 +45,36 @@ var (
 			}
 			return
 		},
-		RunE: killCommand,
+		RunE: panicCommand,
 	}
 )
 
-func killCommand(cmd *cobra.Command, args []string) (err error) {
-	var in server.RPCquery
+func panicCommand(cmd *cobra.Command, args []string) (err error) {
+	var (
+		in     server.RPCquery
+		out    *server.RPCreply
+		random = session.Caller.CmdLine.GetBool("random")
+	)
 
 	if _, err = server.Daemon.Running(); err != nil {
 		return session.ErrServerUnreachable
 	}
 
-	if !session.Caller.CmdLine.GetBool("all") {
+	if !random {
 		in.Input = args
 	}
-	_, err = server.RPCQuery("StopVMs", &in)
+	in.Forced = true
+	if out, err = server.RPCQuery("StopVMs", &in); err != nil {
+		return
+	}
+	if random {
+		log.Info("'%v' gone", out.Output[0])
+	}
 	return
 }
 
 func init() {
-	killCmd.Flags().BoolP("all", "a", false, "halts all running instances")
-	rootCmd.AddCommand(killCmd)
+	panicCmd.Flags().BoolP("random", "r", false,
+		"hard kill a randomly choosen running instance")
+	rootCmd.AddCommand(panicCmd)
 }

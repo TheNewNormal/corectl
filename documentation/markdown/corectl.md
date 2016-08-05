@@ -23,6 +23,7 @@ corectl
 * [corectl kill](corectl_kill.md)	 - Halts one or more running CoreOS instances
 * [corectl load](corectl_load.md)	 - Loads CoreOS instances defined in an instrumentation file.
 * [corectl ls](corectl_ls.md)	 - Lists the CoreOS images available locally
+* [corectl panic](corectl_panic.md)	 - Hard kills a running CoreOS instance
 * [corectl ps](corectl_ps.md)	 - Lists running CoreOS instances
 * [corectl pull](corectl_pull.md)	 - Pulls a CoreOS image from upstream
 * [corectl put](corectl_put.md)	 - copy file to inside VM
