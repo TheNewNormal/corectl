@@ -24,7 +24,7 @@ import (
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
 	"github.com/TheNewNormal/corectl/release"
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"github.com/satori/go.uuid"
 
 	"github.com/everdev/mack"

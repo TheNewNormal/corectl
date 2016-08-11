@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"github.com/vbatts/qcow2"
 )
 
@@ -75,11 +75,11 @@ func ValidateQcow2(fh *os.File) (err error) {
 		q.RefcountOrder = be32(buf[24:28])
 		q.HeaderLength = be32(buf[28:32])
 	}
-	if log.IsDebugging {
-		log.Info("%#v\n", q)
-		log.Info("IncompatibleFeatures: %b\n", q.IncompatibleFeatures)
-		log.Info("CompatibleFeatures: %b\n", q.CompatibleFeatures)
-	}
+
+	log.Debug("%#v\n", q)
+	log.Debug("IncompatibleFeatures: %b\n", q.IncompatibleFeatures)
+	log.Debug("CompatibleFeatures: %b\n", q.CompatibleFeatures)
+
 	// Process the extension header data
 	buf = make([]byte, q.HeaderLength)
 	if size, err = fh.Read(buf); err != nil {

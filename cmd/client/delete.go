@@ -16,7 +16,7 @@
 package main
 
 import (
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 
 	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"

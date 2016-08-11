@@ -36,7 +36,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/gorilla/rpc"
 	"github.com/gorilla/rpc/json"
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"github.com/satori/go.uuid"
 )
 

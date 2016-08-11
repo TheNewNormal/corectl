@@ -22,7 +22,7 @@ import (
     "strings"
 
     "github.com/blang/semver"
-    "github.com/helm/helm/log"
+    "github.com/deis/pkg/log"
 )
 
 // Version validation

@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 )
 
 func Contents(file string) (t string) {

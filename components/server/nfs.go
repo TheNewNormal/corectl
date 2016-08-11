@@ -22,7 +22,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	// looks to be the new upstream
 	"github.com/keybase/go-ps"
 

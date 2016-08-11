@@ -35,7 +35,7 @@ import (
 
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/dustin/go-humanize"
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"golang.org/x/crypto/ssh"
 )
 

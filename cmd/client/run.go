@@ -25,7 +25,7 @@ import (
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

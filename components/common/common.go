@@ -26,7 +26,7 @@ import (
 	"github.com/TheNewNormal/corectl/components/server"
 	"github.com/TheNewNormal/corectl/release"
 	"github.com/blang/semver"
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 )

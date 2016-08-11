@@ -30,7 +30,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/braintree/manners"
 	"github.com/coreos/etcd/client"
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 )
 
 type (

@@ -38,7 +38,7 @@ import (
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
 
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"github.com/rakyll/pb"
 
 	"github.com/blang/semver"

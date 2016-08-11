@@ -26,6 +26,8 @@ import (
 	"github.com/coreos/etcd/mvcc/backend"
 )
 
+const minLeaseTTL = int64(5)
+
 // TestLessorGrant ensures Lessor can grant wanted lease.
 // The granted lease should have a unique ID with a term
 // that is greater than minLeaseTTL.
@@ -34,7 +36,7 @@ func TestLessorGrant(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer be.Close()
 
-	le := newLessor(be)
+	le := newLessor(be, minLeaseTTL)
 	le.Promote(0)
 
 	l, err := le.Grant(1, 1)
@@ -82,7 +84,7 @@ func TestLessorRevoke(t *testing.T) {
 
 	fd := &fakeDeleter{}
 
-	le := newLessor(be)
+	le := newLessor(be, minLeaseTTL)
 	le.SetRangeDeleter(fd)
 
 	// grant a lease with long term (100 seconds) to
@@ -129,10 +131,10 @@ func TestLessorRenew(t *testing.T) {
 	defer be.Close()
 	defer os.RemoveAll(dir)
 
-	le := newLessor(be)
+	le := newLessor(be, minLeaseTTL)
 	le.Promote(0)
 
-	l, err := le.Grant(1, 5)
+	l, err := le.Grant(1, minLeaseTTL)
 	if err != nil {
 		t.Fatalf("failed to grant lease (%v)", err)
 	}
@@ -160,7 +162,7 @@ func TestLessorDetach(t *testing.T) {
 
 	fd := &fakeDeleter{}
 
-	le := newLessor(be)
+	le := newLessor(be, minLeaseTTL)
 	le.SetRangeDeleter(fd)
 
 	// grant a lease with long term (100 seconds) to
@@ -199,7 +201,7 @@ func TestLessorRecover(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer be.Close()
 
-	le := newLessor(be)
+	le := newLessor(be, minLeaseTTL)
 	l1, err1 := le.Grant(1, 10)
 	l2, err2 := le.Grant(2, 20)
 	if err1 != nil || err2 != nil {
@@ -207,7 +209,7 @@ func TestLessorRecover(t *testing.T) {
 	}
 
 	// Create a new lessor with the same backend
-	nle := newLessor(be)
+	nle := newLessor(be, minLeaseTTL)
 	nl1 := nle.get(l1.ID)
 	if nl1 == nil || nl1.TTL != l1.TTL {
 		t.Errorf("nl1 = %v, want nl1.TTL= %d", nl1.TTL, l1.TTL)
@@ -223,9 +225,17 @@ type fakeDeleter struct {
 	deleted []string
 }
 
-func (fd *fakeDeleter) DeleteRange(key, end []byte) (int64, int64) {
+func (fd *fakeDeleter) TxnBegin() int64 {
+	return 0
+}
+
+func (fd *fakeDeleter) TxnEnd(txnID int64) error {
+	return nil
+}
+
+func (fd *fakeDeleter) TxnDeleteRange(tid int64, key, end []byte) (int64, int64, error) {
 	fd.deleted = append(fd.deleted, string(key)+"_"+string(end))
-	return 0, 0
+	return 0, 0, nil
 }
 
 func NewTestBackend(t *testing.T) (string, backend.Backend) {

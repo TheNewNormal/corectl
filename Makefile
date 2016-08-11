@@ -101,7 +101,7 @@ Godeps: force
 	$(RM) vendor/
 	# XXX godep won't save this as a build dep run a runtime one so we cheat...
 	$(SED) -i.bak \
-		-e s"|github.com/helm/helm/log|github.com/shurcooL/vfsgen|" \
+		-e s"|github.com/deis/pkg/log|github.com/shurcooL/vfsgen|" \
 		-e "s|import (|import ( \"github.com/shurcooL/httpfs/vfsutil\"|" \
 			components/common/assets/assets.go
 	$(GODEP) save ./...

@@ -39,6 +39,23 @@ func TestEmptySS(t *testing.T) {
 	}
 }
 
+func TestEmptySSValue(t *testing.T) {
+	var ss []string
+	f := setUpSSFlagSet(&ss)
+	err := f.Parse([]string{"--ss="})
+	if err != nil {
+		t.Fatal("expected no error; got", err)
+	}
+
+	getSS, err := f.GetStringSlice("ss")
+	if err != nil {
+		t.Fatal("got an error from GetStringSlice():", err)
+	}
+	if len(getSS) != 0 {
+		t.Fatalf("got ss %v with len=%d but expected length=0", getSS, len(getSS))
+	}
+}
+
 func TestSS(t *testing.T) {
 	var ss []string
 	f := setUpSSFlagSet(&ss)

@@ -23,7 +23,7 @@ import (
 	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"
 
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -34,9 +34,7 @@ func init() {
 		func(cmd *cobra.Command, args []string) (err error) {
 			cli := session.Caller.CmdLine
 			cli.BindPFlags(cmd.Flags())
-			if cli.GetBool("debug") {
-				log.IsDebugging = true
-			}
+			log.DefaultLogger.SetDebug(cli.GetBool("debug"))
 
 			if !session.Caller.Privileged && cmd.Name() == "uuid2mac" {
 				return fmt.Errorf("attempting a privileged operation without " +

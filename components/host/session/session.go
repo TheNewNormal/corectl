@@ -31,7 +31,7 @@ import (
 	"github.com/TheNewNormal/corectl/components/target/coreos"
 	"github.com/TheNewNormal/corectl/release"
 	"github.com/bugsnag/osext"
-	"github.com/helm/helm/log"
+	"github.com/deis/pkg/log"
 	"github.com/spf13/viper"
 )
 
