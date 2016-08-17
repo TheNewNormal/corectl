@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/darwin/misc/uuid2ip"
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
@@ -46,7 +45,7 @@ var (
 	statusCmd = &cobra.Command{
 		Use:   "status",
 		Short: "Shows corectld status",
-		RunE:  common.PScommand,
+		RunE:  psCommand,
 	}
 	uuidToMacCmd = &cobra.Command{
 		Use: "uuid2mac",
@@ -86,7 +85,7 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 	var (
 		srv    *release.Info
 		cli    = session.Caller.CmdLine
-		bugfix = common.ViperStringSliceBugWorkaround
+		bugfix = viperStringSliceBugWorkaround
 	)
 
 	if srv, err = server.Daemon.Running(); err == nil {
@@ -121,13 +120,15 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 }
 
 func init() {
-	serverStartCmd.Flags().StringP("user", "u", "",
-		"sets the user that will 'own' the corectld instance")
-	serverStartCmd.Flags().StringP("domain", "D", server.LocalDomainName,
-		"sets the dns domain under which the created VMs will operate")
-	serverStartCmd.Flags().StringSliceP("recursive-nameservers", "r",
-		server.RecursiveNameServers, "coma separated list of the recursive "+
-			"nameservers to be used by the embedded dns server")
-	rootCmd.AddCommand(shutdownCmd, statusCmd,
-		serverStartCmd, uuidToMacCmd)
+	if session.AppName() == "corectld" {
+		serverStartCmd.Flags().StringP("user", "u", "",
+			"sets the user that will 'own' the corectld instance")
+		serverStartCmd.Flags().StringP("domain", "D", server.LocalDomainName,
+			"sets the dns domain under which the created VMs will operate")
+		serverStartCmd.Flags().StringSliceP("recursive-nameservers", "r",
+			server.RecursiveNameServers, "coma separated list of the recursive "+
+				"nameservers to be used by the embedded dns server")
+		rootCmd.AddCommand(shutdownCmd, statusCmd,
+			serverStartCmd, uuidToMacCmd)
+	}
 }

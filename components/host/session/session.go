@@ -179,7 +179,7 @@ func (ctx *Context) NormalizeOnDiskLayout() (err error) {
 	return filepath.Walk(ctx.ConfigDir(), do)
 }
 
-func (ctx *Context) SetNetworkContext() (err error) {
+func (ctx *Network) SetContext() (err error) {
 	var (
 		netMask, netAddress []byte
 		cmdL                = []string{
@@ -204,10 +204,11 @@ func (ctx *Context) SetNetworkContext() (err error) {
 		log.Warn("... assuming macOS default value (255.255.255.0)")
 		netMask = []byte("255.255.255.0")
 	}
-	ctx.Network.Address = strings.TrimSpace(string(netAddress))
-	ctx.Network.Mask = strings.TrimSpace(string(netMask))
+	ctx.Address = strings.TrimSpace(string(netAddress))
+	ctx.Mask = strings.TrimSpace(string(netMask))
 	return
 }
+
 func Executable() string {
 	s, _ := osext.Executable()
 	return s

@@ -24,4 +24,5 @@ corectld
 * [corectld status](corectld_status.md)	 - Shows corectld status
 * [corectld stop](corectld_stop.md)	 - Stops corectld
 * [corectld version](corectld_version.md)	 - Shows version information
+* [corectld version](corectld_version.md)	 - Shows version information
 

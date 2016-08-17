@@ -32,4 +32,5 @@ corectl
 * [corectl run](corectl_run.md)	 - Boots a new CoreOS instance
 * [corectl ssh](corectl_ssh.md)	 - Attach to or run commands inside a running CoreOS instance
 * [corectl version](corectl_version.md)	 - Shows version information
+* [corectl version](corectl_version.md)	 - Shows version information
 

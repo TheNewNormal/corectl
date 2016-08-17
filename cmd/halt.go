@@ -61,5 +61,7 @@ func killCommand(cmd *cobra.Command, args []string) (err error) {
 
 func init() {
 	killCmd.Flags().BoolP("all", "a", false, "halts all running instances")
-	rootCmd.AddCommand(killCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(killCmd)
+	}
 }

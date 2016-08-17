@@ -121,5 +121,7 @@ func loadCommand(cmd *cobra.Command, args []string) (err error) {
 }
 
 func init() {
-	rootCmd.AddCommand(loadFCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(loadFCmd)
+	}
 }

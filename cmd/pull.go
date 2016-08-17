@@ -16,7 +16,6 @@
 package main
 
 import (
-	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
@@ -28,7 +27,7 @@ var (
 		Use:     "pull",
 		Aliases: []string{"get", "fetch"},
 		Short:   "Pulls a CoreOS image from upstream",
-		PreRunE: common.DefaultPreRunE,
+		PreRunE: defaultPreRunE,
 		RunE:    pullCommand,
 	}
 )
@@ -79,5 +78,7 @@ func init() {
 		"forces the rebuild of an image, if already local")
 	pullCmd.Flags().BoolP("warmup", "w", false,
 		"ensures that all (populated) channels are on their latest versions")
-	rootCmd.AddCommand(pullCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(pullCmd)
+	}
 }

@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
@@ -31,7 +30,7 @@ var (
 		Use:     "ls",
 		Aliases: []string{"list"},
 		Short:   "Lists the CoreOS images available locally",
-		PreRunE: common.DefaultPreRunE,
+		PreRunE: defaultPreRunE,
 		RunE:    lsCommand,
 	}
 )
@@ -86,5 +85,7 @@ func init() {
 	lsCmd.Flags().BoolP("all", "a", false, "browses all channels")
 	lsCmd.Flags().BoolP("json", "j", false,
 		"outputs in JSON for easy 3rd party integration")
-	rootCmd.AddCommand(lsCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(lsCmd)
+	}
 }

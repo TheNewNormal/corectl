@@ -29,6 +29,7 @@ CP = /bin/cp
 MV = /bin/mv
 RM = /bin/rm -rf
 DATE = /bin/date
+LN = /bin/ln -sf
 SED = /usr/bin/sed
 GREP = /usr/bin/grep
 TOUCH = /usr/bin/touch
@@ -52,20 +53,12 @@ documentation: documentation/man documentation/markdown
 
 all: clean Godeps hyperkit documentation
 
-cmd: cmd/client cmd/server
-
-cmd/client: force
+cmd: force
 	$(RM) $(BUILD_DIR)/$(PROG)
 	$(MKDIR) $(BUILD_DIR)
 	cd $@; $(GOBUILD) -o $(BUILD_DIR)/$(PROG) \
-		-gcflags "$(GO_GCFLAGS)" -ldflags "$(GO_LDFLAGS)"
-	@$(TOUCH) $@
-
-cmd/server: force
-	$(RM) $(BUILD_DIR)/$(DAEMON)
-	$(MKDIR) $(BUILD_DIR)
-	cd $@; $(GOBUILD) -o $(BUILD_DIR)/$(DAEMON) \
-		-gcflags "$(GO_GCFLAGS)" -ldflags "$(GO_LDFLAGS)"
+		-gcflags "$(GO_GCFLAGS)" -ldflags "$(GO_LDFLAGS)"; \
+	cd $(BUILD_DIR); $(LN) $(PROG) $(DAEMON)
 	@$(TOUCH) $@
 
 components/common/assets: force

@@ -21,7 +21,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
@@ -177,8 +176,7 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 		true); err != nil {
 		return
 	}
-	if err = vm.ValidateVolumes(common.
-		ViperStringSliceBugWorkaround(args.GetStringSlice("volume")),
+	if err = vm.ValidateVolumes(viperStringSliceBugWorkaround(args.GetStringSlice("volume")),
 		false); err != nil {
 		return
 	}
@@ -227,5 +225,7 @@ func runFlagsDefaults(setFlag *pflag.FlagSet) {
 
 func init() {
 	runFlagsDefaults(runCmd.Flags())
-	rootCmd.AddCommand(runCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(runCmd)
+	}
 }

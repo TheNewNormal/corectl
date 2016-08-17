@@ -76,5 +76,7 @@ func panicCommand(cmd *cobra.Command, args []string) (err error) {
 func init() {
 	panicCmd.Flags().BoolP("random", "r", false,
 		"hard kill a randomly choosen running instance")
-	rootCmd.AddCommand(panicCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(panicCmd)
+	}
 }

@@ -120,6 +120,7 @@ func scpCommand(cmd *cobra.Command, args []string) (err error) {
 }
 
 func init() {
-	rootCmd.AddCommand(sshCmd)
-	rootCmd.AddCommand(scpCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(sshCmd, scpCmd)
+	}
 }

@@ -18,7 +18,6 @@ package main
 import (
 	"github.com/deis/pkg/log"
 
-	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
@@ -30,7 +29,7 @@ var (
 		Use:     "rm",
 		Aliases: []string{"rmi"},
 		Short:   "Remove(s) CoreOS image(s) from the local filesystem",
-		PreRunE: common.DefaultPreRunE,
+		PreRunE: defaultPreRunE,
 		RunE:    rmCommand,
 	}
 )
@@ -86,5 +85,7 @@ func init() {
 	rmCmd.Flags().StringP("channel", "c", "alpha", "CoreOS channel")
 	rmCmd.Flags().StringP("version", "v", "latest", "CoreOS version")
 	rmCmd.Flags().BoolP("purge", "p", false, "purges outdated images")
-	rootCmd.AddCommand(rmCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(rmCmd)
+	}
 }

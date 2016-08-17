@@ -21,9 +21,9 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/TheNewNormal/corectl/components/common"
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/server"
+	"github.com/TheNewNormal/corectl/release"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
@@ -32,8 +32,8 @@ var (
 	psCmd = &cobra.Command{
 		Use:     "ps",
 		Short:   "Lists running CoreOS instances",
-		PreRunE: common.DefaultPreRunE,
-		RunE:    common.PScommand,
+		PreRunE: defaultPreRunE,
+		RunE:    psCommand,
 	}
 	queryCmd = &cobra.Command{
 		Use:     "query [VMids]",
@@ -55,6 +55,43 @@ var (
 		RunE: queryCommand,
 	}
 )
+
+func psCommand(cmd *cobra.Command, args []string) (err error) {
+	var (
+		cli   = session.Caller.CmdLine
+		reply = &server.RPCreply{}
+		srv   *release.Info
+		pp    []byte
+	)
+	if srv, err = server.Daemon.Running(); err != nil {
+		return
+	}
+	if reply, err = server.RPCQuery("ActiveVMs", &server.RPCquery{}); err != nil {
+		return
+	}
+	running := reply.Running
+	if cli.GetBool("json") {
+		if pp, err = json.MarshalIndent(running, "", "    "); err == nil {
+			fmt.Println(string(pp))
+		}
+		return
+	}
+
+	fmt.Println("\nServer:")
+	srv.PrettyPrint(true)
+
+	totalV, totalM, totalC := len(running), 0, 0
+	for _, vm := range running {
+		totalC, totalM = totalC+vm.Cpus, totalM+vm.Memory
+	}
+	fmt.Printf("Activity:\n Active VMs:\t%v\n "+
+		"Total Memory:\t%v\n Total vCores:\t%v\n",
+		totalV, totalM, totalC)
+	for _, vm := range running {
+		vm.PrettyPrint()
+	}
+	return
+}
 
 func queryCommand(cmd *cobra.Command, args []string) (err error) {
 	var (
@@ -146,7 +183,6 @@ func queryCommand(cmd *cobra.Command, args []string) (err error) {
 func init() {
 	psCmd.Flags().BoolP("json", "j", false,
 		"outputs in JSON for easy 3rd party integration")
-	rootCmd.AddCommand(psCmd)
 
 	queryCmd.Flags().BoolP("json", "j", false,
 		"outputs in JSON for easy 3rd party integration")
@@ -165,5 +201,7 @@ func init() {
 		"tells if a given VM is up or not")
 	queryCmd.Flags().BoolP("uuid", "U", false,
 		"returns VM's UUID")
-	rootCmd.AddCommand(queryCmd)
+	if session.AppName() != "corectld" {
+		rootCmd.AddCommand(psCmd, queryCmd)
+	}
 }
