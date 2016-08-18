@@ -775,15 +775,79 @@ func (s *EtcdServer) triggerSnapshot(ep *etcdProgress) {
 	ep.snapi = ep.appliedi
 }
 
-// Stop stops the server gracefully, and shuts down the running goroutine.
-// Stop should be called after a Start(s), otherwise it will block forever.
-func (s *EtcdServer) Stop() {
+func (s *EtcdServer) isMultiNode() bool {
+	return s.cluster != nil && len(s.cluster.MemberIDs()) > 1
+}
+
+func (s *EtcdServer) isLeader() bool {
+	return uint64(s.ID()) == s.Lead()
+}
+
+// transferLeadership transfers the leader to the given transferee.
+// TODO: maybe expose to client?
+func (s *EtcdServer) transferLeadership(ctx context.Context, lead, transferee uint64) error {
+	now := time.Now()
+	interval := time.Duration(s.Cfg.TickMs) * time.Millisecond
+
+	plog.Infof("%s starts leadership transfer from %s to %s", s.ID(), types.ID(lead), types.ID(transferee))
+	s.r.TransferLeadership(ctx, lead, transferee)
+	for s.Lead() != transferee {
+		select {
+		case <-ctx.Done(): // time out
+			return ErrTimeoutLeaderTransfer
+		case <-time.After(interval):
+		}
+	}
+
+	// TODO: drain all requests, or drop all messages to the old leader
+
+	plog.Infof("%s finished leadership transfer from %s to %s (took %v)", s.ID(), types.ID(lead), types.ID(transferee), time.Since(now))
+	return nil
+}
+
+// TransferLeadership transfers the leader to the chosen transferee.
+func (s *EtcdServer) TransferLeadership() error {
+	if !s.isLeader() {
+		plog.Printf("skipped leadership transfer for stopping non-leader member")
+		return nil
+	}
+
+	if !s.isMultiNode() {
+		plog.Printf("skipped leadership transfer for single member cluster")
+		return nil
+	}
+
+	transferee, ok := longestConnected(s.r.transport, s.cluster.MemberIDs())
+	if !ok {
+		return ErrUnhealthy
+	}
+
+	tm := s.Cfg.ReqTimeout()
+	ctx, cancel := context.WithTimeout(context.TODO(), tm)
+	err := s.transferLeadership(ctx, s.Lead(), uint64(transferee))
+	cancel()
+	return err
+}
+
+// HardStop stops the server without coordination with other members in the cluster.
+func (s *EtcdServer) HardStop() {
 	select {
 	case s.stop <- struct{}{}:
 	case <-s.done:
 		return
 	}
 	<-s.done
+}
+
+// Stop stops the server gracefully, and shuts down the running goroutine.
+// Stop should be called after a Start(s), otherwise it will block forever.
+// When stopping leader, Stop transfers its leadership to one of its peers
+// before stopping the server.
+func (s *EtcdServer) Stop() {
+	if err := s.TransferLeadership(); err != nil {
+		plog.Warningf("%s failed to transfer leadership (%v)", s.ID(), err)
+	}
+	s.HardStop()
 }
 
 // ReadyNotify returns a channel that will be closed when the server
@@ -844,10 +908,9 @@ func (s *EtcdServer) AddMember(ctx context.Context, memb membership.Member) erro
 }
 
 func (s *EtcdServer) RemoveMember(ctx context.Context, id uint64) error {
-	if s.Cfg.StrictReconfigCheck && !s.cluster.IsReadyToRemoveMember(id) {
-		// If s.cfg.StrictReconfigCheck is false, it means the option --strict-reconfig-check isn't passed to etcd.
-		// In such a case removing a member is allowed unconditionally
-		return ErrNotEnoughStartedMembers
+	// by default StrictReconfigCheck is enabled; reject removal if leads to quorum loss
+	if err := s.mayRemoveMember(types.ID(id)); err != nil {
+		return err
 	}
 
 	cc := raftpb.ConfChange{
@@ -855,6 +918,32 @@ func (s *EtcdServer) RemoveMember(ctx context.Context, id uint64) error {
 		NodeID: id,
 	}
 	return s.configure(ctx, cc)
+}
+
+func (s *EtcdServer) mayRemoveMember(id types.ID) error {
+	if !s.Cfg.StrictReconfigCheck {
+		return nil
+	}
+
+	if !s.cluster.IsReadyToRemoveMember(uint64(id)) {
+		plog.Warningf("not enough started members, rejecting remove member %s", id)
+		return ErrNotEnoughStartedMembers
+	}
+
+	// downed member is safe to remove since it's not part of the active quorum
+	if t := s.r.transport.ActiveSince(id); id != s.ID() && t.IsZero() {
+		return nil
+	}
+
+	// protect quorum if some members are down
+	m := s.cluster.Members()
+	active := numConnectedSince(s.r.transport, time.Now().Add(-HealthInterval), s.ID(), m)
+	if (active - 1) < 1+((len(m)-1)/2) {
+		plog.Warningf("reconfigure breaks active quorum, rejecting remove member %s", id)
+		return ErrUnhealthy
+	}
+
+	return nil
 }
 
 func (s *EtcdServer) UpdateMember(ctx context.Context, memb membership.Member) error {
@@ -1236,6 +1325,22 @@ func (s *EtcdServer) snapshot(snapi uint64, confState raftpb.ConfState) {
 		}
 		plog.Infof("compacted raft log at %d", compacti)
 	}()
+}
+
+// CutPeer drops messages to the specified peer.
+func (s *EtcdServer) CutPeer(id types.ID) {
+	tr, ok := s.r.transport.(*rafthttp.Transport)
+	if ok {
+		tr.CutPeer(id)
+	}
+}
+
+// MendPeer recovers the message dropping behavior of the given peer.
+func (s *EtcdServer) MendPeer(id types.ID) {
+	tr, ok := s.r.transport.(*rafthttp.Transport)
+	if ok {
+		tr.MendPeer(id)
+	}
 }
 
 func (s *EtcdServer) PauseSending() { s.r.pauseSending() }

@@ -42,9 +42,12 @@ func NewTimeList() *timeList {
 func (tl *timeList) Wait(deadline time.Time) <-chan struct{} {
 	tl.l.Lock()
 	defer tl.l.Unlock()
-	ch := make(chan struct{}, 1)
-	// The given deadline SHOULD be unique.
-	tl.m[deadline.UnixNano()] = ch
+	nano := deadline.UnixNano()
+	ch := tl.m[nano]
+	if ch == nil {
+		ch = make(chan struct{})
+		tl.m[nano] = ch
+	}
 	return ch
 }
 

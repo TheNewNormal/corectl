@@ -27,7 +27,7 @@ corectl run
   -k, --sshkey string         VM's default ssh key
   -u, --uuid string           VM's UUID (default "random")
   -v, --version string        CoreOS version (default "latest")
-  -p, --volume value          append disk volumes to VM (default [])
+  -p, --volume stringSlice    append disk volumes to VM
 ```
 
 ### Options inherited from parent commands
