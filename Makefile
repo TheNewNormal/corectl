@@ -139,6 +139,7 @@ qcow-tool: force
 	$(CP) $(OPAMROOT)/system/bin/$@ $(BUILD_DIR)/$@
 
 documentation/man: cmd force
+	$(RM) $@
 	$(MKDIR) $@
 	$(BUILD_DIR)/$(PROG) utils genManPages
 	$(BUILD_DIR)/$(DAEMON) utils genManPages
@@ -149,6 +150,7 @@ documentation/man: cmd force
 	done
 
 documentation/markdown: cmd force
+	$(RM) $@
 	$(MKDIR) $@
 	$(BUILD_DIR)/$(PROG) utils genMarkdownDocs
 	$(BUILD_DIR)/$(DAEMON) utils genMarkdownDocs
