@@ -1,0 +1,166 @@
+#cloud-config
+
+---
+{{ if index "SSHAuthorizedKeys" }}
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        {{ range $element := .SSHAuthorizedKeys }}
+        - {{$element}}
+        {{end}}
+{{end}}
+storage:
+  {{ if .SetupRoot }}
+  disks:
+    - device: /dev/vda
+      wipe_table: true
+      partitions:
+        - label: ROOT
+  filesystems:
+    - name: root
+      mount:
+        device: "/dev/vda1"
+        format: "ext4"
+        create:
+          force: true
+          options:
+            - "-LROOT"
+  {{else if .PersistentRoot }}
+  filesystems:
+    - name: root
+      mount:
+        device: "/dev/disk/by-label/ROOT"
+        format: "ext4"
+  {{end}}
+  files:
+  - path: /home/core/bin/find-ip4.sh
+    mode: 0755
+    filesystem: root
+    user:
+      id: 500
+    group:
+      id: 500
+    contents:
+      inline: |
+        #!/bin/sh
+        IFACE="${1}"
+        FILE="${2}"
+        VARIABLE="${3}"
+        while [ -z "${ip}" ]; do
+          ip=$(ip -4 -o addr show dev "${IFACE}" scope global | \
+            gawk '{split ($4, out, "/"); print out[1]}')
+          sleep .1
+        done
+        echo "${ip}"
+        sed -i -e "/^${VARIABLE}=/d" "${FILE}"
+        echo "${VARIABLE}=${ip}" >> "${FILE}"
+  - path: /etc/oem-release
+    mode: 0644
+    filesystem: root
+    user:
+      id: 0
+    group:
+      id: 0
+    contents:
+      inline: |
+        ID=corectl
+        VERSION_ID={{.CorectlVersion}}
+        NAME="CoreOS over macOS made simple"
+        HOME_URL="https://github.com/TheNewNormal/corectl"
+        BUG_REPORT_URL="https://github.com/TheNewNormal/corectl/issues/"
+
+networkd:
+  units:
+  - name: 40-eth0.network
+    contents: |
+      [Match]
+        Name=eth0
+      [Network]
+        DHCP=yes
+        DNS={{.NetworkdGateway}}
+        Domains={{.NetworkdDns}}
+      [DHCP]
+        UseDomains=true
+
+systemd:
+  units:
+  - name: update-engine.service
+    enable: false
+  - name: locksmithd.service
+    enable: false
+  - name: corectl-set-hostname.service
+    enable: true
+    contents: |
+      [Unit]
+        Description=Sets Hostname
+      [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        StandardOutput=journal+console
+        ExecStart=/usr/bin/hostnamectl set-hostname {{.Hostname}}
+      [Install]
+        WantedBy=basic.target
+  - name: setEnv.service
+    enable: true
+    contents: |
+      [Unit]
+        Description=Setups /etc/environment
+        Requires=system-config.target
+        Before=system-config.target
+      [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        StandardOutput=journal+console
+        ExecStart=/home/core/bin/find-ip4.sh eth0 /etc/environment COREOS_PRIVATE_IPV4
+        ExecStart=/home/core/bin/find-ip4.sh eth0 /etc/environment COREOS_PUBLIC_IPV4
+      [Install]
+        RequiredBy=system-config.target
+  - name: phone-home.service
+    enable: true
+    contents: |
+      [Unit]
+        Description=Tells corectld that machine got up
+        Requires=setEnv.service
+        After=setEnv.service
+      [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        StandardOutput=journal+console
+        ExecStart=/usr/bin/curl -Ls {{.CorectldEndpoint}}/ping
+      [Install]
+        RequiredBy=setEnv.service
+  - name: {{.NFShomedirPathEscaped}}.mount
+  {{if .SharedHomedir}}
+    enable: true
+  {{else}}
+    mask: true
+  {{end}}
+    contents: |
+      [Unit]
+        Requires=rpc-statd.service
+        After=rpc-statd.service
+      [Mount]
+        What=corectld.coreos.local:{{.NFShomedirPath}}
+        Where={{.NFShomedirPath}}
+        Options=rw,async,nolock,noatime,rsize=32768,wsize=32768
+        Type=nfs
+        TimeoutSec=10
+      [Install]
+        RequiredBy=system-config.target
+  - name: outter-connectivity-check.service
+    enable: true
+    contents: |
+      [Unit]
+        Description=Check that VM actually has a path the the outter world
+        Requires=phone-home.service
+        After=phone-home.service
+      [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        StandardOutput=journal+console
+        ExecStart=/usr/bin/curl -Ls \
+          https://raw.githubusercontent.com/TheNewNormal/corectl/golang/MAINTAINERS
+        ExecStart=/usr/bin/curl -Ls {{.CorectldEndpoint}}/NotIsolated
+      [Install]
+        RequiredBy=phone-home.service

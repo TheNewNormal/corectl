@@ -34,8 +34,8 @@ import (
 	"time"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/dustin/go-humanize"
 	"github.com/deis/pkg/log"
+	"github.com/dustin/go-humanize"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -45,12 +45,13 @@ type (
 		Name, Channel, Version, UUID            string
 		MacAddress, PublicIP                    string
 		InternalSSHkey, InternalSSHprivate      string
-		Cpus, Memory, Pid, Root                 int
+		Cpus, Memory, Pid                       int
 		SSHkey, CloudConfig, CClocation         string `json:",omitempty"`
 		AddToHypervisor, AddToKernel            string `json:",omitempty"`
 		Ethernet                                []NetworkInterface
 		Storage                                 StorageAssets `json:",omitempty"`
 		SharedHomedir, OfflineMode, NotIsolated bool
+		FormatRoot, PersistentRoot              bool
 		CreationTime                            time.Time
 
 		publicIPCh               chan string
@@ -185,7 +186,7 @@ func (vm *VMInfo) ValidateVolumes(volumes []string, root bool) (err error) {
 			vm.Storage.HardDrives[strconv.Itoa(slot)] =
 				StorageDevice{Type: HDD, Format: format, Slot: slot, Path: abs}
 			if root {
-				vm.Root = slot
+				vm.PersistentRoot = root
 			}
 		}
 	}
@@ -247,7 +248,7 @@ func (vm *VMInfo) SSHkeyGen() (err error) {
 
 func (vm *VMInfo) assembleBootPayload() (xArgs []string, err error) {
 	var (
-		cmdline = "earlyprintk=serial console=ttyS0 coreos.autologin"
+		cmdline = "earlyprintk=serial console=ttyS0 coreos.autologin coreos.first_boot=1"
 		prefix  = "coreos_production_pxe"
 		vmlinuz = fmt.Sprintf("%s/%s/%s/%s.vmlinuz",
 			session.Caller.ImageStore(), vm.Channel, vm.Version,
@@ -266,31 +267,18 @@ func (vm *VMInfo) assembleBootPayload() (xArgs []string, err error) {
 			"-A",
 			"-u",
 		}
-		endpoint = fmt.Sprintf("http://%s:%s/%s",
-			session.Caller.Address, "2511", vm.UUID)
 	)
-
-	if vm.SSHkey != "" {
-		cmdline = fmt.Sprintf("%s sshkey=\"%s\"", cmdline, vm.SSHkey)
+	if vm.PersistentRoot {
+		cmdline = fmt.Sprintf("%s root=LABEL=ROOT", cmdline)
 	}
 
-	if vm.Root != -1 {
-		cmdline = fmt.Sprintf("%s root=/dev/vd%s",
-			cmdline, string(vm.Root+'a'))
-	}
-
-	cmdline = fmt.Sprintf("%s corectl.endpoint=%s  "+
-		"corectl.hostname=%s coreos.first_boot=1 coreos.config.url=%s",
-		cmdline, endpoint, vm.Name, endpoint+"/ignition")
-
-	if vm.SharedHomedir {
-		cmdline = fmt.Sprintf("%s corectl.sharedhomedir=true", cmdline)
-	}
+	cmdline = fmt.Sprintf("%s corectl.hostname=%s  coreos.config.url=%s",
+		cmdline, vm.Name, vm.endpoint()+"/ignition")
 
 	if vm.CloudConfig != "" {
 		if vm.CClocation == Local {
 			cmdline = fmt.Sprintf("%s cloud-config-url=%s",
-				cmdline, endpoint+"/cloud-config")
+				cmdline, vm.endpoint()+"/cloud-config")
 		} else {
 			cmdline = fmt.Sprintf("%s cloud-config-url=%s",
 				cmdline, vm.CloudConfig)
@@ -425,6 +413,12 @@ func (vm *VMInfo) deregister() {
 	delete(Daemon.Active, vm.UUID)
 
 }
+
+func (vm *VMInfo) endpoint() string {
+	return fmt.Sprintf("http://%s:%s/%s",
+		session.Caller.Address, "2511", vm.UUID)
+}
+
 func (vm *VMInfo) RunDir() string {
 	return filepath.Join(session.Caller.RunDir(), vm.UUID)
 }
@@ -459,10 +453,10 @@ func (vm *VMInfo) PrettyPrint() {
 	}
 	fmt.Println("  Network:")
 	fmt.Printf("    eth0:\t%v\n", vm.PublicIP)
-	vm.Storage.PrettyPrint(vm.Root)
+	vm.Storage.PrettyPrint(vm.PersistentRoot)
 }
 
-func (volumes *StorageAssets) PrettyPrint(root int) {
+func (volumes *StorageAssets) PrettyPrint(root bool) {
 	if len(volumes.CDDrives)+len(volumes.HardDrives) > 0 {
 		fmt.Println("  Volumes:")
 		for a, b := range volumes.CDDrives {
@@ -474,11 +468,11 @@ func (volumes *StorageAssets) PrettyPrint(root int) {
 			if b.Format == Qcow2 {
 				format = "qcow2"
 			}
-			if i != root {
-				fmt.Printf("   /dev/vd%v\t%s,format=%s\n", string(i+'a'),
+			if root && i == 0 {
+				fmt.Printf("   /,/dev/vd%v\t%s,format=%s\n", string(i+'a'),
 					b.Path, format)
 			} else {
-				fmt.Printf("   /,/dev/vd%v\t%s,format=%s\n", string(i+'a'),
+				fmt.Printf("   /dev/vd%v\t%s,format=%s\n", string(i+'a'),
 					b.Path, format)
 			}
 		}

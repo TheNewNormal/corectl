@@ -31,11 +31,10 @@ var (
 	// CoreOS default Channels
 	Channels = []string{"alpha", "beta", "stable"}
 
-	GPGLongID            = "50E0885593D2DCB4"
-	GPGKey               = assets.Contents("target/coreos/CoreOSkey.public")
-	CoreOEMsharedHomedir = assets.Contents("target/coreos/homedir.yml.tmpl")
-	CoreOSIgnitionTmpl   = assets.
-				Contents("target/coreos/corectl.ignition.yml.tmpl")
+	GPGLongID          = "50E0885593D2DCB4"
+	GPGKey             = assets.Contents("target/coreos/CoreOSkey.public")
+	CoreOSIgnitionTmpl = assets.
+				Contents("target/coreos/corectl.ignition.yaml")
 )
 
 func LatestImageBreackage() (t time.Time) {

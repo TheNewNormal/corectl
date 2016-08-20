@@ -19,6 +19,7 @@ corectl run
   -L, --cloud_config string   cloud-config file location (either an URL or a local path)
   -N, --cpus int              VM number of virtual CPUs (default 1)
   -x, --extra string          additional arguments to the hypervisor
+  -F, --format-root           formats and partitions the (persistent) root volume
   -m, --memory int            VM's RAM, in MB, per instance (1024 < memory < 8192) (default 1024)
   -n, --name string           names the VM (default is VM's UUID)
   -o, --offline               doesn't go online to check for newer images than the locally available ones unless there is none available.

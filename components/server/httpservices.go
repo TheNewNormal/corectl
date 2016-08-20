@@ -16,25 +16,35 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
+	"text/template"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
 	"github.com/coreos/fuze/config"
 	"github.com/coreos/go-systemd/unit"
+	"github.com/deis/pkg/log"
 	"github.com/gorilla/mux"
 )
 
 var httpServices = mux.NewRouter()
 
+type corectlTmpl struct {
+	SetupRoot, PersistentRoot, SharedHomedir bool
+	CorectlVersion, CorectldEndpoint         string
+	NetworkdGateway, NetworkdDns, Hostname   string
+	SSHAuthorizedKeys                        []string
+	NFShomedirPath, NFShomedirPathEscaped    string
+}
+
 func httpServiceSetup() {
 	httpServices.HandleFunc("/{uuid}/ignition", httpInstanceIgnitionConfig)
 	httpServices.HandleFunc("/{uuid}/cloud-config", httpInstanceCloudConfig)
-	httpServices.HandleFunc("/{uuid}/homedir", httpInstanceHomedirMountConfig)
 	httpServices.HandleFunc("/{uuid}/ping", httpInstanceCallback)
 	httpServices.HandleFunc("/{uuid}/NotIsolated",
 		httpInstanceExternalConnectivity)
@@ -100,18 +110,37 @@ func isPortOpen(t string, target string) bool {
 
 func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 	if acceptableRequest(r, w) {
-		vm := Daemon.Active[mux.Vars(r)["uuid"]]
-		mods := strings.NewReplacer(
-			"__vm.InternalSSHkey__", vm.InternalSSHkey,
-			"__vm.Name__", vm.Name,
-			"__vm.DomainName__", LocalDomainName,
-			"__vm.Gateway__", session.Caller.Network.Address,
-			"__corectl.Version__", Daemon.Meta.Version)
+		var (
+			rendered bytes.Buffer
+			vm       = Daemon.Active[mux.Vars(r)["uuid"]]
+			setup    = corectlTmpl{
+				vm.FormatRoot,
+				vm.PersistentRoot,
+				vm.SharedHomedir,
+				Daemon.Meta.Version,
+				vm.endpoint(),
+				session.Caller.Network.Address,
+				LocalDomainName,
+				vm.Name,
+				[]string{vm.InternalSSHkey},
+				session.Caller.HomeDir,
+				unit.UnitNamePathEscape(session.Caller.HomeDir),
+			}
+		)
+		if vm.SSHkey != "" {
+			setup.SSHAuthorizedKeys = append(setup.SSHAuthorizedKeys, vm.SSHkey)
+		}
 		if vm.CloudConfig != "" && vm.CClocation == Local {
 			vm.cloudConfigContents, _ = ioutil.ReadFile(vm.CloudConfig)
 		}
-		if cfgIn, err := config.ParseAsV2_0_0(
-			[]byte(mods.Replace(coreos.CoreOSIgnitionTmpl))); err != nil {
+		t, _ := template.New("").Parse(string(coreos.CoreOSIgnitionTmpl))
+		if err := t.Execute(&rendered, setup); err != nil {
+			log.Err("==> %v", err.Error())
+			httpError(w, http.StatusInternalServerError)
+		}
+
+		log.Info(rendered.String())
+		if cfgIn, err := config.ParseAsV2_0_0(rendered.Bytes()); err != nil {
 			httpError(w, http.StatusInternalServerError)
 		} else if i, err := json.MarshalIndent(&cfgIn, "", "  "); err != nil {
 			httpError(w, http.StatusInternalServerError)
@@ -124,13 +153,6 @@ func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func httpInstanceHomedirMountConfig(w http.ResponseWriter, r *http.Request) {
-	if acceptableRequest(r, w) {
-		mods := strings.NewReplacer("((path))", session.Caller.HomeDir,
-			"((path_escaped))", unit.UnitNamePathEscape(session.Caller.HomeDir))
-		w.Write([]byte(mods.Replace(coreos.CoreOEMsharedHomedir)))
-	}
-}
 func httpInstanceExternalConnectivity(w http.ResponseWriter, r *http.Request) {
 	if acceptableRequest(r, w) {
 		if isLoopback(remoteIP(r.RemoteAddr)) {

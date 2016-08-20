@@ -89,7 +89,6 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 	vm.AddToHypervisor = args.GetString("extra")
 	vm.AddToKernel = args.GetString("boot")
 	vm.SSHkey = args.GetString("sshkey")
-	vm.Root = -1
 	vm.Pid = -1
 
 	vm.Name = strings.ToLower(args.GetString("name"))
@@ -171,12 +170,19 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 	}
 
 	vm.ValidateCDROM("")
-
+	if args.GetBool("format-root") {
+		if args.GetString("root") == "" {
+			err = fmt.Errorf("unable to format root volume as it wasn't set...")
+			return
+		}
+		vm.FormatRoot = true
+	}
 	if err = vm.ValidateVolumes([]string{args.GetString("root")},
 		true); err != nil {
 		return
 	}
-	if err = vm.ValidateVolumes(viperStringSliceBugWorkaround(args.GetStringSlice("volume")),
+	if err = vm.ValidateVolumes(
+		viperStringSliceBugWorkaround(args.GetStringSlice("volume")),
 		false); err != nil {
 		return
 	}
@@ -208,6 +214,8 @@ func runFlagsDefaults(setFlag *pflag.FlagSet) {
 		"cloud-config file location (either an URL or a local path)")
 	setFlag.StringP("sshkey", "k", "", "VM's default ssh key")
 	setFlag.StringP("root", "r", "", "append a (persistent) root volume to VM")
+	setFlag.BoolP("format-root", "F", false,
+		"formats and partitions the (persistent) root volume")
 	setFlag.StringSliceP("volume", "p", nil, "append disk volumes to VM")
 	setFlag.BoolP("offline", "o", false,
 		"doesn't go online to check for newer images than the "+
