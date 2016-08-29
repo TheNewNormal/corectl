@@ -86,12 +86,13 @@ func Start() (err error) {
 	Daemon.EtcdClient.Delete(context.Background(), "/skydns",
 		&client.DeleteOptions{Dir: true, Recursive: true})
 
-	if isPortOpen("tcp", ":53") {
-		return fmt.Errorf("Unable to start embedded skydns " +
-			"as something else seems to be already binding hosts' port :53")
+	if isPortOpen("tcp", ":"+EmbeddedDNSport) {
+		return fmt.Errorf("Unable to start embedded skydns "+
+			"as something else seems to be already binding hosts' port :%v",
+			EmbeddedDNSport)
 	}
 	log.Info("starting embedded name server")
-	if err = Daemon.NewDNSServer(LocalDomainName, ":53",
+	if err = Daemon.NewDNSServer(LocalDomainName, ":"+EmbeddedDNSport,
 		RecursiveNameServers); err != nil {
 		return
 	}
