@@ -192,6 +192,7 @@ func (r *roffRenderer) LineBreak(out *bytes.Buffer) {
 }
 
 func (r *roffRenderer) Link(out *bytes.Buffer, link []byte, title []byte, content []byte) {
+	out.Write(content)
 	r.AutoLink(out, link, 0)
 }
 

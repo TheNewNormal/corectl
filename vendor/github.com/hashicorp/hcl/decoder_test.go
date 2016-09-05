@@ -328,6 +328,34 @@ func TestDecode_interface(t *testing.T) {
 				},
 			},
 		},
+
+		// Terraform GH-8295 sanity test that basic decoding into
+		// interface{} works.
+		{
+			"terraform_variable_invalid.json",
+			false,
+			map[string]interface{}{
+				"variable": []map[string]interface{}{
+					map[string]interface{}{
+						"whatever": "abc123",
+					},
+				},
+			},
+		},
+
+		{
+			"interpolate.json",
+			false,
+			map[string]interface{}{
+				"default": `${replace("europe-west", "-", " ")}`,
+			},
+		},
+
+		{
+			"block_assign.hcl",
+			true,
+			nil,
+		},
 	}
 
 	for _, tc := range cases {
@@ -673,6 +701,26 @@ func TestDecode_structureMap(t *testing.T) {
 		if !reflect.DeepEqual(actual, expected) {
 			t.Fatalf("Input: %s\n\nActual: %#v\n\nExpected: %#v", f, actual, expected)
 		}
+	}
+}
+
+func TestDecode_structureMapInvalid(t *testing.T) {
+	// Terraform GH-8295
+
+	type hclVariable struct {
+		Default     interface{}
+		Description string
+		Fields      []string `hcl:",decodedFields"`
+	}
+
+	type rawConfig struct {
+		Variable map[string]*hclVariable
+	}
+
+	var actual rawConfig
+	err := Decode(&actual, testReadFile(t, "terraform_variable_invalid.json"))
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }
 

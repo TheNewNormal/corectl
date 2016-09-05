@@ -35,9 +35,6 @@ const (
 	// specify a large value might end up with shooting in the foot.
 	maxRequestBytes = 1.5 * 1024 * 1024
 
-	// max timeout for waiting a v3 request to go through raft.
-	maxV3RequestTimeout = 5 * time.Second
-
 	// In the health case, there might be a small gap (10s of entries) between
 	// the applied index and committed index.
 	// However, if the committed entries are very heavy to apply, the gap might grow.
@@ -463,24 +460,12 @@ func (s *EtcdServer) isValidSimpleToken(token string) bool {
 		return false
 	}
 
-	// CAUTION: below index synchronization is required because this node
-	// might not receive and apply the log entry of Authenticate() RPC.
-	authApplied := false
-	for i := 0; i < 10; i++ {
-		if uint64(index) <= s.getAppliedIndex() {
-			authApplied = true
-			break
-		}
-
-		time.Sleep(100 * time.Millisecond)
+	select {
+	case <-s.applyWait.Wait(uint64(index)):
+		return true
+	case <-s.stop:
+		return true
 	}
-
-	if !authApplied {
-		plog.Errorf("timeout of waiting Authenticate() RPC")
-		return false
-	}
-
-	return true
 }
 
 func (s *EtcdServer) authInfoFromCtx(ctx context.Context) (*auth.AuthInfo, error) {
@@ -569,7 +554,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	}
 	ch := s.w.Register(id)
 
-	cctx, cancel := context.WithTimeout(ctx, maxV3RequestTimeout)
+	cctx, cancel := context.WithTimeout(ctx, s.Cfg.ReqTimeout())
 	defer cancel()
 
 	start := time.Now()

@@ -1,6 +1,7 @@
 package pflag
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"strings"
@@ -48,7 +49,13 @@ func (s *stringSliceValue) Type() string {
 	return "stringSlice"
 }
 
-func (s *stringSliceValue) String() string { return "[" + strings.Join(*s.value, ",") + "]" }
+func (s *stringSliceValue) String() string {
+	b := &bytes.Buffer{}
+	w := csv.NewWriter(b)
+	w.Write(*s.value)
+	w.Flush()
+	return "[" + strings.TrimSuffix(b.String(), fmt.Sprintln()) + "]"
+}
 
 func stringSliceConv(sval string) (interface{}, error) {
 	sval = strings.Trim(sval, "[]")
@@ -56,8 +63,7 @@ func stringSliceConv(sval string) (interface{}, error) {
 	if len(sval) == 0 {
 		return []string{}, nil
 	}
-	v := strings.Split(sval, ",")
-	return v, nil
+	return readAsCSV(sval)
 }
 
 // GetStringSlice return the []string value of a flag with the given name

@@ -510,7 +510,7 @@ func TestConfigureTransport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := fmt.Sprintf("%#v", *t1); !strings.Contains(got, `"h2"`) {
+	if got := fmt.Sprintf("%#v", t1); !strings.Contains(got, `"h2"`) {
 		// Laziness, to avoid buildtags.
 		t.Errorf("stringification of HTTP/1 transport didn't contain \"h2\": %v", got)
 	}
@@ -2105,7 +2105,7 @@ func testTransportUsesGoAwayDebugError(t *testing.T, failMidBody bool) {
 			DebugData:    goAwayDebugData,
 		}
 		if !reflect.DeepEqual(err, want) {
-			t.Errorf("RoundTrip error = %T: %#v, want %T (%#T)", err, err, want, want)
+			t.Errorf("RoundTrip error = %T: %#v, want %T (%#v)", err, err, want, want)
 		}
 		return nil
 	}
@@ -2426,4 +2426,174 @@ func TestTransportReturnsErrorOnBadResponseHeaders(t *testing.T) {
 		return nil
 	}
 	ct.run()
+}
+
+// byteAndEOFReader returns is in an io.Reader which reads one byte
+// (the underlying byte) and io.EOF at once in its Read call.
+type byteAndEOFReader byte
+
+func (b byteAndEOFReader) Read(p []byte) (n int, err error) {
+	if len(p) == 0 {
+		panic("unexpected useless call")
+	}
+	p[0] = byte(b)
+	return 1, io.EOF
+}
+
+// Issue 16788: the Transport had a regression where it started
+// sending a spurious DATA frame with a duplicate END_STREAM bit after
+// the request body writer goroutine had already read an EOF from the
+// Request.Body and included the END_STREAM on a data-carrying DATA
+// frame.
+//
+// Notably, to trigger this, the requests need to use a Request.Body
+// which returns (non-0, io.EOF) and also needs to set the ContentLength
+// explicitly.
+func TestTransportBodyDoubleEndStream(t *testing.T) {
+	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
+		// Nothing.
+	}, optOnlyServer)
+	defer st.Close()
+
+	tr := &Transport{TLSClientConfig: tlsConfigInsecure}
+	defer tr.CloseIdleConnections()
+
+	for i := 0; i < 2; i++ {
+		req, _ := http.NewRequest("POST", st.ts.URL, byteAndEOFReader('a'))
+		req.ContentLength = 1
+		res, err := tr.RoundTrip(req)
+		if err != nil {
+			t.Fatalf("failure on req %d: %v", i+1, err)
+		}
+		defer res.Body.Close()
+	}
+}
+
+// golangorg/issue/16847
+func TestTransportRequestPathPseudo(t *testing.T) {
+	type result struct {
+		path string
+		err  string
+	}
+	tests := []struct {
+		req  *http.Request
+		want result
+	}{
+		0: {
+			req: &http.Request{
+				Method: "GET",
+				URL: &url.URL{
+					Host: "foo.com",
+					Path: "/foo",
+				},
+			},
+			want: result{path: "/foo"},
+		},
+		// I guess we just don't let users request "//foo" as
+		// a path, since it's illegal to start with two
+		// slashes....
+		1: {
+			req: &http.Request{
+				Method: "GET",
+				URL: &url.URL{
+					Host: "foo.com",
+					Path: "//foo",
+				},
+			},
+			want: result{err: `invalid request :path "//foo"`},
+		},
+
+		// Opaque with //$Matching_Hostname/path
+		2: {
+			req: &http.Request{
+				Method: "GET",
+				URL: &url.URL{
+					Scheme: "https",
+					Opaque: "//foo.com/path",
+					Host:   "foo.com",
+					Path:   "/ignored",
+				},
+			},
+			want: result{path: "/path"},
+		},
+
+		// Opaque with some other Request.Host instead:
+		3: {
+			req: &http.Request{
+				Method: "GET",
+				Host:   "bar.com",
+				URL: &url.URL{
+					Scheme: "https",
+					Opaque: "//bar.com/path",
+					Host:   "foo.com",
+					Path:   "/ignored",
+				},
+			},
+			want: result{path: "/path"},
+		},
+
+		// Opaque without the leading "//":
+		4: {
+			req: &http.Request{
+				Method: "GET",
+				URL: &url.URL{
+					Opaque: "/path",
+					Host:   "foo.com",
+					Path:   "/ignored",
+				},
+			},
+			want: result{path: "/path"},
+		},
+
+		// Opaque we can't handle:
+		5: {
+			req: &http.Request{
+				Method: "GET",
+				URL: &url.URL{
+					Scheme: "https",
+					Opaque: "//unknown_host/path",
+					Host:   "foo.com",
+					Path:   "/ignored",
+				},
+			},
+			want: result{err: `invalid request :path "https://unknown_host/path" from URL.Opaque = "//unknown_host/path"`},
+		},
+
+		// A CONNECT request:
+		6: {
+			req: &http.Request{
+				Method: "CONNECT",
+				URL: &url.URL{
+					Host: "foo.com",
+				},
+			},
+			want: result{},
+		},
+	}
+	for i, tt := range tests {
+		cc := &ClientConn{}
+		cc.henc = hpack.NewEncoder(&cc.hbuf)
+		cc.mu.Lock()
+		hdrs, err := cc.encodeHeaders(tt.req, false, "", -1)
+		cc.mu.Unlock()
+		var got result
+		hpackDec := hpack.NewDecoder(initialHeaderTableSize, func(f hpack.HeaderField) {
+			if f.Name == ":path" {
+				got.path = f.Value
+			}
+		})
+		if err != nil {
+			got.err = err.Error()
+		} else if len(hdrs) > 0 {
+			if _, err := hpackDec.Write(hdrs); err != nil {
+				t.Errorf("%d. bogus hpack: %v", i, err)
+				continue
+			}
+		}
+		if got != tt.want {
+			t.Errorf("%d. got %+v; want %+v", i, got, tt.want)
+		}
+
+	}
+
 }
