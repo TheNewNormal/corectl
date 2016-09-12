@@ -42,7 +42,7 @@ var (
 
 	// EtcdPeerURLs don't have listeners created for them, they are used to pass
 	// Etcd validation
-	EtcdPeerURLs = []string{"http://localhost:2380"}
+	EtcdPeerURLs = []string{"http://0.0.0.0:2380"}
 )
 
 // Etcd is a Server which manages an Etcd cluster
