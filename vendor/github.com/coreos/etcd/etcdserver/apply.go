@@ -258,7 +258,9 @@ func (a *applierV3backend) Range(txnID int64, r *pb.RangeRequest) (*pb.RangeResp
 	}
 
 	limit := r.Limit
-	if r.SortOrder != pb.RangeRequest_NONE {
+	if r.SortOrder != pb.RangeRequest_NONE ||
+		r.MinModRevision != 0 || r.MaxModRevision != 0 ||
+		r.MinCreateRevision != 0 || r.MaxCreateRevision != 0 {
 		// fetch everything; sort and truncate afterwards
 		limit = 0
 	}
@@ -283,6 +285,23 @@ func (a *applierV3backend) Range(txnID int64, r *pb.RangeRequest) (*pb.RangeResp
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if r.MaxModRevision != 0 {
+		f := func(kv *mvccpb.KeyValue) bool { return kv.ModRevision > r.MaxModRevision }
+		pruneKVs(rr, f)
+	}
+	if r.MinModRevision != 0 {
+		f := func(kv *mvccpb.KeyValue) bool { return kv.ModRevision < r.MinModRevision }
+		pruneKVs(rr, f)
+	}
+	if r.MaxCreateRevision != 0 {
+		f := func(kv *mvccpb.KeyValue) bool { return kv.CreateRevision > r.MaxCreateRevision }
+		pruneKVs(rr, f)
+	}
+	if r.MinCreateRevision != 0 {
+		f := func(kv *mvccpb.KeyValue) bool { return kv.CreateRevision < r.MinCreateRevision }
+		pruneKVs(rr, f)
 	}
 
 	if r.SortOrder != pb.RangeRequest_NONE {
@@ -794,4 +813,15 @@ func removeNeedlessRangeReqs(txn *pb.TxnRequest) {
 
 	txn.Success = f(txn.Success)
 	txn.Failure = f(txn.Failure)
+}
+
+func pruneKVs(rr *mvcc.RangeResult, isPrunable func(*mvccpb.KeyValue) bool) {
+	j := 0
+	for i := range rr.KVs {
+		rr.KVs[j] = rr.KVs[i]
+		if !isPrunable(&rr.KVs[i]) {
+			j++
+		}
+	}
+	rr.KVs = rr.KVs[:j]
 }
