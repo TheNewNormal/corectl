@@ -146,6 +146,32 @@ type EditChange struct {
 	} `json:"body,omitempty"`
 }
 
+// IntegrationInstallationEvent is triggered when an integration is created or deleted.
+// The Webhook event name is "integration_installation".
+//
+// GitHub docs: https://developer.github.com/early-access/integrations/webhooks/#integrationinstallationevent
+type IntegrationInstallationEvent struct {
+	// The action that was performed. Possible values for an "integration_installation"
+	// event are: "created", "deleted".
+	Action       *string       `json:"action,omitempty"`
+	Installation *Installation `json:"installation,omitempty"`
+	Sender       *User         `json:"sender,omitempty"`
+}
+
+// IntegrationInstallationRepositoriesEvent is triggered when an integration repository
+// is added or removed. The Webhook event name is "integration_installation_repositories".
+//
+// GitHub docs: https://developer.github.com/early-access/integrations/webhooks/#integrationinstallationrepositoriesevent
+type IntegrationInstallationRepositoriesEvent struct {
+	// The action that was performed. Possible values for an "integration_installation_repositories"
+	// event are: "added", "removed".
+	Action              *string       `json:"action,omitempty"`
+	Installation        *Installation `json:"installation,omitempty"`
+	RepositoriesAdded   []*Repository `json:"repositories_added,omitempty"`
+	RepositoriesRemoved []*Repository `json:"repositories_removed,omitempty"`
+	Sender              *User         `json:"sender,omitempty"`
+}
+
 // IssueCommentEvent is triggered when an issue comment is created on an issue
 // or pull request.
 // The Webhook event name is "issue_comment".
@@ -425,14 +451,14 @@ type StatusEvent struct {
 	Branches    []*Branch `json:"branches,omitempty"`
 
 	// The following fields are only populated by Webhook events.
-	ID        *int             `json:"id,omitempty"`
-	Name      *string          `json:"name,omitempty"`
-	Context   *string          `json:"context,omitempty"`
-	Commit    *PushEventCommit `json:"commit,omitempty"`
-	CreatedAt *Timestamp       `json:"created_at,omitempty"`
-	UpdatedAt *Timestamp       `json:"updated_at,omitempty"`
-	Repo      *Repository      `json:"repository,omitempty"`
-	Sender    *User            `json:"sender,omitempty"`
+	ID        *int              `json:"id,omitempty"`
+	Name      *string           `json:"name,omitempty"`
+	Context   *string           `json:"context,omitempty"`
+	Commit    *RepositoryCommit `json:"commit,omitempty"`
+	CreatedAt *Timestamp        `json:"created_at,omitempty"`
+	UpdatedAt *Timestamp        `json:"updated_at,omitempty"`
+	Repo      *Repository       `json:"repository,omitempty"`
+	Sender    *User             `json:"sender,omitempty"`
 }
 
 // TeamAddEvent is triggered when a repository is added to a team.

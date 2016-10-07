@@ -53,9 +53,19 @@ func NewLogger(stdout, stderr io.Writer, debug bool) *Logger {
 // DefaultLogger is the default logging implementation. It's used in all top level funcs inside the log package, and represents the equivalent of NewLogger(os.Stdout, os.Stderr)
 var DefaultLogger = &Logger{stdout: os.Stdout, stderr: os.Stderr, debug: false}
 
-// SetDebug sets the internal debugging field on or off. This func is not concurrency safe
+// SetDebug sets the internal debugging field on or off. This func is not concurrency safe.
 func (l *Logger) SetDebug(debug bool) {
 	l.debug = debug
+}
+
+// SetStdout sets the internal stdout writer. This func is not concurrency safe.
+func (l *Logger) SetStdout(w io.Writer) {
+	l.stdout = w
+}
+
+// SetStderr sets the internal stderr writer. This func is not concurrency safe.
+func (l *Logger) SetStderr(w io.Writer) {
+	l.stderr = w
 }
 
 // Msg passes through the formatter, but otherwise prints exactly as-is.

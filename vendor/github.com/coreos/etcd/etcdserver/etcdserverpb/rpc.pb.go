@@ -11,16 +11,15 @@ import (
 
 	math "math"
 
+	mvccpb "github.com/coreos/etcd/mvcc/mvccpb"
+
 	authpb "github.com/coreos/etcd/auth/authpb"
 
-	io "io"
-)
-
-import mvccpb "github.com/coreos/etcd/mvcc/mvccpb"
-
-import (
 	context "golang.org/x/net/context"
+
 	grpc "google.golang.org/grpc"
+
+	io "io"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1172,6 +1171,8 @@ type WatchCreateRequest struct {
 	// range_end is the end of the range [key, range_end) to watch. If range_end is not given,
 	// only the key argument is watched. If range_end is equal to '\0', all keys greater than
 	// or equal to the key argument are watched.
+	// If the range_end is one bit larger than the given key,
+	// then all keys with the prefix (the given key) will be watched.
 	RangeEnd []byte `protobuf:"bytes,2,opt,name=range_end,json=rangeEnd,proto3" json:"range_end,omitempty"`
 	// start_revision is an optional revision to watch from (inclusive). No start_revision is "now".
 	StartRevision int64 `protobuf:"varint,3,opt,name=start_revision,json=startRevision,proto3" json:"start_revision,omitempty"`

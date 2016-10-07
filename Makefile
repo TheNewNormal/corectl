@@ -22,7 +22,7 @@ BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 OPAMROOT ?= ~/.opam
 HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
-HYPERKIT_COMMIT = 7d2c6a72725c6c121ec03565af8732e695274d29
+HYPERKIT_COMMIT = 2db2b2c60799918dafb3d95368e935c3f620911d
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
@@ -98,6 +98,8 @@ Godeps: force
 		-e "s|import (|import ( \"github.com/shurcooL/httpfs/vfsutil\"|" \
 			components/common/assets/assets.go
 	$(GODEP) save ./...
+	# workaround for github.com/tools/godep/issues/498
+	$(GODEP) update ./...
 	# ... and then un-cheat
 	$(CP) components/common/assets/assets.go.bak \
 		components/common/assets/assets.go

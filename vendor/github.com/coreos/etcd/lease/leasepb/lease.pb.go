@@ -22,10 +22,10 @@ import (
 
 	math "math"
 
+	etcdserverpb "github.com/coreos/etcd/etcdserver/etcdserverpb"
+
 	io "io"
 )
-
-import etcdserverpb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
