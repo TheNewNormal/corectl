@@ -22,7 +22,7 @@ BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 OPAMROOT ?= ~/.opam
 HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
-HYPERKIT_COMMIT = 2db2b2c60799918dafb3d95368e935c3f620911d
+HYPERKIT_COMMIT = 01e374019fc0a8277b46b60d1787107273bd6610
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
@@ -109,16 +109,11 @@ Godeps: force
 hyperkit: force
 	# - ocaml stack
 	#   - 1st run
-	# 	  - brew install opam
+	# 	  - brew install opam libev
 	# 	  - opam init -y
-	# 	  - opam pin add qcow-format
-	#					"git://github.com/mirage/ocaml-qcow#master" -y
-	# 	  - opam install --yes uri qcow-format ocamlfind
+	# 	  - opam install --yes uri qcow-format ocamlfind conf-libev
 	#   - maintenance
 	#     - opam update && opam upgrade -y
-	# 	  - opam pin add qcow-format
-	#					"git://github.com/mirage/ocaml-qcow#master" -y
-	# 	  - opam install --yes uri qcow-format ocamlfind
 	#   - build
 	#     - make clean
 	#     - eval `opam config env` && make all
