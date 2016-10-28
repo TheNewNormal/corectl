@@ -151,7 +151,7 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 			return
 		}
 		if reply.WorkingNFS == false {
-			log.Warn("NFS is qnot supported by running 'corectld'")
+			log.Warn("NFS is not supported by the running 'corectld'")
 			vm.SharedHomedir = false
 		}
 	}
