@@ -15,15 +15,13 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
-
-	"github.com/coreos/ignition/config/validate/report"
 )
 
 var (
 	ErrFileIllegalMode = errors.New("illegal file mode")
-	ErrNoFilesystem    = errors.New("no filesystem specified")
 )
 
 type File struct {
@@ -33,13 +31,6 @@ type File struct {
 	Mode       FileMode     `json:"mode,omitempty"`
 	User       FileUser     `json:"user,omitempty"`
 	Group      FileGroup    `json:"group,omitempty"`
-}
-
-func (f File) Validate() report.Report {
-	if f.Filesystem == "" {
-		return report.ReportFromError(ErrNoFilesystem, report.EntryError)
-	}
-	return report.Report{}
 }
 
 type FileUser struct {
@@ -57,10 +48,20 @@ type FileContents struct {
 }
 
 type FileMode os.FileMode
+type fileMode FileMode
 
-func (m FileMode) Validate() report.Report {
-	if (m &^ 07777) != 0 {
-		return report.ReportFromError(ErrFileIllegalMode, report.EntryError)
+func (m *FileMode) UnmarshalJSON(data []byte) error {
+	tm := fileMode(*m)
+	if err := json.Unmarshal(data, &tm); err != nil {
+		return err
 	}
-	return report.Report{}
+	*m = FileMode(tm)
+	return m.AssertValid()
+}
+
+func (m FileMode) AssertValid() error {
+	if (m &^ 07777) != 0 {
+		return ErrFileIllegalMode
+	}
+	return nil
 }

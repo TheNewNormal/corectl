@@ -16,14 +16,7 @@ package types
 
 import (
 	"encoding/json"
-	"errors"
 	"net/url"
-
-	"github.com/coreos/ignition/config/validate/report"
-)
-
-var (
-	ErrInvalidScheme = errors.New("invalid url scheme")
 )
 
 type Url url.URL
@@ -35,12 +28,8 @@ func (u *Url) UnmarshalJSON(data []byte) error {
 	}
 
 	pu, err := url.Parse(tu)
-	if err != nil {
-		return err
-	}
-
 	*u = Url(*pu)
-	return nil
+	return err
 }
 
 func (u Url) MarshalJSON() ([]byte, error) {
@@ -50,17 +39,4 @@ func (u Url) MarshalJSON() ([]byte, error) {
 func (u Url) String() string {
 	tu := url.URL(u)
 	return (&tu).String()
-}
-
-func (u Url) Validate() report.Report {
-	// Empty url is valid, indicates an empty file
-	if u.String() == "" {
-		return report.Report{}
-	}
-	switch url.URL(u).Scheme {
-	case "http", "https", "oem", "data":
-		return report.Report{}
-	}
-
-	return report.ReportFromError(ErrInvalidScheme, report.EntryError)
 }

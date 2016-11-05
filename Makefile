@@ -11,11 +11,10 @@ GO15VENDOREXPERIMENT = 1
 MACOS = $(shell sw_vers -productVersion | /usr/bin/awk -F '.' '{print $$1 "." $$2}')
 
 BUILD_DIR ?= $(shell pwd)/bin
-GOPATH := $(shell cd ../../../.. ; pwd):$(shell mkdir -p Godeps && \
-			godep go env GOPATH)
-GODEP = GOPATH=$(GOPATH) GO15VENDOREXPERIMENT=$(GO15VENDOREXPERIMENT) \
-    GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=$(CGO_ENABLED) godep
-GOBUILD = $(GODEP) go build
+GOPATH := $(shell cd ../../../.. ; pwd)
+GOCFG = GOPATH=$(GOPATH) GO15VENDOREXPERIMENT=$(GO15VENDOREXPERIMENT) \
+	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=$(CGO_ENABLED)
+GOBUILD = $(GOCFG) go build
 
 VERSION := $(shell git describe --abbrev=6 --dirty=+untagged --always --tags)
 BUILDDATE = $(shell /bin/date "+%FT%T%Z")
@@ -51,20 +50,21 @@ default: documentation
 documentation: documentation/man documentation/markdown
 	-$(GIT) status
 
-all: clean Godeps hyperkit documentation
+all: clean hyperkit documentation
 
 cmd: force
 	$(RM) $(BUILD_DIR)/$(PROG)
+	$(RM) $(BUILD_DIR)/$(DAEMON)
 	$(MKDIR) $(BUILD_DIR)
 	cd $@; $(GOBUILD) -o $(BUILD_DIR)/$(PROG) \
-		-gcflags "$(GO_GCFLAGS)" -ldflags "$(GO_LDFLAGS)"; \
+		-gcflags "$(GO_GCFLAGS)" -ldflags "$(GO_LDFLAGS)"
 	cd $(BUILD_DIR); $(LN) $(PROG) $(DAEMON)
 	@$(TOUCH) $@
 
 components/common/assets: force
 	cd $@; \
 		$(RM) assets_vfsdata.go ; \
-		$(GODEP) go run assets_generator.go -tags=dev
+		$(GOCFG) go run assets_generator.go -tags=dev
 
 clean: components/common/assets
 	$(RM) $(BUILD_DIR)/*
@@ -83,28 +83,6 @@ release: force
 		--label "macOS unsigned blobs (built in $(MACOS))" \
 		--tag $(VERSION) --name "corectl-$(VERSION)-macOS-$(GOARCH).tar.gz" \
 		--file $(PROG)-$(VERSION).tar.gz
-
-update-godeps:
-	for x in $$($(GREP) ImportPath Godeps/Godeps.json | $(GREP) -v \
-		$(ORGANIZATION) | $(SED) -e "s,.*:,," -e "s|,||" -e "s|\"||g" ) ; \
-			do echo "==$$x"; go get -u $$x; done
-
-Godeps: force
-	$(RM) $@
-	$(RM) vendor/
-	# XXX godep won't save this as a build dep run a runtime one so we cheat...
-	$(SED) -i.bak \
-		-e s"|github.com/deis/pkg/log|github.com/shurcooL/vfsgen|" \
-		-e "s|import (|import ( \"github.com/shurcooL/httpfs/vfsutil\"|" \
-			components/common/assets/assets.go
-	$(GODEP) save ./...
-	# workaround for github.com/tools/godep/issues/498
-	$(GODEP) update ./...
-	# ... and then un-cheat
-	$(CP) components/common/assets/assets.go.bak \
-		components/common/assets/assets.go
-	$(RM) components/common/assets/assets.go.bak
-	-$(GIT) status
 
 hyperkit: force
 	# - ocaml stack
@@ -156,4 +134,4 @@ documentation/markdown: cmd force
 		$(RM) "$$p.bak" ;\
 	done
 
-.PHONY: clean all docs force assets cmd update-godeps
+.PHONY: clean all docs force assets cmd

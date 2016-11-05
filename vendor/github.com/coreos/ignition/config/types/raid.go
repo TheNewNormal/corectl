@@ -15,9 +15,8 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
-
-	"github.com/coreos/ignition/config/validate/report"
 )
 
 type Raid struct {
@@ -26,12 +25,22 @@ type Raid struct {
 	Devices []Path `json:"devices,omitempty"`
 	Spares  int    `json:"spares,omitempty"`
 }
+type raid Raid
 
-func (n Raid) Validate() report.Report {
+func (n *Raid) UnmarshalJSON(data []byte) error {
+	tn := raid(*n)
+	if err := json.Unmarshal(data, &tn); err != nil {
+		return err
+	}
+	*n = Raid(tn)
+	return n.AssertValid()
+}
+
+func (n Raid) AssertValid() error {
 	switch n.Level {
 	case "linear", "raid0", "0", "stripe":
 		if n.Spares != 0 {
-			return report.ReportFromError(fmt.Errorf("spares unsupported for %q arrays", n.Level), report.EntryError)
+			return fmt.Errorf("spares unsupported for %q arrays", n.Level)
 		}
 	case "raid1", "1", "mirror":
 	case "raid4", "4":
@@ -39,7 +48,7 @@ func (n Raid) Validate() report.Report {
 	case "raid6", "6":
 	case "raid10", "10":
 	default:
-		return report.ReportFromError(fmt.Errorf("unrecognized raid level: %q", n.Level), report.EntryError)
+		return fmt.Errorf("unrecognized raid level: %q", n.Level)
 	}
-	return report.Report{}
+	return nil
 }

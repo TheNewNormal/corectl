@@ -20,8 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
-
-	"github.com/coreos/ignition/config/validate/report"
 )
 
 var (
@@ -49,25 +47,25 @@ func (h *Hash) UnmarshalJSON(data []byte) error {
 	h.Function = parts[0]
 	h.Sum = parts[1]
 
-	return nil
+	return h.AssertValid()
 }
 
 func (h Hash) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + h.Function + "-" + h.Sum + `"`), nil
 }
 
-func (h Hash) Validate() report.Report {
+func (h Hash) AssertValid() error {
 	var hash crypto.Hash
 	switch h.Function {
 	case "sha512":
 		hash = crypto.SHA512
 	default:
-		return report.ReportFromError(ErrHashUnrecognized, report.EntryError)
+		return ErrHashUnrecognized
 	}
 
 	if len(h.Sum) != hex.EncodedLen(hash.Size()) {
-		return report.ReportFromError(ErrHashWrongSize, report.EntryError)
+		return ErrHashWrongSize
 	}
 
-	return report.Report{}
+	return nil
 }

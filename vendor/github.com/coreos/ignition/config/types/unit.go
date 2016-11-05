@@ -15,10 +15,9 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"path/filepath"
-
-	"github.com/coreos/ignition/config/validate/report"
 )
 
 type SystemdUnit struct {
@@ -35,24 +34,44 @@ type SystemdUnitDropIn struct {
 }
 
 type SystemdUnitName string
+type systemdUnitName SystemdUnitName
 
-func (n SystemdUnitName) Validate() report.Report {
+func (n *SystemdUnitName) UnmarshalJSON(data []byte) error {
+	tn := systemdUnitName(*n)
+	if err := json.Unmarshal(data, &tn); err != nil {
+		return err
+	}
+	*n = SystemdUnitName(tn)
+	return n.AssertValid()
+}
+
+func (n SystemdUnitName) AssertValid() error {
 	switch filepath.Ext(string(n)) {
 	case ".service", ".socket", ".device", ".mount", ".automount", ".swap", ".target", ".path", ".timer", ".snapshot", ".slice", ".scope":
-		return report.Report{}
+		return nil
 	default:
-		return report.ReportFromError(errors.New("invalid systemd unit extension"), report.EntryError)
+		return errors.New("invalid systemd unit extension")
 	}
 }
 
 type SystemdUnitDropInName string
+type systemdUnitDropInName SystemdUnitDropInName
 
-func (n SystemdUnitDropInName) Validate() report.Report {
+func (n *SystemdUnitDropInName) UnmarshalJSON(data []byte) error {
+	tn := systemdUnitDropInName(*n)
+	if err := json.Unmarshal(data, &tn); err != nil {
+		return err
+	}
+	*n = SystemdUnitDropInName(tn)
+	return n.AssertValid()
+}
+
+func (n SystemdUnitDropInName) AssertValid() error {
 	switch filepath.Ext(string(n)) {
 	case ".conf":
-		return report.Report{}
+		return nil
 	default:
-		return report.ReportFromError(errors.New("invalid systemd unit drop-in extension"), report.EntryError)
+		return errors.New("invalid systemd unit drop-in extension")
 	}
 }
 
@@ -62,12 +81,22 @@ type NetworkdUnit struct {
 }
 
 type NetworkdUnitName string
+type networkdUnitName NetworkdUnitName
 
-func (n NetworkdUnitName) Validate() report.Report {
+func (n *NetworkdUnitName) UnmarshalJSON(data []byte) error {
+	tn := networkdUnitName(*n)
+	if err := json.Unmarshal(data, &tn); err != nil {
+		return err
+	}
+	*n = NetworkdUnitName(tn)
+	return n.AssertValid()
+}
+
+func (n NetworkdUnitName) AssertValid() error {
 	switch filepath.Ext(string(n)) {
 	case ".link", ".netdev", ".network":
-		return report.Report{}
+		return nil
 	default:
-		return report.ReportFromError(errors.New("invalid networkd unit extension"), report.EntryError)
+		return errors.New("invalid networkd unit extension")
 	}
 }
