@@ -64,5 +64,5 @@ func init() {
 		"adds additional verbosity, and options, directed at debugging "+
 			"purposes and power users")
 	utilsCmd.AddCommand(manCmd, mkdownCmd)
-	rootCmd.AddCommand(utilsCmd, versionCmd)
+	rootCmd.AddCommand(utilsCmd)
 }
