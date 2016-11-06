@@ -21,7 +21,7 @@ BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 OPAMROOT ?= ~/.opam
 HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
-HYPERKIT_COMMIT = 01e374019fc0a8277b46b60d1787107273bd6610
+HYPERKIT_COMMIT = 8975f80ae46ef315e600552328ba63af09b742f7
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
