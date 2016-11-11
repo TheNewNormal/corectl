@@ -116,6 +116,14 @@ systemd:
         ExecStart=/home/core/bin/find-ip4.sh eth0 /etc/environment COREOS_PUBLIC_IPV4
       [Install]
         RequiredBy=system-config.target
+  - name: corectl-metadata.service
+    contents: |
+      [Unit]
+        Description=Populate machine metadata
+      [Service]
+        Type=oneshot
+        StandardOutput=journal+console
+        ExecStart=/home/core/bin/find-ip4.sh eth0 /run/metadata/corectl CORECTL_IPV4_ETH0
   - name: phone-home.service
     enable: true
     contents: |
