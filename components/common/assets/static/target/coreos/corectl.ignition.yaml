@@ -83,10 +83,6 @@ networkd:
 
 systemd:
   units:
-  - name: update-engine.service
-    enable: false
-  - name: locksmithd.service
-    enable: false
   - name: corectl-set-hostname.service
     enable: true
     contents: |
