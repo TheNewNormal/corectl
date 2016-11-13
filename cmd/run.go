@@ -57,14 +57,13 @@ func runCommand(cmd *cobra.Command, args []string) (err error) {
 
 func bootIt(vm *server.VMInfo) (err error) {
 	var reply = &server.RPCreply{}
+	log.Info("'%v' boot logs can be found at '%v'", vm.Name, vm.Log())
 	if reply, err =
 		server.RPCQuery("Run", &server.RPCquery{VM: vm}); err != nil {
 		return
 	}
 	log.Info("'%v' started successfuly with address %v and PID %v",
 		reply.VM.Name, reply.VM.PublicIP, reply.VM.Pid)
-	log.Info("'%v' boot logs can be found at '%v'",
-		reply.VM.Name, reply.VM.Log())
 	log.Info("'%v' console can be found at '%v'", reply.VM.Name, reply.VM.TTY())
 	return
 }
