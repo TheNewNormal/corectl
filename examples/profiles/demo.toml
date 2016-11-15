@@ -4,8 +4,8 @@ memory = 1024
 [containerLand]
     cpus = 2
     memory = "2048"
-#    cloud_config = "cloud-init/docker-only-with-persistent-storage.txt"
-#    volume = "var_lib_docker.img"
+#    cloud_config = "examples/cloud-init/docker-only-with-persistent-storage.txt"
+#    create volume bellow w/ "qcow-tool create --size=16GiB var_lib_docker.img.qcow2"
+#    volume = "var_lib_docker.img.qcow2"
 [xpto]
-    memory = 2048
-    # tap = "/dev/tap0"
+    channel = stable
