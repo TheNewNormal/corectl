@@ -189,7 +189,16 @@ func vmBootstrap(args *viper.Viper) (vm *server.VMInfo, err error) {
 	vm.Ethernet =
 		append(vm.Ethernet, server.NetworkInterface{Type: server.Raw})
 
-	err = vm.ValidateCloudConfig(args.GetString("cloud_config"))
+	fuzeCfgs := viperStringSliceBugWorkaround(
+		args.GetStringSlice("ignition-fuze-config"))
+
+	if args.GetString("cloud-config") != "" && len(fuzeCfgs) != 0 {
+		err = fmt.Errorf("you can either use cloud-config or " +
+			"ignition-fuze-config")
+		return
+	}
+	err = vm.ValidateUserProvidedConfigs(
+		args.GetString("cloud-config"), fuzeCfgs)
 	if err != nil {
 		return
 	}
@@ -209,8 +218,11 @@ func runFlagsDefaults(setFlag *pflag.FlagSet) {
 	setFlag.IntP("memory", "m", 1024,
 		"VM's RAM, in MB, per instance (1024 < memory < 8192)")
 	setFlag.IntP("cpus", "N", 1, "VM number of virtual CPUs")
-	setFlag.StringP("cloud_config", "L", "",
+	setFlag.StringP("cloud-config", "L", "",
 		"cloud-config file location (either an URL or a local path)")
+	setFlag.StringSliceP("ignition-fuze-config", "I", nil,
+		"ignition fuze drop-ins file(s) location "+
+			"(either an URL or a local path)")
 	setFlag.StringP("sshkey", "k", "", "VM's default ssh key")
 	setFlag.StringP("root", "r", "", "append a (persistent) root volume to VM")
 	setFlag.BoolP("format-root", "F", false,
@@ -230,6 +242,11 @@ func runFlagsDefaults(setFlag *pflag.FlagSet) {
 	setFlag.MarkHidden("tap")
 	setFlag.MarkHidden("extra")
 	setFlag.MarkHidden("boot")
+	setFlag.SetNormalizeFunc(wordSepNormalizeFunc)
+}
+
+func wordSepNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	return pflag.NormalizedName(strings.Replace(name, "_", "-", -1))
 }
 
 func init() {

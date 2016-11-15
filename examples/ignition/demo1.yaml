@@ -1,0 +1,15 @@
+---
+systemd:
+  units:
+  - name: sample-service-1.service
+    enable: true
+    contents: |
+      [Unit]
+        Description=sample service I
+      [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        StandardOutput=journal+console
+        ExecStart=/usr/bin/ping -c1 localhost
+      [Install]
+        RequiredBy=setEnv.service

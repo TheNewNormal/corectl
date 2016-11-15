@@ -92,10 +92,12 @@ func loadCommand(cmd *cobra.Command, args []string) (err error) {
 
 			for x, xx := range setup.AllSettings() {
 				if reflect.ValueOf(x).Kind() != reflect.Map {
+					x = strings.Replace(x, "_", "-", -1)
 					vmDefs[name].Set(x, xx)
 				}
 			}
 			for x, xx := range def.(map[string]interface{}) {
+				x = strings.Replace(x, "_", "-", -1)
 				vmDefs[name].Set(x, xx)
 			}
 			vmDefs[name].Set("name", name)
