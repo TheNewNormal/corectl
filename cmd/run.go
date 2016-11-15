@@ -228,6 +228,8 @@ func runFlagsDefaults(setFlag *pflag.FlagSet) {
 	// available but hidden...
 	setFlag.StringP("tap", "t", "", "append tap interface to VM")
 	setFlag.MarkHidden("tap")
+	setFlag.MarkHidden("extra")
+	setFlag.MarkHidden("boot")
 }
 
 func init() {
