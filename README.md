@@ -3,6 +3,7 @@
 | read this first |
 | :----------- |
 |  - You **must** be running macOS Yosemite, 10.10.3, or later on a 2010, or later, Macintosh (i.e. one with a CPU that supports EPT) for everything to work. |
+|  - Starting with **0.7.18** the bundled `qcow-tool` helper has a _runtime_ dependency in `libev`. Until we sort how to build it statically, you need to make it available in the local system - if you are using [homebrew](http://brew.sh) that is as easy as `brew install libev`.|
 |  - if you are still using **any** version of VirtualBox older than 4.3.30 then **corectl** will **crash** your system either if VirtualBox is running, or had been run previously after the last reboot (see **xhyve**'s issues [#5](https://github.com/mist64/xhyve/issues/5) and [#9](https://github.com/mist64/xhyve/issues/9) for the full context). So, if for some reason, you are unable to update VirtualBox to the latest, either of the 4.x or 5.x streams, and were using it in your current session please make sure to restart your Mac before attempting to run **corectl**. |
 
 
