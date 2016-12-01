@@ -98,6 +98,7 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 			"do shell script \""+session.Executable()+" start "+
 				" -u "+session.Caller.Username+
 				" -D "+cli.GetString("domain")+
+				" --dns-port "+cli.GetString("dns-port")+
 				" -r "+strings.Join(bugfix(
 				cli.GetStringSlice("recursive-nameservers")), ",")+
 				" > /dev/null 2>&1 & \" with administrator privileges",
@@ -112,6 +113,7 @@ func serverStartCommand(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 	server.LocalDomainName = cli.GetString("domain")
+	server.EmbeddedDNSport = cli.GetString("dns-port")
 	server.RecursiveNameServers =
 		bugfix(cli.GetStringSlice("recursive-nameservers"))
 	server.Daemon = server.New()
@@ -128,6 +130,8 @@ func init() {
 		serverStartCmd.Flags().StringSliceP("recursive-nameservers", "r",
 			server.RecursiveNameServers, "coma separated list of the recursive "+
 				"nameservers to be used by the embedded dns server")
+		serverStartCmd.Flags().String("dns-port", "15353",
+			"embedded dns server port")
 		rootCmd.AddCommand(shutdownCmd, statusCmd,
 			serverStartCmd, uuidToMacCmd)
 	}
