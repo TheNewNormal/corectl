@@ -139,7 +139,8 @@ func (dns *DNSServer) PortForward() (err error) {
 		session.Caller.Network.Address, EmbeddedDNSport)
 	pfR.Close()
 	exec.Command("/sbin/pfctl", "-e").Run()
-	return exec.Command("/sbin/pfctl", "-f", pfC.Name()).Run()
+	return exec.Command("/sbin/pfctl", "-a", "com.apple/corectl-dns-forwarding",
+		"-f", pfC.Name()).Run()
 }
 
 func (dns *DNSServer) Start() {
@@ -169,7 +170,8 @@ type runner interface {
 }
 
 func teardownService() {
-	exec.Command("/sbin/pfctl", "-f", "/etc/pf.conf").Run()
+	exec.Command("/sbin/pfctl", "-a", "com.apple/corectl-dns-forwarding",
+		"-Fa").Run()
 	Daemon.DNSServer.rmRecord("corectld", session.Caller.Network.Address)
 	os.Remove("/etc/resolver/corectld")
 }
