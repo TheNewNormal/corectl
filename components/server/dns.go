@@ -114,33 +114,21 @@ func (d *ServerContext) NewDNSServer(root,
 }
 
 func (dns *DNSServer) PortForward() (err error) {
-	var pfC, pfR *os.File
-	if pfC, err =
+	var pfRules *os.File
+	if pfRules, err =
 		ioutil.TempFile(session.Caller.TmpDir(), "coreos"); err != nil {
 		return
 	}
-	defer os.Remove(pfC.Name())
-	if pfR, err =
-		ioutil.TempFile(session.Caller.TmpDir(), "coreos"); err != nil {
-		return
-	}
-	defer os.Remove(pfR.Name())
+	defer os.Remove(pfRules.Name())
 
-	fmt.Fprintf(pfC, WatermarkHeader)
-	fmt.Fprintln(pfC, "rdr-anchor 'corectl-dns-forwarding'")
-	fmt.Fprintln(pfC, "nat-anchor 'com.apple.internet-sharing' all")
-	fmt.Fprintln(pfC, "rdr-anchor 'com.apple.internet-sharing' all")
-	fmt.Fprintf(pfC, "load anchor 'corectl-dns-forwarding' from '%s'\n",
-		pfR.Name())
-	pfC.Close()
-	fmt.Fprintf(pfR, WatermarkHeader)
-	fmt.Fprintf(pfR, "rdr pass on bridge100 inet proto { tcp udp } "+
-		"from any to any port = domain -> %s port %v\n",
-		session.Caller.Network.Address, EmbeddedDNSport)
-	pfR.Close()
+	fmt.Fprintf(pfRules,
+		"%s rdr pass on bridge100 inet proto { tcp udp } "+
+			"from any to any port = domain -> %s port %v\n",
+		WatermarkHeader, session.Caller.Network.Address, EmbeddedDNSport)
+	pfRules.Close()
 	exec.Command("/sbin/pfctl", "-e").Run()
-	return exec.Command("/sbin/pfctl", "-a", "com.apple/corectl-dns-forwarding",
-		"-f", pfC.Name()).Run()
+	return exec.Command("/sbin/pfctl", "-a", "corectld-forwarding-dns",
+		"-f", pfRules.Name()).Run()
 }
 
 func (dns *DNSServer) Start() {
@@ -170,8 +158,7 @@ type runner interface {
 }
 
 func teardownService() {
-	exec.Command("/sbin/pfctl", "-a", "com.apple/corectl-dns-forwarding",
-		"-Fa").Run()
+	exec.Command("/sbin/pfctl", "-a", "corectld-forwarding-dns", "-Fa").Run()
 	Daemon.DNSServer.rmRecord("corectld", session.Caller.Network.Address)
 	os.Remove("/etc/resolver/corectld")
 }
