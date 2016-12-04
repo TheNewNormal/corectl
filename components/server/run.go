@@ -21,8 +21,10 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"os/exec"
 	"sort"
+	"sync"
 	"syscall"
 
 	"net/http"
@@ -30,7 +32,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
@@ -46,8 +47,10 @@ type (
 		MacAddress, PublicIP                    string
 		InternalSSHkey, InternalSSHprivate      string
 		Cpus, Memory, Pid                       int
-		SSHkey, CloudConfig, CClocation         string `json:",omitempty"`
-		AddToHypervisor, AddToKernel            string `json:",omitempty"`
+		SSHkey                                  string               `json:",omitempty"`
+		CloudConfig                             UserProvidedConfig   `json:",omitempty"`
+		IgnitionFuzeConfigs                     []UserProvidedConfig `json:",omitempty"`
+		AddToHypervisor, AddToKernel            string               `json:",omitempty"`
 		Ethernet                                []NetworkInterface
 		Storage                                 StorageAssets `json:",omitempty"`
 		SharedHomedir, OfflineMode, NotIsolated bool
@@ -59,7 +62,6 @@ type (
 		done                     chan struct{}
 		exec                     *exec.Cmd
 		isolationCheck, callBack sync.Once
-		cloudConfigContents      []byte
 	}
 	//
 	VMmap map[string]*VMInfo
@@ -79,6 +81,10 @@ type (
 	// StorageAssets ...
 	StorageAssets struct {
 		CDDrives, HardDrives map[string]StorageDevice `json:",omitempty"`
+	}
+	UserProvidedConfig struct {
+		Location string `json:",omitempty"`
+		Contents []byte `json:",omitempty"`
 	}
 )
 
@@ -194,30 +200,45 @@ func (vm *VMInfo) ValidateVolumes(volumes []string, root bool) (err error) {
 }
 
 // ValidateCloudConfig ...
-func (vm *VMInfo) ValidateCloudConfig(config string) (err error) {
-	var response *http.Response
-
-	if len(config) > 0 {
-		if response, err = http.Get(config); response != nil {
-			response.Body.Close()
-		}
-
-		vm.CloudConfig = config
-
-		if err == nil && (response.StatusCode == http.StatusOK ||
-			response.StatusCode == http.StatusNoContent) {
-			vm.CClocation = Remote
+func (vm *VMInfo) ValidateUserProvidedConfigs(cloudconfig string,
+	ignitionfuzeconfig []string) (err error) {
+	var cc UserProvidedConfig
+	if cloudconfig != "" {
+		if cc, err = consumeUserProvidedConfig(cloudconfig); err != nil {
 			return
 		}
-
-		if vm.CloudConfig, err = filepath.Abs(config); err != nil {
-			return
-		}
-		if _, err = os.Stat(vm.CloudConfig); err != nil {
-			return
-		}
-		vm.CClocation = Local
+		vm.CloudConfig = cc
 	}
+	for _, fuze := range ignitionfuzeconfig {
+		if cc, err = consumeUserProvidedConfig(fuze); err != nil {
+			return
+		}
+		vm.IgnitionFuzeConfigs = append(vm.IgnitionFuzeConfigs, cc)
+	}
+	return
+}
+
+func consumeUserProvidedConfig(src string) (out UserProvidedConfig, err error) {
+	if out.Location, err = filepath.Abs(src); err == nil {
+		if _, err = os.Stat(out.Location); err == nil {
+			out.Contents, _ = ioutil.ReadFile(out.Location)
+			return
+		}
+	}
+	// not local ...
+	var response *http.Response
+	if response, err = http.Get(src); response != nil {
+		defer response.Body.Close()
+	}
+	if err == nil && (response.StatusCode == http.StatusOK ||
+		response.StatusCode == http.StatusNoContent) {
+		// URL is reachable, so grab it, so that it can be fuzed
+		out.Location = src
+		out.Contents, err = ioutil.ReadAll(response.Body)
+		return
+	}
+	err = fmt.Errorf("%v doesn't seem to be neither a "+
+		"valid/reachable URL nor a valid file path", src)
 	return
 }
 
@@ -273,16 +294,15 @@ func (vm *VMInfo) assembleBootPayload() (xArgs []string, err error) {
 	}
 
 	cmdline = fmt.Sprintf("%s corectl.hostname=%s  coreos.config.url=%s",
-		cmdline, vm.Name, vm.endpoint()+"/ignition")
+		cmdline, vm.Name, vm.endpoint()+"/ignition/default/config")
 
-	if vm.CloudConfig != "" {
-		if vm.CClocation == Local {
-			cmdline = fmt.Sprintf("%s cloud-config-url=%s",
-				cmdline, vm.endpoint()+"/cloud-config")
-		} else {
-			cmdline = fmt.Sprintf("%s cloud-config-url=%s",
-				cmdline, vm.CloudConfig)
-		}
+	if vm.CloudConfig.Contents != nil {
+		// local file
+		cmdline = fmt.Sprintf("%s cloud-config-url=%s",
+			cmdline, vm.endpoint()+"/cloud-config")
+	} else if vm.CloudConfig.Location != "" {
+		cmdline = fmt.Sprintf("%s cloud-config-url=%s",
+			cmdline, vm.CloudConfig.Location)
 	}
 
 	if vm.AddToHypervisor != "" {
@@ -442,14 +462,20 @@ func (vm *VMInfo) TTY() string {
 }
 
 func (vm *VMInfo) PrettyPrint() {
-	fmt.Printf("\n UUID:\t\t%v\n  Name:\t\t%v\n  Version:\t%v\n  "+
-		"Channel:\t%v\n  vCPUs:\t%v\n  Memory (MB):\t%v\n",
+	fmt.Printf("\n UUID:\t\t\t%v\n  Name:\t\t\t%v\n  Version:\t\t%v\n  "+
+		"Channel:\t\t%v\n  vCPUs:\t\t%v\n  Memory (MB):\t\t%v\n",
 		vm.UUID, vm.Name, vm.Version, vm.Channel, vm.Cpus, vm.Memory)
-	fmt.Printf("  Pid:\t\t%v\n  Uptime:\t%v\n",
+	fmt.Printf("  Pid:\t\t\t%v\n  Uptime:\t\t%v\n",
 		vm.Pid, humanize.Time(vm.CreationTime))
-	fmt.Printf("  Sees World:\t%v\n", vm.NotIsolated)
-	if vm.CloudConfig != "" {
-		fmt.Printf("  cloud-config:\t%v\n", vm.CloudConfig)
+	fmt.Printf("  Sees World:\t\t%v\n", vm.NotIsolated)
+	if vm.CloudConfig.Location != "" {
+		fmt.Printf("  cloud-config:\t\t%v\n", vm.CloudConfig.Location)
+	}
+	if ign := len(vm.IgnitionFuzeConfigs); ign > 0 {
+		fmt.Printf("  ignition drop-ins:\n")
+		for _, x := range vm.IgnitionFuzeConfigs {
+			fmt.Printf("\t\t\t- %v\n", x.Location)
+		}
 	}
 	fmt.Println("  Network:")
 	fmt.Printf("    eth0:\t%v\n", vm.PublicIP)

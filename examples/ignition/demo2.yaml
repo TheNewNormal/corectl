@@ -1,0 +1,17 @@
+---
+systemd:
+  units:
+  - name: sample-service-2.service
+    enable: true
+    contents: |
+      [Unit]
+        Description=sample service II (@{{.Hostname}}.{{.DomainName}})
+        After=phone-home.service
+        Requires=phone-home.service
+      [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        StandardOutput=journal+console
+        ExecStart=/usr/bin/ping -c1 {{.Hostname}}.{{.DomainName}}
+      [Install]
+        RequiredBy=phone-home.service

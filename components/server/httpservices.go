@@ -18,9 +18,9 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -28,6 +28,7 @@ import (
 	"github.com/TheNewNormal/corectl/components/target/coreos"
 	"github.com/coreos/fuze/config"
 	"github.com/coreos/go-systemd/unit"
+	"github.com/coreos/ignition/config/types"
 	"github.com/deis/pkg/log"
 	"github.com/gorilla/mux"
 )
@@ -35,15 +36,18 @@ import (
 var httpServices = mux.NewRouter()
 
 type corectlTmpl struct {
-	SetupRoot, PersistentRoot, SharedHomedir bool
-	CorectlVersion, CorectldEndpoint         string
-	NetworkdGateway, NetworkdDns, Hostname   string
-	SSHAuthorizedKeys                        []string
-	NFShomedirPath, NFShomedirPathEscaped    string
+	SetupRoot, PersistentRoot, SharedHomedir   bool
+	CorectlVersion, CorectldEndpoint           string
+	NetworkdGateway, DomainName, Hostname      string
+	NFShomedirPath, NFShomedirPathEscaped      string
+	SSHAuthorizedKeys, UserProvidedFuzeConfigs []string
 }
 
 func httpServiceSetup() {
-	httpServices.HandleFunc("/{uuid}/ignition", httpInstanceIgnitionConfig)
+	httpServices.HandleFunc("/{uuid}/ignition/append/{id}",
+		httpInstanceUserProvidedIgnitionConfigs)
+	httpServices.HandleFunc("/{uuid}/ignition/default/config",
+		httpInstanceDefaultIgnitionConfig)
 	httpServices.HandleFunc("/{uuid}/cloud-config", httpInstanceCloudConfig)
 	httpServices.HandleFunc("/{uuid}/ping", httpInstanceCallback)
 	httpServices.HandleFunc("/{uuid}/NotIsolated",
@@ -88,13 +92,13 @@ func acceptableRequest(r *http.Request, w http.ResponseWriter) bool {
 func httpInstanceCloudConfig(w http.ResponseWriter, r *http.Request) {
 	if acceptableRequest(r, w) {
 		vm := Daemon.Active[mux.Vars(r)["uuid"]]
-		if vm.CloudConfig == "" || vm.CClocation != Local {
+		if vm.CloudConfig.Location == "" {
 			httpError(w, http.StatusPreconditionFailed)
-		} else if vm.cloudConfigContents == nil {
+		} else if vm.CloudConfig.Contents == nil {
 			httpError(w, http.StatusInternalServerError)
 		} else {
 			vars := strings.NewReplacer("__vm.Name__", vm.Name)
-			w.Write([]byte(vars.Replace(string(vm.cloudConfigContents))))
+			w.Write([]byte(vars.Replace(string(vm.CloudConfig.Contents))))
 		}
 	}
 }
@@ -108,49 +112,84 @@ func isPortOpen(t string, target string) bool {
 	return false
 }
 
-func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
+func httpInstanceUserProvidedIgnitionConfigs(w http.ResponseWriter,
+	r *http.Request) {
 	if acceptableRequest(r, w) {
-		var (
-			rendered bytes.Buffer
-			vm       = Daemon.Active[mux.Vars(r)["uuid"]]
-			setup    = corectlTmpl{
-				vm.FormatRoot,
-				vm.PersistentRoot,
-				vm.SharedHomedir,
-				Daemon.Meta.Version,
-				vm.endpoint(),
-				session.Caller.Network.Address,
-				LocalDomainName,
-				vm.Name,
-				[]string{vm.InternalSSHkey},
-				session.Caller.HomeDir,
-				unit.UnitNamePathEscape(session.Caller.HomeDir),
+		vm := Daemon.Active[mux.Vars(r)["uuid"]]
+		ign, err := strconv.Atoi(mux.Vars(r)["id"])
+		if err != nil {
+			httpError(w, http.StatusPreconditionFailed)
+		}
+		if len(vm.IgnitionFuzeConfigs) == 0 {
+			httpError(w, http.StatusPreconditionFailed)
+		} else if len(vm.IgnitionFuzeConfigs) < ign+1 {
+			httpError(w, http.StatusPreconditionFailed)
+		} else {
+			if out, err := processIgnitionTemplate(r, vm,
+				string(vm.IgnitionFuzeConfigs[ign].Contents)); err != nil {
+				log.Err("%v", err.Error())
+				httpError(w, http.StatusInternalServerError)
+			} else {
+				w.Write([]byte(append(out, '\n')))
 			}
-		)
-		if vm.SSHkey != "" {
-			setup.SSHAuthorizedKeys = append(setup.SSHAuthorizedKeys, vm.SSHkey)
 		}
-		if vm.CloudConfig != "" && vm.CClocation == Local {
-			vm.cloudConfigContents, _ = ioutil.ReadFile(vm.CloudConfig)
-		}
-		t, _ := template.New("").Parse(string(coreos.CoreOSIgnitionTmpl))
-		if err := t.Execute(&rendered, setup); err != nil {
-			log.Err("==> %v", err.Error())
-			httpError(w, http.StatusInternalServerError)
-		}
-
-		log.Info(rendered.String())
-		if cfgIn, err := config.ParseAsV2_0_0(rendered.Bytes()); err != nil {
-			httpError(w, http.StatusInternalServerError)
-		} else if i, err := json.MarshalIndent(&cfgIn, "", "  "); err != nil {
+	}
+}
+func httpInstanceDefaultIgnitionConfig(w http.ResponseWriter, r *http.Request) {
+	if acceptableRequest(r, w) {
+		vm := Daemon.Active[mux.Vars(r)["uuid"]]
+		if out, err := processIgnitionTemplate(r, vm,
+			coreos.CoreOSIgnitionTmpl); err != nil {
+			log.Err("%v", err.Error())
 			httpError(w, http.StatusInternalServerError)
 		} else {
-			w.Write([]byte(append(i, '\n')))
+			w.Write([]byte(append(out, '\n')))
 			if !isLoopback(remoteIP(r.RemoteAddr)) {
 				Daemon.DNSServer.addRecord(vm.Name, remoteIP(r.RemoteAddr))
 			}
 		}
 	}
+}
+
+func processIgnitionTemplate(r *http.Request, vm *VMInfo,
+	original string) (processed []byte, err error) {
+	var (
+		rendered bytes.Buffer
+		cfgIn    types.Config
+		setup    = corectlTmpl{
+			vm.FormatRoot,
+			vm.PersistentRoot,
+			vm.SharedHomedir,
+			Daemon.Meta.Version,
+			vm.endpoint(),
+			session.Caller.Network.Address,
+			LocalDomainName,
+			vm.Name,
+			session.Caller.HomeDir,
+			unit.UnitNamePathEscape(session.Caller.HomeDir),
+			[]string{vm.InternalSSHkey},
+			[]string{},
+		}
+	)
+	if vm.SSHkey != "" {
+		setup.SSHAuthorizedKeys = append(setup.SSHAuthorizedKeys, vm.SSHkey)
+	}
+	for _, fz := range vm.IgnitionFuzeConfigs {
+		setup.UserProvidedFuzeConfigs =
+			append(setup.UserProvidedFuzeConfigs, fz.Location)
+	}
+	t, _ := template.New("").Parse(original)
+	if err = t.Execute(&rendered, setup); err != nil {
+		return
+	}
+
+	log.Info(rendered.String())
+
+	if cfgIn, err = config.ParseAsV2_0_0(rendered.Bytes()); err != nil {
+		return
+	}
+	processed, err = json.MarshalIndent(&cfgIn, "", "  ")
+	return
 }
 
 func httpInstanceExternalConnectivity(w http.ResponseWriter, r *http.Request) {

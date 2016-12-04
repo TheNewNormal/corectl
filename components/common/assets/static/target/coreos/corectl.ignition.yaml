@@ -4,10 +4,20 @@ passwd:
   users:
     - name: core
       ssh_authorized_keys:
-        {{ range $element := .SSHAuthorizedKeys }}
+        {{ range $element := .SSHAuthorizedKeys -}}
         - {{$element}}
         {{end}}
 {{end}}
+
+{{- if .UserProvidedFuzeConfigs -}}
+ignition:
+  config:
+    append:
+        {{ range $a,$b := .UserProvidedFuzeConfigs -}}
+        - source: {{$.CorectldEndpoint}}/ignition/append/{{$a}}
+        {{end}}
+{{ end }}
+
 storage:
   {{ if .SetupRoot }}
   disks:
@@ -77,7 +87,7 @@ networkd:
       [Network]
         DHCP=yes
         DNS={{.NetworkdGateway}}
-        Domains={{.NetworkdDns}}
+        Domains={{.DomainName}}
       [DHCP]
         UseDomains=true
 
