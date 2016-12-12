@@ -106,11 +106,6 @@ func Start() (err error) {
 		Daemon.WorkingNFS = true
 		log.Info("VMs will be able to have host's homedir shared via NFS")
 	}
-	// log.Info("checking for VPN setups")
-	// if closeVPNhooks, err = HandleVPNtunnels(); err != nil {
-	// 	return
-	// }
-	// defer closeVPNhooks()
 
 	log.Info("registering locally available images")
 	if Daemon.Media, err = localImages(); err != nil {

@@ -15,16 +15,11 @@
 
 package coreos
 
-import (
-	"time"
-
-	"github.com/TheNewNormal/corectl/components/common/assets"
-)
+import "github.com/TheNewNormal/corectl/components/common/assets"
 
 const (
-	latestImageBreackage = "2016-07-06T00:00:00WET"
-	defaultChannel       = "alpha"
-	defaultVersion       = "latest"
+	defaultChannel = "alpha"
+	defaultVersion = "latest"
 )
 
 var (
@@ -36,8 +31,3 @@ var (
 	CoreOSIgnitionTmpl = assets.
 				Contents("target/coreos/corectl.ignition.yaml")
 )
-
-func LatestImageBreackage() (t time.Time) {
-	t, _ = time.Parse("2006-01-02T15:04:05MST", latestImageBreackage)
-	return
-}

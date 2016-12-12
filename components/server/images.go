@@ -26,11 +26,8 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
-	"time"
 
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/clearsign"
@@ -44,67 +41,63 @@ import (
 	"github.com/blang/semver"
 )
 
-type timeSlice []time.Time
-
-func (s timeSlice) Less(i, j int) bool { return s[i].Before(s[j]) }
-func (s timeSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s timeSlice) Len() int           { return len(s) }
-
 func localImages() (local map[string]semver.Versions, err error) {
-	releasesStore := []os.FileInfo{}
 	local = make(map[string]semver.Versions, 0)
 
 	for _, channel := range coreos.Channels {
-		dir := path.Join(session.Caller.ImageStore(), channel)
-		all := semver.Versions{}
+		releasesStore := []os.FileInfo{}
+		dir := path.Join(session.Caller.ChannelsDir(), channel)
+		available := semver.Versions{}
 
 		if releasesStore, err = ioutil.ReadDir(dir); err != nil {
 			return
 		}
-
 		for _, rev := range releasesStore {
-			if rev.IsDir() {
-				var (
-					ok bool
-					fm os.FileInfo
-				)
-				lastMod := make([]time.Time, 3)
+			if rev.Mode()&os.ModeSymlink == os.ModeSymlink {
+				var ok = true
 
-				for cnt, f := range []string{".vmlinuz", "_image.cpio.gz"} {
+				for _, f := range []string{".vmlinuz", "_image.cpio.gz"} {
 					fn := path.Join(dir, rev.Name(), "coreos_production_pxe"+f)
-					if fm, err = os.Stat(fn); err != nil {
+					if _, err = os.Stat(fn); err != nil {
 						ok = false
 						log.Warn("%v missing - %v/%v ignored",
 							fn, channel, rev.Name())
 						break
 					}
-					ok = true
-					lastMod[cnt] = fm.ModTime()
 				}
-				// we pick as baseline the most recent modTime...
-				lastMod[2] = rev.ModTime()
-				sort.Sort(timeSlice(lastMod))
-				if ok && lastMod[2].After(coreos.LatestImageBreackage()) {
+				if ok {
 					v := semver.Version{}
 					if v, err = semver.Make(rev.Name()); err != nil {
 						return
 					}
-					all = append(all, v)
+					available = append(available, v)
 				} else {
+					// XXX
 					if err =
 						os.RemoveAll(path.Join(dir, rev.Name())); err != nil {
 						return
 					}
-					if ok {
-						log.Warn("%v/%v ignored as it will need to be rebuilt",
-							channel, rev.Name())
-					}
 				}
 			}
 		}
-		semver.Sort(all)
-		local[channel] = all
+		semver.Sort(available)
+		local[channel] = available
 	}
+	all, allReleases := semver.Versions{}, []os.FileInfo{}
+	if allReleases, err = ioutil.ReadDir(session.Caller.ReleasesDir()); err != nil {
+		return
+	}
+	for _, r := range allReleases {
+		if r.IsDir() && r.Name() != "channels" {
+			v := semver.Version{}
+			if v, err = semver.Make(r.Name()); err != nil {
+				return
+			}
+			all = append(all, v)
+		}
+	}
+	semver.Sort(all)
+	local["releases"] = all
 	return
 }
 
@@ -146,6 +139,21 @@ func PullImage(channel, version string,
 			break
 		}
 	}
+	if !available {
+		for _, i := range allChannels["releases"] {
+			if version == i.String() {
+				available = true
+				if err = os.Symlink(path.Join(session.Caller.ReleasesDir(), version),
+					path.Join(session.Caller.ChannelsDir(), channel, version)); err != nil {
+					return
+				}
+				log.Info("reusing %v as it got promoted to %v",
+					version, channel)
+
+				break
+			}
+		}
+	}
 	if available {
 		if !override {
 			log.Debug("%s/%s already available on your system", channel, version)
@@ -163,8 +171,7 @@ func PullImage(channel, version string,
 
 func localize(channel, version string) (b string, err error) {
 	var files map[string]string
-	destination := fmt.Sprintf("%s/%s/%s", session.Caller.ImageStore(),
-		channel, version)
+	destination := path.Join(session.Caller.ReleasesDir(), version)
 
 	if err = os.MkdirAll(destination, 0755); err != nil {
 		return version, err
@@ -174,16 +181,19 @@ func localize(channel, version string) (b string, err error) {
 	}
 	defer func() {
 		for _, location := range files {
-			if e := os.RemoveAll(filepath.Dir(location)); e != nil {
+			if e := os.RemoveAll(path.Dir(location)); e != nil {
 				log.Err(e.Error())
 			}
 		}
 	}()
 	for fn, location := range files {
-		if err = os.Rename(location,
-			fmt.Sprintf("%s/%s", destination, fn)); err != nil {
+		if err = os.Rename(location, path.Join(destination, fn)); err != nil {
 			return version, err
 		}
+	}
+	if err = os.Symlink(destination, path.Join(session.Caller.ChannelsDir(),
+		channel, version)); err != nil {
+		return version, err
 	}
 	if err = session.Caller.NormalizeOnDiskLayout(); err == nil {
 		log.Info("%s/%s ready", channel, version)
@@ -191,15 +201,15 @@ func localize(channel, version string) (b string, err error) {
 	return version, err
 }
 func downloadAndVerify(channel,
-	version string) (l map[string]string, err error) {
+	version string) (location map[string]string, err error) {
 	var (
 		prefix = "coreos_production_pxe"
 		root   = fmt.Sprintf("http://%s.release.core-os.net/amd64-usr/%s/",
 			channel, version)
 		files = []string{fmt.Sprintf("%s.vmlinuz", prefix),
 			fmt.Sprintf("%s_image.cpio.gz", prefix)}
-		signature = fmt.Sprintf("%s%s%s",
-			root, prefix, "_image.cpio.gz.DIGESTS.asc")
+		digestFilename = prefix + "_image.cpio.gz.DIGESTS.asc"
+		signature      = fmt.Sprintf("%s%s", root, digestFilename)
 
 		tmpDir, bzHashSHA512     string
 		output                   *os.File
@@ -211,10 +221,9 @@ func downloadAndVerify(channel,
 		re                       = regexp.MustCompile(
 			`(?m)(?P<method>(SHA1|SHA512)) HASH(?:\r?)\n(?P<hash>` +
 				`.[^\s]*)\s*(?P<file>[\w\d_\.]*)`)
-		keymap   = make(map[string]int)
-		location = make(map[string]string)
+		keymap = make(map[string]int)
 	)
-
+	location = make(map[string]string)
 	log.Info("downloading and verifying %s/%v", channel, version)
 	for _, target := range files {
 		url := fmt.Sprintf("%s%s", root, target)
@@ -231,7 +240,7 @@ func downloadAndVerify(channel,
 		}()
 		token := strings.Split(url, "/")
 		fileName := token[len(token)-1]
-		pack := filepath.Join(tmpDir, "/", fileName)
+		pack := path.Join(tmpDir, fileName)
 		if _, err = http.Head(url); err != nil {
 			return
 		}
@@ -242,7 +251,7 @@ func downloadAndVerify(channel,
 		switch digest.StatusCode {
 		case http.StatusOK, http.StatusNoContent:
 		default:
-			return l, fmt.Errorf("failed fetching %s: HTTP status: %s",
+			return location, fmt.Errorf("failed fetching %s: HTTP status: %s",
 				signature, digest.Status)
 		}
 		if digestRaw, err = ioutil.ReadAll(digest.Body); err != nil {
@@ -264,11 +273,18 @@ func downloadAndVerify(channel,
 		if check, err =
 			openpgp.CheckDetachedSignature(keyring, messageClearRdr,
 				messageClear.ArmoredSignature.Body); err != nil {
-			return l, fmt.Errorf("Signature check for DIGESTS failed.")
+			return location, fmt.Errorf("Signature check for DIGESTS failed.")
 		}
 		if check.PrimaryKey.KeyId == longIDdecodedInt {
 			log.Debug("Trusted key id %d matches keyid %d",
 				longIDdecodedInt, longIDdecodedInt)
+		}
+		if _, ok := location[digestFilename]; !ok {
+			if err = ioutil.WriteFile(path.Join(tmpDir, digestFilename),
+				digestRaw, 0644); err != nil {
+				return
+			}
+			location[digestFilename] = path.Join(tmpDir, digestFilename)
 		}
 		log.Debug("DIGESTS signature OK. ")
 
@@ -296,7 +312,7 @@ func downloadAndVerify(channel,
 		switch r.StatusCode {
 		case http.StatusOK, http.StatusNoContent:
 		default:
-			return l, fmt.Errorf("failed fetching %s: HTTP status: %s",
+			return location, fmt.Errorf("failed fetching %s: HTTP status: %s",
 				signature, r.Status)
 		}
 
@@ -312,7 +328,7 @@ func downloadAndVerify(channel,
 		io.Copy(writer, r.Body)
 		bar.Finish()
 		if hex.EncodeToString(sha512h.Sum([]byte{})) != bzHashSHA512 {
-			return l, fmt.Errorf("SHA512 hash verification failed for %s",
+			return location, fmt.Errorf("SHA512 hash verification failed for %s",
 				fileName)
 		}
 		log.Info("SHA512 hash for %s OK", fileName)

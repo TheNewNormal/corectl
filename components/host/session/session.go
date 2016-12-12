@@ -17,6 +17,7 @@ package session
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -124,7 +125,15 @@ func (ctx *Context) ConfigDir() string {
 
 // ImageStore ...
 func (ctx *Context) ImageStore() string {
-	return path.Join(ctx.ConfigDir(), "/images/")
+	return path.Join(ctx.ConfigDir(), "/assets/")
+}
+
+// Releases ...
+func (ctx *Context) ReleasesDir() string {
+	return path.Join(ctx.ImageStore(), "/coreos/")
+}
+func (ctx *Context) ChannelsDir() string {
+	return path.Join(ctx.ReleasesDir(), "/channels/")
 }
 
 // RunDir ...
@@ -145,14 +154,64 @@ func (ctx *Context) EtcDir() string {
 // NormalizeOnDiskLayout ...
 func (ctx *Context) NormalizeOnDiskLayout() (err error) {
 	// first run
+	if _, err = os.Stat(ctx.ReleasesDir()); os.IsNotExist(err) {
+		if err =
+			os.MkdirAll(ctx.ReleasesDir(), 0755); err != nil {
+			return
+		}
+	}
+
 	for _, i := range coreos.Channels {
 		if err =
-			os.MkdirAll(path.Join(ctx.ImageStore(), i),
+			os.MkdirAll(path.Join(ctx.ChannelsDir(), i),
 				0755); err != nil {
 			return
 		}
 	}
-	for _, i := range []string{ctx.RunDir(), ctx.TmpDir(), ctx.EtcDir()} {
+	// migrate from legacy layout
+	if _, err =
+		os.Stat(path.Join(ctx.ConfigDir(), "images")); err == nil {
+		for _, i := range coreos.Channels {
+			releases := []os.FileInfo{}
+			dir := path.Join(ctx.ConfigDir(), "images", i)
+			if releases, err = ioutil.ReadDir(dir); err != nil {
+				return
+			}
+			for _, rev := range releases {
+				if rev.IsDir() {
+					release := path.Base(rev.Name())
+					origin := path.Join(dir, release)
+					newLoc := path.Join(ctx.ReleasesDir(), release)
+					if _, e := os.Stat(newLoc); os.IsNotExist(e) {
+						if err = os.Rename(origin, newLoc); err != nil {
+							return
+						}
+						log.Info("moving %v to %v", origin, newLoc)
+					}
+					if err = os.RemoveAll(origin); err != nil {
+						return
+					}
+					if err = os.Symlink(newLoc, path.Join(ctx.ChannelsDir(),
+						i, release)); err != nil {
+						return
+					}
+					log.Info("symlinking %v to %v", newLoc,
+						path.Join(ctx.ChannelsDir(), i, release))
+				}
+			}
+		}
+		if err = os.RemoveAll(
+			path.Join(ctx.ConfigDir(), "images")); err != nil {
+			return
+		}
+	}
+	// clean cruft from previous runs ...
+	if err = os.RemoveAll(ctx.TmpDir()); err != nil {
+		return
+	}
+
+	for _, i := range []string{
+		ctx.RunDir(), ctx.TmpDir(), ctx.EtcDir()} {
 		if err = os.MkdirAll(i, 0755); err != nil {
 			return
 		}

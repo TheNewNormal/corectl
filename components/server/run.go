@@ -251,10 +251,10 @@ func (vm *VMInfo) assembleBootPayload() (xArgs []string, err error) {
 		cmdline = "earlyprintk=serial console=ttyS0 coreos.autologin coreos.first_boot=1"
 		prefix  = "coreos_production_pxe"
 		vmlinuz = fmt.Sprintf("%s/%s/%s/%s.vmlinuz",
-			session.Caller.ImageStore(), vm.Channel, vm.Version,
+			session.Caller.ChannelsDir(), vm.Channel, vm.Version,
 			prefix)
 		initrd = fmt.Sprintf("%s/%s/%s/%s_image.cpio.gz",
-			session.Caller.ImageStore(), vm.Channel, vm.Version,
+			session.Caller.ChannelsDir(), vm.Channel, vm.Version,
 			prefix)
 		instr = []string{
 			"-s", "0:0,hostbridge",

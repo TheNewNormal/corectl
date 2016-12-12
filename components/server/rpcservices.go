@@ -32,11 +32,12 @@ import (
 	"time"
 
 	"github.com/TheNewNormal/corectl/components/host/session"
+	"github.com/TheNewNormal/corectl/components/target/coreos"
 	"github.com/TheNewNormal/corectl/release"
 	"github.com/blang/semver"
+	"github.com/deis/pkg/log"
 	"github.com/gorilla/rpc"
 	"github.com/gorilla/rpc/json"
-	"github.com/deis/pkg/log"
 	"github.com/satori/go.uuid"
 )
 
@@ -112,6 +113,7 @@ func (s *RPCservice) RemoveImage(r *http.Request,
 		channel, version = args.Input[0], args.Input[1]
 		x                int
 		y                semver.Version
+		found            bool
 	)
 
 	log.Debug("images:remove")
@@ -121,27 +123,50 @@ func (s *RPCservice) RemoveImage(r *http.Request,
 	}
 
 	Daemon.Lock()
+	defer Daemon.Unlock()
 
 	for x, y = range Daemon.Media[channel] {
 		if version == y.String() {
+			found = true
 			break
 		}
+	}
+	if !found {
+		return fmt.Errorf("%v/%v not found", channel, version)
 	}
 
 	log.Debug("removing %v/%v", channel, version)
 
 	Daemon.Media[channel] =
 		append(Daemon.Media[channel][:x], Daemon.Media[channel][x+1:]...)
-	Daemon.Unlock()
 
 	log.Debug("%s/%s was made unavailable", channel, version)
 
-	if err = os.RemoveAll(path.
-		Join(session.Caller.ImageStore(), channel, y.String())); err != nil {
-		log.Err(err.Error())
+	if err = os.RemoveAll(path.Join(session.Caller.ChannelsDir(),
+		channel, y.String())); err != nil {
 		return
 	}
-
+	found = false
+	for _, yy := range coreos.Channels {
+		if y.String() != yy {
+			for _, yyy := range Daemon.Media[yy] {
+				if version == yyy.String() {
+					found = true
+					break
+				}
+			}
+		}
+		if found == true {
+			break
+		}
+	}
+	// not used elsewhere...
+	if !found {
+		if err = os.RemoveAll(path.Join(session.Caller.ReleasesDir(),
+			y.String())); err != nil {
+			return
+		}
+	}
 	reply.Images, err = localImages()
 	return
 }

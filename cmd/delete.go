@@ -45,7 +45,8 @@ func rmCommand(cmd *cobra.Command, args []string) (err error) {
 		return session.ErrServerUnreachable
 	}
 
-	if reply, err = server.RPCQuery("AvailableImages", &server.RPCquery{}); err != nil {
+	if reply, err = server.RPCQuery("AvailableImages",
+		&server.RPCquery{}); err != nil {
 		return
 	}
 	local := reply.Images
