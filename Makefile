@@ -21,7 +21,7 @@ BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 OPAMROOT ?= ~/.opam
 HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
-HYPERKIT_COMMIT = 6ffa03337e9353d126a85401fb6ada1ad5d62dbe
+HYPERKIT_COMMIT = 7ddb7db34edadfa0184c2893d799660e87919e83
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
@@ -89,7 +89,7 @@ hyperkit: force
 	#   - 1st run
 	# 	  - brew install opam libev
 	# 	  - opam init -y
-	# 	  - opam install --yes uri qcow-format ocamlfind conf-libev
+	# 	  - opam install --yes uri qcow.0.7.0 ocamlfind conf-libev logs fmt
 	#   - maintenance
 	#     - opam update && opam upgrade -y
 	#   - build
