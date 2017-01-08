@@ -17,9 +17,13 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"reflect"
 
 	"github.com/alecthomas/units"
-	"github.com/coreos/ignition/config/types"
+	"github.com/coreos/container-linux-config-transpiler/config/types"
+	ignTypes "github.com/coreos/ignition/config/types"
+	"github.com/coreos/ignition/config/validate"
+	"github.com/coreos/ignition/config/validate/report"
 	"github.com/vincent-petithory/dataurl"
 )
 
@@ -27,17 +31,17 @@ const (
 	BYTES_PER_SECTOR = 512
 )
 
-func ConvertAs2_0_0(in Config) (types.Config, error) {
-	out := types.Config{
-		Ignition: types.Ignition{
-			Version: types.IgnitionVersion{Major: 2, Minor: 0},
+func ConvertAs2_0_0(in types.Config) (ignTypes.Config, report.Report) {
+	out := ignTypes.Config{
+		Ignition: ignTypes.Ignition{
+			Version: ignTypes.IgnitionVersion{Major: 2, Minor: 0},
 		},
 	}
 
 	for _, ref := range in.Ignition.Config.Append {
 		newRef, err := convertConfigReference(ref)
 		if err != nil {
-			return types.Config{}, err
+			return ignTypes.Config{}, report.ReportFromError(err, report.EntryError)
 		}
 		out.Ignition.Config.Append = append(out.Ignition.Config.Append, newRef)
 	}
@@ -45,33 +49,33 @@ func ConvertAs2_0_0(in Config) (types.Config, error) {
 	if in.Ignition.Config.Replace != nil {
 		newRef, err := convertConfigReference(*in.Ignition.Config.Replace)
 		if err != nil {
-			return types.Config{}, err
+			return ignTypes.Config{}, report.ReportFromError(err, report.EntryError)
 		}
 		out.Ignition.Config.Replace = &newRef
 	}
 
 	for _, disk := range in.Storage.Disks {
-		newDisk := types.Disk{
-			Device:    types.Path(disk.Device),
+		newDisk := ignTypes.Disk{
+			Device:    ignTypes.Path(disk.Device),
 			WipeTable: disk.WipeTable,
 		}
 
 		for _, partition := range disk.Partitions {
 			size, err := convertPartitionDimension(partition.Size)
 			if err != nil {
-				return types.Config{}, err
+				return ignTypes.Config{}, report.ReportFromError(err, report.EntryError)
 			}
 			start, err := convertPartitionDimension(partition.Start)
 			if err != nil {
-				return types.Config{}, err
+				return ignTypes.Config{}, report.ReportFromError(err, report.EntryError)
 			}
 
-			newDisk.Partitions = append(newDisk.Partitions, types.Partition{
-				Label:    types.PartitionLabel(partition.Label),
+			newDisk.Partitions = append(newDisk.Partitions, ignTypes.Partition{
+				Label:    ignTypes.PartitionLabel(partition.Label),
 				Number:   partition.Number,
 				Size:     size,
 				Start:    start,
-				TypeGUID: types.PartitionTypeGUID(partition.TypeGUID),
+				TypeGUID: ignTypes.PartitionTypeGUID(partition.TypeGUID),
 			})
 		}
 
@@ -79,41 +83,41 @@ func ConvertAs2_0_0(in Config) (types.Config, error) {
 	}
 
 	for _, array := range in.Storage.Arrays {
-		newArray := types.Raid{
+		newArray := ignTypes.Raid{
 			Name:   array.Name,
 			Level:  array.Level,
 			Spares: array.Spares,
 		}
 
 		for _, device := range array.Devices {
-			newArray.Devices = append(newArray.Devices, types.Path(device))
+			newArray.Devices = append(newArray.Devices, ignTypes.Path(device))
 		}
 
 		out.Storage.Arrays = append(out.Storage.Arrays, newArray)
 	}
 
 	for _, filesystem := range in.Storage.Filesystems {
-		newFilesystem := types.Filesystem{
+		newFilesystem := ignTypes.Filesystem{
 			Name: filesystem.Name,
-			Path: func(p types.Path) *types.Path {
+			Path: func(p ignTypes.Path) *ignTypes.Path {
 				if p == "" {
 					return nil
 				}
 
 				return &p
-			}(types.Path(filesystem.Path)),
+			}(ignTypes.Path(filesystem.Path)),
 		}
 
 		if filesystem.Mount != nil {
-			newFilesystem.Mount = &types.FilesystemMount{
-				Device: types.Path(filesystem.Mount.Device),
-				Format: types.FilesystemFormat(filesystem.Mount.Format),
+			newFilesystem.Mount = &ignTypes.FilesystemMount{
+				Device: ignTypes.Path(filesystem.Mount.Device),
+				Format: ignTypes.FilesystemFormat(filesystem.Mount.Format),
 			}
 
 			if filesystem.Mount.Create != nil {
-				newFilesystem.Mount.Create = &types.FilesystemCreate{
+				newFilesystem.Mount.Create = &ignTypes.FilesystemCreate{
 					Force:   filesystem.Mount.Create.Force,
-					Options: types.MkfsOptions(filesystem.Mount.Create.Options),
+					Options: ignTypes.MkfsOptions(filesystem.Mount.Create.Options),
 				}
 			}
 		}
@@ -122,17 +126,17 @@ func ConvertAs2_0_0(in Config) (types.Config, error) {
 	}
 
 	for _, file := range in.Storage.Files {
-		newFile := types.File{
+		newFile := ignTypes.File{
 			Filesystem: file.Filesystem,
-			Path:       types.Path(file.Path),
-			Mode:       types.FileMode(file.Mode),
-			User:       types.FileUser{Id: file.User.Id},
-			Group:      types.FileGroup{Id: file.Group.Id},
+			Path:       ignTypes.Path(file.Path),
+			Mode:       ignTypes.FileMode(file.Mode),
+			User:       ignTypes.FileUser{Id: file.User.Id},
+			Group:      ignTypes.FileGroup{Id: file.Group.Id},
 		}
 
 		if file.Contents.Inline != "" {
-			newFile.Contents = types.FileContents{
-				Source: types.Url{
+			newFile.Contents = ignTypes.FileContents{
+				Source: ignTypes.Url{
 					Scheme: "data",
 					Opaque: "," + dataurl.EscapeString(file.Contents.Inline),
 				},
@@ -142,38 +146,38 @@ func ConvertAs2_0_0(in Config) (types.Config, error) {
 		if file.Contents.Remote.Url != "" {
 			source, err := url.Parse(file.Contents.Remote.Url)
 			if err != nil {
-				return types.Config{}, err
+				return ignTypes.Config{}, report.ReportFromError(err, report.EntryError)
 			}
 
-			newFile.Contents = types.FileContents{Source: types.Url(*source)}
+			newFile.Contents = ignTypes.FileContents{Source: ignTypes.Url(*source)}
 		}
 
-		if newFile.Contents == (types.FileContents{}) {
-			newFile.Contents = types.FileContents{
-				Source: types.Url{
+		if newFile.Contents == (ignTypes.FileContents{}) {
+			newFile.Contents = ignTypes.FileContents{
+				Source: ignTypes.Url{
 					Scheme: "data",
 					Opaque: ",",
 				},
 			}
 		}
 
-		newFile.Contents.Compression = types.Compression(file.Contents.Remote.Compression)
+		newFile.Contents.Compression = ignTypes.Compression(file.Contents.Remote.Compression)
 		newFile.Contents.Verification = convertVerification(file.Contents.Remote.Verification)
 
 		out.Storage.Files = append(out.Storage.Files, newFile)
 	}
 
 	for _, unit := range in.Systemd.Units {
-		newUnit := types.SystemdUnit{
-			Name:     types.SystemdUnitName(unit.Name),
+		newUnit := ignTypes.SystemdUnit{
+			Name:     ignTypes.SystemdUnitName(unit.Name),
 			Enable:   unit.Enable,
 			Mask:     unit.Mask,
 			Contents: unit.Contents,
 		}
 
 		for _, dropIn := range unit.DropIns {
-			newUnit.DropIns = append(newUnit.DropIns, types.SystemdUnitDropIn{
-				Name:     types.SystemdUnitDropInName(dropIn.Name),
+			newUnit.DropIns = append(newUnit.DropIns, ignTypes.SystemdUnitDropIn{
+				Name:     ignTypes.SystemdUnitDropInName(dropIn.Name),
 				Contents: dropIn.Contents,
 			})
 		}
@@ -182,21 +186,21 @@ func ConvertAs2_0_0(in Config) (types.Config, error) {
 	}
 
 	for _, unit := range in.Networkd.Units {
-		out.Networkd.Units = append(out.Networkd.Units, types.NetworkdUnit{
-			Name:     types.NetworkdUnitName(unit.Name),
+		out.Networkd.Units = append(out.Networkd.Units, ignTypes.NetworkdUnit{
+			Name:     ignTypes.NetworkdUnitName(unit.Name),
 			Contents: unit.Contents,
 		})
 	}
 
 	for _, user := range in.Passwd.Users {
-		newUser := types.User{
+		newUser := ignTypes.User{
 			Name:              user.Name,
 			PasswordHash:      user.PasswordHash,
 			SSHAuthorizedKeys: user.SSHAuthorizedKeys,
 		}
 
 		if user.Create != nil {
-			newUser.Create = &types.UserCreate{
+			newUser.Create = &ignTypes.UserCreate{
 				Uid:          user.Create.Uid,
 				GECOS:        user.Create.GECOS,
 				Homedir:      user.Create.Homedir,
@@ -214,7 +218,7 @@ func ConvertAs2_0_0(in Config) (types.Config, error) {
 	}
 
 	for _, group := range in.Passwd.Groups {
-		out.Passwd.Groups = append(out.Passwd.Groups, types.Group{
+		out.Passwd.Groups = append(out.Passwd.Groups, ignTypes.Group{
 			Name:         group.Name,
 			Gid:          group.Gid,
 			PasswordHash: group.PasswordHash,
@@ -222,39 +226,40 @@ func ConvertAs2_0_0(in Config) (types.Config, error) {
 		})
 	}
 
-	if err := out.AssertValid(); err != nil {
-		return types.Config{}, err
+	r := validate.ValidateWithoutSource(reflect.ValueOf(out))
+	if r.IsFatal() {
+		return ignTypes.Config{}, r
 	}
 
-	return out, nil
+	return out, r
 }
 
-func convertConfigReference(in ConfigReference) (types.ConfigReference, error) {
+func convertConfigReference(in types.ConfigReference) (ignTypes.ConfigReference, error) {
 	source, err := url.Parse(in.Source)
 	if err != nil {
-		return types.ConfigReference{}, err
+		return ignTypes.ConfigReference{}, err
 	}
 
-	return types.ConfigReference{
-		Source:       types.Url(*source),
+	return ignTypes.ConfigReference{
+		Source:       ignTypes.Url(*source),
 		Verification: convertVerification(in.Verification),
 	}, nil
 }
 
-func convertVerification(in Verification) types.Verification {
+func convertVerification(in types.Verification) ignTypes.Verification {
 	if in.Hash.Function == "" || in.Hash.Sum == "" {
-		return types.Verification{}
+		return ignTypes.Verification{}
 	}
 
-	return types.Verification{
-		&types.Hash{
+	return ignTypes.Verification{
+		&ignTypes.Hash{
 			Function: in.Hash.Function,
 			Sum:      in.Hash.Sum,
 		},
 	}
 }
 
-func convertPartitionDimension(in string) (types.PartitionDimension, error) {
+func convertPartitionDimension(in string) (ignTypes.PartitionDimension, error) {
 	if in == "" {
 		return 0, nil
 	}
@@ -272,5 +277,5 @@ func convertPartitionDimension(in string) (types.PartitionDimension, error) {
 	if b%BYTES_PER_SECTOR != 0 {
 		sectors++
 	}
-	return types.PartitionDimension(uint64(sectors)), nil
+	return ignTypes.PartitionDimension(uint64(sectors)), nil
 }

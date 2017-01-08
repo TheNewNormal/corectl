@@ -26,7 +26,7 @@ import (
 
 	"github.com/TheNewNormal/corectl/components/host/session"
 	"github.com/TheNewNormal/corectl/components/target/coreos"
-	"github.com/coreos/fuze/config"
+	"github.com/coreos/container-linux-config-transpiler/config"
 	"github.com/coreos/go-systemd/unit"
 	"github.com/deis/pkg/log"
 	"github.com/gorilla/mux"
@@ -140,9 +140,11 @@ func httpInstanceIgnitionConfig(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Info(rendered.String())
-		if cfgIn, err := config.ParseAsV2_0_0(rendered.Bytes()); err != nil {
+		if cfg, err := config.Parse(rendered.Bytes()); err.IsFatal() {
 			httpError(w, http.StatusInternalServerError)
-		} else if i, err := json.MarshalIndent(&cfgIn, "", "  "); err != nil {
+		} else if ignCfg, report := config.ConvertAs2_0_0(cfg); report.IsFatal() {
+			httpError(w, http.StatusInternalServerError)
+		} else if i, err := json.MarshalIndent(&ignCfg, "", "  "); err != nil {
 			httpError(w, http.StatusInternalServerError)
 		} else {
 			w.Write([]byte(append(i, '\n')))

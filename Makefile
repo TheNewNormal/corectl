@@ -120,7 +120,7 @@ documentation/man: cmd force
 	$(BUILD_DIR)/$(DAEMON) utils genManPages
 	for p in $$(ls $@/*.1); do \
 		$(SED) -i.bak "s/$$($(DATE) '+%h %Y')//" "$$p" ;\
-		$(SED) -i.bak "/spf13\/cobra$$/d" "$$p" ;\
+		$(SED) -i.bak "/spf13\/cobra/d" "$$p" ;\
 		$(RM) "$$p.bak" ;\
 	done
 

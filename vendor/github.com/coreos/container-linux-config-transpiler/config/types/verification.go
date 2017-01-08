@@ -12,29 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
+package types
 
-import (
-	"reflect"
+type Verification struct {
+	Hash Hash `yaml:"hash"`
+}
 
-	"github.com/coreos/ignition/config/types"
-	"github.com/go-yaml/yaml"
-)
-
-func ParseAsV2_0_0(data []byte) (types.Config, error) {
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return types.Config{}, err
-	}
-
-	var keyMap map[interface{}]interface{}
-	if err := yaml.Unmarshal(data, &keyMap); err != nil {
-		return types.Config{}, err
-	}
-
-	if err := assertKeysValid(keyMap, reflect.TypeOf(Config{})); err != nil {
-		return types.Config{}, err
-	}
-
-	return ConvertAs2_0_0(cfg)
+type Hash struct {
+	Function string `yaml:"function"`
+	Sum      string `yaml:"sum"`
 }
