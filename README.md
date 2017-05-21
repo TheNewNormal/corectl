@@ -160,7 +160,7 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
   ```
 
   above, we labeled our volume `rkthdd` which is the *signature* that our
-  [*recipe*](cloud-init/docker-only-with-persistent-storage.txt) expects.
+  [*recipe*](examples/cloud-init/docker-only-with-persistent-storage.txt) expects.
 
   >by relying in *labels* for volume identification we get around the issues we'd
   >have otherwise if we were depending on the actual volume name (/dev/vd...) as
@@ -171,12 +171,12 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
   ```
   ❯❯❯ UUID=deadbeef-dead-dead-dead-deaddeafbeef \
     corectl run --volume absolute_or_relative_path/to/persistent.img \
-    --cloud_config cloud-init/docker-only-with-persistent-storage.txt \
+    --cloud_config examples/cloud-init/docker-only-with-persistent-storage.txt \
     --cpus 2 --memory 2048 --name containerland
   ```
  this will start a VM named `containerland` with the
  volume we created previously attached, 2 virtual cores and 2GB of RAM. The
- provided [cloud-config](cloud-init/docker-only-with-persistent-storage.txt)
+ provided [cloud-config](examples/cloud-init/docker-only-with-persistent-storage.txt)
  will format the given volume (if it wasn't yet) and bind mount both
  ``/var/lib/rkt` and `/var/lib/docker` on top of it. docker will also become
  available through socket activation.
