@@ -10,13 +10,14 @@ Copyright (c) 2015-2016, António Meireles
 
 
 ```
-corectld
+corectld [flags]
 ```
 
 ### Options
 
 ```
   -d, --debug   adds additional verbosity, and options, directed at debugging purposes and power users
+  -h, --help    help for corectld
 ```
 
 ### SEE ALSO

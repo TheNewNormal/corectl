@@ -10,13 +10,19 @@ corectl\-load \- Loads CoreOS instances defined in an instrumentation file.
 
 .SH SYNOPSIS
 .PP
-\fBcorectl load path/to/yourProfile\fP
+\fBcorectl load path/to/yourProfile [flags]\fP
 
 
 .SH DESCRIPTION
 .PP
 Loads CoreOS instances defined in an instrumentation file (either in TOML, JSON or YAML format).
 VMs are always launched by alphabetical order relative to their names.
+
+
+.SH OPTIONS
+.PP
+\fB\-h\fP, \fB\-\-help\fP[=false]
+    help for load
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

@@ -8,13 +8,14 @@ Halts one or more running CoreOS instances
 Halts one or more running CoreOS instances
 
 ```
-corectl kill [VMids]
+corectl kill [VMids] [flags]
 ```
 
 ### Options
 
 ```
-  -a, --all   halts all running instances
+  -a, --all    halts all running instances
+  -h, --help   help for kill
 ```
 
 ### Options inherited from parent commands

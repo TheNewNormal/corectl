@@ -8,7 +8,7 @@ Boots a new CoreOS instance
 Boots a new CoreOS instance
 
 ```
-corectl run
+corectl run [flags]
 ```
 
 ### Options
@@ -18,6 +18,7 @@ corectl run
   -L, --cloud_config string   cloud-config file location (either an URL or a local path)
   -N, --cpus int              VM number of virtual CPUs (default 1)
   -F, --format-root           formats and partitions the (persistent) root volume
+  -h, --help                  help for run
   -m, --memory int            VM's RAM, in MB, per instance (1024 < memory < 8192) (default 1024)
   -n, --name string           names the VM (default is VM's UUID)
   -o, --offline               doesn't go online to check for newer images than the locally available ones unless there is none available.
@@ -26,7 +27,7 @@ corectl run
   -k, --sshkey string         VM's default ssh key
   -u, --uuid string           VM's UUID (default "random")
   -v, --version string        CoreOS version (default "latest")
-  -p, --volume stringSlice    append disk volumes to VM
+  -p, --volume strings        append disk volumes to VM
 ```
 
 ### Options inherited from parent commands

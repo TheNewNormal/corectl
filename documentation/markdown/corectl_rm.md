@@ -8,13 +8,14 @@ Remove(s) CoreOS image(s) from the local filesystem
 Remove(s) CoreOS image(s) from the local filesystem
 
 ```
-corectl rm
+corectl rm [flags]
 ```
 
 ### Options
 
 ```
   -c, --channel string   CoreOS channel (default "alpha")
+  -h, --help             help for rm
   -p, --purge            purges outdated images
   -v, --version string   CoreOS version (default "latest")
 ```

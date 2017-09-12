@@ -10,7 +10,7 @@ corectl\-panic \- Hard kills a running CoreOS instance
 
 .SH SYNOPSIS
 .PP
-\fBcorectl panic [VMids]\fP
+\fBcorectl panic [VMids] [flags]\fP
 
 
 .SH DESCRIPTION
@@ -20,6 +20,10 @@ This feature is intended as a practical way to test and reproduce both cluster f
 
 
 .SH OPTIONS
+.PP
+\fB\-h\fP, \fB\-\-help\fP[=false]
+    help for panic
+
 .PP
 \fB\-r\fP, \fB\-\-random\fP[=false]
     hard kill a randomly choosen running instance

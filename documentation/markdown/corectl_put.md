@@ -8,7 +8,7 @@ copy file to inside VM
 copy file to inside VM
 
 ```
-corectl put path/to/file VMid:/file/path/on/destination
+corectl put path/to/file VMid:/file/path/on/destination [flags]
 ```
 
 ### Examples
@@ -16,6 +16,12 @@ corectl put path/to/file VMid:/file/path/on/destination
 ```
   // copies 'filePath' into '/destinationPath' inside VMid
   corectl put filePath VMid:/destinationPath
+```
+
+### Options
+
+```
+  -h, --help   help for put
 ```
 
 ### Options inherited from parent commands

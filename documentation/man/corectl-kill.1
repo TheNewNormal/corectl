@@ -5,17 +5,27 @@
 
 .SH NAME
 .PP
-corectl\-version \- Shows version information
+corectl\-kill \- Halts one or more running CoreOS instances
 
 
 .SH SYNOPSIS
 .PP
-\fBcorectl version\fP
+\fBcorectl kill [VMids] [flags]\fP
 
 
 .SH DESCRIPTION
 .PP
-Shows version information
+Halts one or more running CoreOS instances
+
+
+.SH OPTIONS
+.PP
+\fB\-a\fP, \fB\-\-all\fP[=false]
+    halts all running instances
+
+.PP
+\fB\-h\fP, \fB\-\-help\fP[=false]
+    help for kill
 
 
 .SH OPTIONS INHERITED FROM PARENT COMMANDS

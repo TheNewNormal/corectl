@@ -8,7 +8,7 @@ Lists the CoreOS images available locally
 Lists the CoreOS images available locally
 
 ```
-corectl ls
+corectl ls [flags]
 ```
 
 ### Options
@@ -16,6 +16,7 @@ corectl ls
 ```
   -a, --all              browses all channels
   -c, --channel string   CoreOS channel (default "alpha")
+  -h, --help             help for ls
   -j, --json             outputs in JSON for easy 3rd party integration
 ```
 

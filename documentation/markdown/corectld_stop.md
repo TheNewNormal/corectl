@@ -8,7 +8,13 @@ Stops corectld
 Stops corectld
 
 ```
-corectld stop
+corectld stop [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for stop
 ```
 
 ### Options inherited from parent commands

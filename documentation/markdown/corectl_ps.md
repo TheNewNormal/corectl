@@ -8,12 +8,13 @@ Lists running CoreOS instances
 Lists running CoreOS instances
 
 ```
-corectl ps
+corectl ps [flags]
 ```
 
 ### Options
 
 ```
+  -h, --help   help for ps
   -j, --json   outputs in JSON for easy 3rd party integration
 ```
 

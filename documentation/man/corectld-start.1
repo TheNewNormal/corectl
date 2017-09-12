@@ -10,7 +10,7 @@ corectld\-start \- Starts corectld
 
 .SH SYNOPSIS
 .PP
-\fBcorectld start\fP
+\fBcorectld start [flags]\fP
 
 
 .SH DESCRIPTION
@@ -26,6 +26,10 @@ Starts corectld
 .PP
 \fB\-D\fP, \fB\-\-domain\fP="coreos.local"
     sets the dns domain under which the created VMs will operate
+
+.PP
+\fB\-h\fP, \fB\-\-help\fP[=false]
+    help for start
 
 .PP
 \fB\-r\fP, \fB\-\-recursive\-nameservers\fP=[8.8.8.8:53,8.8.4.4:53]

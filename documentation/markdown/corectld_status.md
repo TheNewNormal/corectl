@@ -8,7 +8,13 @@ Shows corectld status
 Shows corectld status
 
 ```
-corectld status
+corectld status [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for status
 ```
 
 ### Options inherited from parent commands

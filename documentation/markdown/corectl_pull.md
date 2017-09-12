@@ -8,7 +8,7 @@ Pulls a CoreOS image from upstream
 Pulls a CoreOS image from upstream
 
 ```
-corectl pull
+corectl pull [flags]
 ```
 
 ### Options
@@ -16,6 +16,7 @@ corectl pull
 ```
   -c, --channel string   CoreOS channel (default "alpha")
   -f, --force            forces the rebuild of an image, if already local
+  -h, --help             help for pull
   -v, --version string   CoreOS version (default "latest")
   -w, --warmup           ensures that all (populated) channels are on their latest versions
 ```

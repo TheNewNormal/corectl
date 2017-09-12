@@ -9,13 +9,19 @@ Loads CoreOS instances defined in an instrumentation file (either in TOML, JSON 
 VMs are always launched by alphabetical order relative to their names.
 
 ```
-corectl load path/to/yourProfile
+corectl load path/to/yourProfile [flags]
 ```
 
 ### Examples
 
 ```
   corectl load profiles/demo.toml
+```
+
+### Options
+
+```
+  -h, --help   help for load
 ```
 
 ### Options inherited from parent commands

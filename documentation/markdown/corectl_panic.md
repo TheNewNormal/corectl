@@ -9,12 +9,13 @@ Hard kills a running CoreOS instance.
 This feature is intended as a practical way to test and reproduce both cluster failure scenarios and layouts resilient to them
 
 ```
-corectl panic [VMids]
+corectl panic [VMids] [flags]
 ```
 
 ### Options
 
 ```
+  -h, --help     help for panic
   -r, --random   hard kill a randomly choosen running instance
 ```
 
