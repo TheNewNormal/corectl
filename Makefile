@@ -20,8 +20,8 @@ VERSION := $(shell git describe --abbrev=6 --dirty=+untagged --always --tags)
 BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 OPAMROOT ?= ~/.opam
-HYPERKIT_GIT = "https://github.com/docker/hyperkit.git"
-HYPERKIT_COMMIT = 8975f80ae46ef315e600552328ba63af09b742f7
+HYPERKIT_GIT = "https://github.com/moby/hyperkit.git"
+HYPERKIT_COMMIT =  3e31617
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
@@ -102,10 +102,10 @@ hyperkit: force
 		$(GIT) checkout $(HYPERKIT_COMMIT); \
 		$(MAKE) clean; \
 		$(shell opam config env) $(MAKE) all
-	$(CP) $@/build/com.docker.hyperkit $(BUILD_DIR)/corectld.runner
+	$(CP) $@/build/hyperkit $(BUILD_DIR)/corectld.runner
 	$(RM) examples/dtrace
 	cd $@; \
-		$(SED) -i.bak -e "s,com.docker.hyperkit,corectld.runner,g" dtrace/*.d; \
+		$(SED) -i.bak -e "s,hyperkit,corectld.runner,g" dtrace/*.d; \
 		$(RM) dtrace/*.bak ; \
 		$(CP) -r dtrace ../examples
 
