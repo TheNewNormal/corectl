@@ -21,7 +21,7 @@ BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 OPAMROOT ?= ~/.opam
 HYPERKIT_GIT = "https://github.com/moby/hyperkit.git"
-HYPERKIT_COMMIT =  3e31617
+HYPERKIT_COMMIT =  81fa627
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
