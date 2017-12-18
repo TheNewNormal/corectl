@@ -100,6 +100,7 @@ hyperkit: force
 	$(GIT) clone $(HYPERKIT_GIT)
 	cd $@; \
 		$(GIT) checkout $(HYPERKIT_COMMIT); \
+		$(GIT) checkout 2c8a736c9bd1c86c95b7c4dac0c159c5712ac604 src/lib/block_if.c; \
 		$(MAKE) clean; \
 		$(shell opam config env) $(MAKE) all
 	$(CP) $@/build/hyperkit $(BUILD_DIR)/corectld.runner
