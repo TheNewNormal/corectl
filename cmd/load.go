@@ -27,8 +27,8 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/components/server"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/components/server"
 )
 
 var (

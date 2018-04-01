@@ -31,8 +31,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/release"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/release"
 	"github.com/blang/semver"
 	"github.com/gorilla/rpc"
 	"github.com/gorilla/rpc/json"
@@ -213,7 +213,7 @@ func (s *RPCservice) UUIDtoMACaddr(r *http.Request,
 		if i == 3 && err != nil {
 			err = fmt.Errorf("Something went very wrong, as we're unable to " +
 				"generate a MAC address from the provided UUID. Please fill " +
-				"a bug at https://github.com/TheNewNormal/corectl/issues with " +
+				"a bug at https://github.com/genevera/corectl/issues with " +
 				"this error and wait there for our feedback...")
 		}
 	}

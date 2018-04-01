@@ -30,7 +30,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
+	"github.com/genevera/corectl/components/host/session"
 	backendetcd "github.com/skynetservices/skydns/backends/etcd"
 	skymetrics "github.com/skynetservices/skydns/metrics"
 	skydns "github.com/skynetservices/skydns/server"

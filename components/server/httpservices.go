@@ -24,8 +24,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/components/target/coreos"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/components/target/coreos"
 	"github.com/coreos/fuze/config"
 	"github.com/coreos/go-systemd/unit"
 	"github.com/deis/pkg/log"

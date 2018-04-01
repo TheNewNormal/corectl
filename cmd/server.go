@@ -19,10 +19,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TheNewNormal/corectl/components/host/darwin/misc/uuid2ip"
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/components/server"
-	"github.com/TheNewNormal/corectl/release"
+	"github.com/genevera/corectl/components/host/darwin/misc/uuid2ip"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/components/server"
+	"github.com/genevera/corectl/release"
 	"github.com/deis/pkg/log"
 	"github.com/satori/go.uuid"
 
@@ -65,7 +65,7 @@ func uuidToMacCommand(cmd *cobra.Command, args []string) (err error) {
 		// uuid.NewV4().String() ...
 		err = fmt.Errorf("Something went very wrong, as we're unable to "+
 			"generate a MAC address from the provided UUID (%s). Please fill "+
-			"a bug at https://github.com/TheNewNormal/corectl/issues with "+
+			"a bug at https://github.com/genevera/corectl/issues with "+
 			"this error and wait there for our feedback...", args[0])
 	} else if macAddr, err = uuid2ip.GuestMACfromUUID(args[0]); err == nil {
 		fmt.Println(macAddr)

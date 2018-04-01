@@ -21,9 +21,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/components/server"
-	"github.com/TheNewNormal/corectl/components/target/coreos"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/components/server"
+	"github.com/genevera/corectl/components/target/coreos"
 	"github.com/deis/pkg/log"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"

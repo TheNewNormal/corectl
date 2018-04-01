@@ -33,7 +33,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
+	"github.com/genevera/corectl/components/host/session"
 	"github.com/deis/pkg/log"
 	"github.com/dustin/go-humanize"
 	"golang.org/x/crypto/ssh"

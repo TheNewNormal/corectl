@@ -21,8 +21,8 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/release"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/release"
 	"github.com/deis/pkg/log"
 	"github.com/spf13/cobra"
 )

@@ -25,8 +25,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/release"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/release"
 	"github.com/blang/semver"
 	"github.com/braintree/manners"
 	"github.com/coreos/etcd/client"

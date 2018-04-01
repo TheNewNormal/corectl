@@ -18,8 +18,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/components/server"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/components/server"
 	"github.com/deis/pkg/log"
 	"github.com/spf13/cobra"
 )

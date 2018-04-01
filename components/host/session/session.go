@@ -28,8 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TheNewNormal/corectl/components/target/coreos"
-	"github.com/TheNewNormal/corectl/release"
+	"github.com/genevera/corectl/components/target/coreos"
+	"github.com/genevera/corectl/release"
 	"github.com/bugsnag/osext"
 	"github.com/deis/pkg/log"
 	"github.com/spf13/viper"
