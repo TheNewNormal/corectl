@@ -25,12 +25,12 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/release"
 	"github.com/blang/semver"
 	"github.com/braintree/manners"
 	"github.com/coreos/etcd/client"
 	"github.com/deis/pkg/log"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/release"
 )
 
 type (
@@ -102,6 +102,7 @@ func Start() (err error) {
 	if err = nfsSetup(); err != nil {
 		log.Warn("Unable to setup NFS. " +
 			"No NFS facilities will be exposed to the VMs")
+		log.Warn("%v", err)
 	} else {
 		Daemon.WorkingNFS = true
 		log.Info("VMs will be able to have host's homedir shared via NFS")

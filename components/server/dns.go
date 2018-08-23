@@ -30,7 +30,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
+	"github.com/genevera/corectl/components/host/session"
 	backendetcd "github.com/skynetservices/skydns/backends/etcd"
 	skymetrics "github.com/skynetservices/skydns/metrics"
 	skydns "github.com/skynetservices/skydns/server"
@@ -126,8 +126,8 @@ func (dns *DNSServer) PortForward() (err error) {
 			"from any to any port = domain -> %s port %v\n",
 		WatermarkHeader, session.Caller.Network.Address, EmbeddedDNSport)
 	pfRules.Close()
-	exec.Command("/sbin/pfctl", "-e").Run()
-	return exec.Command("/sbin/pfctl", "-a", "corectld-forwarding-dns",
+	exec.Command("echo", "/sbin/pfctl", "-e").Run()
+	return exec.Command("echo", "/sbin/pfctl", "-a", "corectld-forwarding-dns",
 		"-f", pfRules.Name()).Run()
 }
 
@@ -158,7 +158,7 @@ type runner interface {
 }
 
 func teardownService() {
-	exec.Command("/sbin/pfctl", "-a", "corectld-forwarding-dns", "-Fa").Run()
+	exec.Command("echo", "/sbin/pfctl", "-a", "corectld-forwarding-dns", "-Fa").Run()
 	Daemon.DNSServer.rmRecord("corectld", session.Caller.Network.Address)
 	os.Remove("/etc/resolver/corectld")
 }

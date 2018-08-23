@@ -47,7 +47,7 @@
 
  /* originally at github.com/zchee/docker-machine-xhyve/blob/embed-xhyve/vmnet/
   * and slightly refactored to better fit the golang bindings
-  * github.com/TheNewNormal/corect/host/darwin/misc/uuid2ip
+  * github.com/genevera/corect/host/darwin/misc/uuid2ip
   */
 #include <stdio.h>
 

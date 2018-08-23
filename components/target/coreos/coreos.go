@@ -18,7 +18,7 @@ package coreos
 import (
 	"time"
 
-	"github.com/TheNewNormal/corectl/components/common/assets"
+	"github.com/genevera/corectl/components/common/assets"
 )
 
 const (

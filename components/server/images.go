@@ -35,8 +35,8 @@ import (
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/clearsign"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/components/target/coreos"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/components/target/coreos"
 
 	"github.com/deis/pkg/log"
 	"github.com/rakyll/pb"

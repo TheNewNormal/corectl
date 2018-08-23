@@ -18,8 +18,8 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/TheNewNormal/corectl/components/common/assets"
-	"github.com/TheNewNormal/corectl/components/host/session"
+	"github.com/genevera/corectl/components/common/assets"
+	"github.com/genevera/corectl/components/host/session"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 )

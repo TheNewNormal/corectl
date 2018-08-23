@@ -16,12 +16,13 @@ GOCFG = GOPATH=$(GOPATH) GO15VENDOREXPERIMENT=$(GO15VENDOREXPERIMENT) \
 	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=$(CGO_ENABLED)
 GOBUILD = $(GOCFG) go build
 
+OSVER = $(shell uname -r | cut -d'.' -f1)
 VERSION := $(shell git describe --abbrev=6 --dirty=+untagged --always --tags)
 BUILDDATE = $(shell /bin/date "+%FT%T%Z")
 
 OPAMROOT ?= ~/.opam
 HYPERKIT_GIT = "https://github.com/moby/hyperkit.git"
-HYPERKIT_COMMIT =  3e31617
+HYPERKIT_COMMIT = "v0.20180123"
 
 MKDIR = /bin/mkdir -p
 CP = /bin/cp
@@ -36,7 +37,7 @@ GIT = /usr/bin/git
 
 ifeq ($(DEBUG),true)
     GO_GCFLAGS := $(GO_GCFLAGS) -N -l
-	GOBUILD = $(GOBUILD) -race
+;	GOBUILD = $(GOBUILD) -race
 else
     GO_LDFLAGS := $(GO_LDFLAGS) -w -s
 endif
@@ -97,11 +98,13 @@ hyperkit: force
 	#     - eval `opam config env` && make all
 	$(MKDIR) $(BUILD_DIR)
 	$(RM) $@
-	$(GIT) clone $(HYPERKIT_GIT)
+	$(GIT) clone $(HYPERKIT_GIT);
 	cd $@; \
+		$(shell [[ $(OSVER) -eq 15 ]] && $(GIT) checkout 2c8a736c9bd1c86c95b7c4dac0c159c5712ac604 src/lib/block_if.c) \
 		$(GIT) checkout $(HYPERKIT_COMMIT); \
 		$(MAKE) clean; \
-		$(shell opam config env) $(MAKE) all
+		$(SED) -i'' -e 's/zd/lld/g' src/lib/firmware/bootrom.c; \
+		$(shell opam config env) $(MAKE) all;
 	$(CP) $@/build/hyperkit $(BUILD_DIR)/corectld.runner
 	$(RM) examples/dtrace
 	cd $@; \

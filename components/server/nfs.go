@@ -26,7 +26,7 @@ import (
 	// looks to be the new upstream
 	"github.com/keybase/go-ps"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
+	"github.com/genevera/corectl/components/host/session"
 )
 
 func nfsSetup() (err error) {

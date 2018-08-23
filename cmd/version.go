@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TheNewNormal/corectl/components/host/session"
-	"github.com/TheNewNormal/corectl/components/server"
-	"github.com/TheNewNormal/corectl/release"
+	"github.com/genevera/corectl/components/host/session"
+	"github.com/genevera/corectl/components/server"
+	"github.com/genevera/corectl/release"
 	"github.com/blang/semver"
 	"github.com/deis/pkg/log"
 	"github.com/spf13/cobra"

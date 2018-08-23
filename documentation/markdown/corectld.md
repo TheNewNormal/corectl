@@ -5,7 +5,7 @@ CoreOS over macOS made simple.
 ### Synopsis
 
 
-CoreOS over macOS made simple. <http://github.com/TheNewNormal/corectl>
+CoreOS over macOS made simple. <http://github.com/genevera/corectl>
 Copyright (c) 2015-2016, António Meireles
 
 

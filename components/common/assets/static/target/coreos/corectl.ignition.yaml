@@ -65,8 +65,8 @@ storage:
         ID=corectl
         VERSION_ID={{.CorectlVersion}}
         NAME="CoreOS over macOS made simple"
-        HOME_URL="https://github.com/TheNewNormal/corectl"
-        BUG_REPORT_URL="https://github.com/TheNewNormal/corectl/issues/"
+        HOME_URL="https://github.com/genevera/corectl"
+        BUG_REPORT_URL="https://github.com/genevera/corectl/issues/"
 
 networkd:
   units:
@@ -162,7 +162,7 @@ systemd:
         RemainAfterExit=yes
         StandardOutput=journal+console
         ExecStart=/usr/bin/curl -Ls \
-          https://raw.githubusercontent.com/TheNewNormal/corectl/golang/MAINTAINERS
+          https://raw.githubusercontent.com/genevera/corectl/golang/MAINTAINERS
         ExecStart=/usr/bin/curl -Ls {{.CorectldEndpoint}}/NotIsolated
       [Install]
         RequiredBy=phone-home.service

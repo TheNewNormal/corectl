@@ -22,7 +22,7 @@
 
 #### downloading from GitHub
 
-just go to our **[releases](https://github.com/TheNewNormal/corectl/releases)**
+just go to our **[releases](https://github.com/genevera/corectl/releases)**
 page and download the tarball with the binaries to your system, and then
 unpack its' contents placing them somewhere in some directory in your
 `${PATH}` (`/usr/local/bin/` is usually a good choice)
@@ -30,15 +30,15 @@ unpack its' contents placing them somewhere in some directory in your
 ### build it locally (for power users)
 
   ```
-  ❯❯❯ mkdir -p ${GOPATH}/src/github.com/TheNewNormal/
-  ❯❯❯ cd ${GOPATH}/src/github.com/TheNewNormal/
-  ❯❯❯ git clone git@github.com:TheNewNormal/corectl.git
+  ❯❯❯ mkdir -p ${GOPATH}/src/github.com/genevera/
+  ❯❯❯ cd ${GOPATH}/src/github.com/genevera/
+  ❯❯❯ git clone git@github.com:genevera/corectl.git
   ❯❯❯ cd corectl
   ❯❯❯ make
   ```
 
   > the built binaries will _then_ appear inside
-  > `${GOPATH}/src/github.com/TheNewNormal/corectl/bin`
+  > `${GOPATH}/src/github.com/genevera/corectl/bin`
 
 ## **start the** corectl **server daemon** (**corectld**)
 > this is a **required** step starting with **corectl**'s **0.7.0** release
@@ -73,7 +73,7 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
 ## usage _(straight from the online help)_
 ### **corectld**
   ```
-  CoreOS over macOS made simple. <http://github.com/TheNewNormal/corectl>
+  CoreOS over macOS made simple. <http://github.com/genevera/corectl>
   Copyright (c) 2015-2016, António Meireles
 
   Usage:
@@ -96,7 +96,7 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
   ```
 ### **corectl**
   ```
-  CoreOS over macOS made simple. <http://github.com/TheNewNormal/corectl>
+  CoreOS over macOS made simple. <http://github.com/genevera/corectl>
   Copyright (c) 2015-2016, António Meireles
 
   Usage:
@@ -145,7 +145,7 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
 
 | a quick note regarding Raw volumes |
 | :--------- |
-| **Raw** volumes were the default until version **[0.7.12](https://github.com/TheNewNormal/corectl/releases/tag/v0.7.12)**. <br> They are still supported but become a deprecated feature that may disappear some point in the future. |
+| **Raw** volumes were the default until version **[0.7.12](https://github.com/genevera/corectl/releases/tag/v0.7.12)**. <br> They are still supported but become a deprecated feature that may disappear some point in the future. |
 
 ### *format* and label it
   > we'll format and label the newly create volume from within a transient VM
@@ -212,7 +212,7 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
     Pid:          76807
     Uptime:       25 minutes ago
     Sees World:   true
-    cloud-config: /Users/am/code/corectl/src/github.com/TheNewNormal/corectl/examples/cloud-init/docker-only-with-persistent-storage.txt
+    cloud-config: /Users/am/code/corectl/src/github.com/genevera/corectl/examples/cloud-init/docker-only-with-persistent-storage.txt
     Network:
       eth0:       192.168.64.2
     Volumes:
@@ -271,11 +271,11 @@ and available probes.
 
 - [Rimas Mocevicius](https://github.com/rimusz) entire toolset of macOS GUI apps
 is now using **corectl** underneath, and has become part of the
-[TheNewNormal](http://github.com/TheNewNormal) project
-  - **[Corectl.app controlling app of corectld server daemon](https://github.com/TheNewNormal/corectl.app)**
-  - **[CoreOS VM for macOS](https://github.com/TheNewNormal/coreos-osx)**
-  - **[Kubernetes Solo Cluster for macOS](https://github.com/TheNewNormal/kube-solo-osx)**
-  - **[Multi node Kubernetes Cluster for macOS](https://github.com/TheNewNormal/kube-cluster-osx)**
+[genevera](http://github.com/genevera) project
+  - **[Corectl.app controlling app of corectld server daemon](https://github.com/genevera/corectl.app)**
+  - **[CoreOS VM for macOS](https://github.com/genevera/coreos-osx)**
+  - **[Kubernetes Solo Cluster for macOS](https://github.com/genevera/kube-solo-osx)**
+  - **[Multi node Kubernetes Cluster for macOS](https://github.com/genevera/kube-cluster-osx)**
 
 # acknowledgements
 
