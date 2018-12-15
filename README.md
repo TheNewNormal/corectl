@@ -3,9 +3,9 @@
 | read this first |
 | :----------- |
 |  - You **must** be running macOS Yosemite, 10.10.3, or later on a 2010, or later, Macintosh (i.e. one with a CPU that supports EPT) for everything to work. |
-|  - Starting with **0.7.18** the bundled `qcow-tool` helper has a _runtime_ dependency in `libev`. Until we sort how to build it statically, you need to make it available in the local system - if you are using [homebrew](http://brew.sh) that is as easy as `brew install libev`.|
+|  - Starting with **0.7.18** the bundled `qcow-tool` helper has a _runtime_ dependency in `libev`. Until we sort out how to build it statically, you need to make it available in the local system - if you are using [homebrew](http://brew.sh) that is as easy as `brew install libev`.|
 |  - If you are still using **any** version of VirtualBox older than 4.3.30 then `corectl` will **crash** your system either if VirtualBox is running, or had been run previously after the last reboot (see **xhyve**'s issues [#5](https://github.com/mist64/xhyve/issues/5) and [#9](https://github.com/mist64/xhyve/issues/9) for the full context). So, if for some reason, you are unable to update VirtualBox to the latest, either of the 4.x or 5.x streams, and were using it in your current session please make sure to restart your Mac before attempting to run `corectl`. |
-|  - If you are using some sort of desktop firewall in your macOS host (ESET, Litle Snitch, whatever) please make sure that it **allows traffic from/to the `bridge100` interface to the host** as otherwise no VM will ever able to succefully boot (as it can't fetch the ignition configs, etc from the host's running `corectld`)|
+|  - If you are using some sort of desktop firewall in your macOS host (ESET, Little Snitch, whatever) please make sure that it **allows traffic from/to the `bridge100` interface to the host** as otherwise no VM will ever able to succefully boot (as it can't fetch the ignition configs, etc from the host's running `corectld`)|
 
 
 # step by step instructions
@@ -14,7 +14,7 @@
 
 ### installing a release build (prefered for end users)
 
-#### via [homebrew's](http://brew.sh)
+#### via [homebrew](http://brew.sh)
 
 ```
 ❯❯❯ brew install corectl
@@ -56,7 +56,7 @@ unpack its' contents placing them somewhere in some directory in your
   ❯❯❯ corectl run
   ```
 
-In your terminal you will shortly after something along...
+In your terminal you will shortly see something like the following...
 
   ```
   ❯❯❯  corectl run
@@ -131,7 +131,7 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
 ## simple usage recipe: a **docker** and **rkt** playground
 
 ### create a volume to store your persistent data
-  > [`qcow-tool`](https://github.com/mirage/ocaml-qcow), that we use bellow, is
+  > [`qcow-tool`](https://github.com/mirage/ocaml-qcow), that we use below, is
   > shipped together with **corectl** and creates qcow2 images.
   >
   > Please do note that the `--size` argument
@@ -148,7 +148,7 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
 | **Raw** volumes were the default until version **[0.7.12](https://github.com/genevera/corectl/releases/tag/v0.7.12)**. <br> They are still supported but become a deprecated feature that may disappear some point in the future. |
 
 ### *format* and label it
-  > we'll format and label the newly create volume from within a transient VM
+  > we'll format and label the newly created volume from within a transient VM
   > as it's the simplest way. We're formatting it with `ext4` but you can choose
   > any filesystem you like assuming it is a CoreOS supported one.
 
@@ -178,7 +178,7 @@ Accessing the newly created CoreOS instance is just a few more clicks away...
  volume we created previously attached, 2 virtual cores and 2GB of RAM. The
  provided [cloud-config](examples/cloud-init/docker-only-with-persistent-storage.txt)
  will format the given volume (if it wasn't yet) and bind mount both
- ``/var/lib/rkt` and `/var/lib/docker` on top of it. docker will also become
+ `/var/lib/rkt` and `/var/lib/docker` on top of it. Docker will also become
  available through socket activation.
 
  > above we passed arguments to the VM both via environment variables and
@@ -279,7 +279,7 @@ is now using **corectl** underneath, and has become part of the
 
 # acknowledgements
 
--  [Michael Steil](https://github.com/mist64) for releasing in the wild his
+-  [Michael Steil](https://github.com/mist64) for releasing into the wild his
    awesome [xhyve](https://github.com/mist64/xhyve) lightweight macOS
    virtualization solution
 -  [Docker Inc](http://www.docker.com/) for keep improving it through
@@ -291,6 +291,6 @@ is now using **corectl** underneath, and has become part of the
 
 # contributing
 
-**corectl** is an [open source](http://opensource.org/osd) project release under
+**corectl** is an [open source](http://opensource.org/osd) project released under
 the [Apache License, Version 2.0](http://opensource.org/licenses/Apache-2.0),
-ence contributions and sugestions are gladly welcomed!
+contributions and sugestions are gladly welcomed!
