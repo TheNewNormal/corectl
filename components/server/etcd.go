@@ -103,7 +103,7 @@ func (d *ServerContext) NewEtcd(clientURLStrs,
 	return nil
 }
 
-// Starts starts the etcd server and listening for client connections
+// Start starts starts the etcd server and listening for client connections
 func (e *EtcdServer) Start() (err error) {
 	e.EtcdServer, err = etcdserver.NewServer(e.config)
 	if err != nil {
